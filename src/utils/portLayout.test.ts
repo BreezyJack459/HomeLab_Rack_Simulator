@@ -119,4 +119,37 @@ describe('buildPortLayout', () => {
     expect(groups.length).toBe(1);
     expect(groups[0].slots.length).toBe(4);
   });
+
+  it('stacks default layout groups using only ports on the requested face', () => {
+    const device = makeDevice({
+      category: 'custom',
+      ports: { power: 1, ethernet: 2 },
+      portFaceOverrides: { power: 'front', ethernet: 'rear' }
+    });
+
+    const groups = buildPortLayout(device, 0.5, 0.3, 'rear');
+
+    expect(groups.map((group) => group.type)).toEqual(['ethernet']);
+    expect(groups[0].slots[0].y).toBeGreaterThan(0);
+  });
+
+  it('does not reserve empty rows for skipped custom layout configs', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 8, fiber: 2, power: 1 },
+      portLayouts: {
+        front: [
+          { type: 'ethernet', columns: 4, xRatio: 0.4 },
+          { type: 'power', columns: 1, xRatio: 0.5 },
+          { type: 'fiber', columns: 2, xRatio: 0.8 }
+        ]
+      }
+    });
+
+    const groups = buildPortLayout(device, 0.5, 0.3, 'front');
+
+    expect(groups.map((group) => group.type)).toEqual(['ethernet', 'fiber']);
+    expect(groups[0].slots[0].y).toBeGreaterThan(groups[1].slots[0].y);
+  });
+
 });
