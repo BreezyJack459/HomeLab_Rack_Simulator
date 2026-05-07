@@ -107,46 +107,48 @@ export function buildPortLayout(
 
   if (entries.length === 0) return [];
 
-  // Check for device-specific port layout for this face
+  // Check for device-specific port layout for this face. Only configs that can
+  // render on the requested face should reserve vertical group space; skipped
+  // configs used to leave visible ports compressed or offset into empty rows.
   const faceLayout = device.portLayouts?.[targetFace];
   if (faceLayout && faceLayout.length > 0) {
-    const groups: PortGroup[] = [];
-    let typeConsumed: Record<string, number> = {};
-
-    for (let i = 0; i < faceLayout.length; i++) {
-      const config = faceLayout[i];
+    const typeConsumed: Record<string, number> = {};
+    const renderableConfigs = faceLayout.flatMap((config, sourceIndex) => {
       const totalForType = ports[config.type];
-      if (typeof totalForType !== 'number' || totalForType <= 0) continue;
-      if ((faceMap[config.type] ?? 'rear') !== targetFace) continue;
+      if (typeof totalForType !== 'number' || totalForType <= 0) return [];
+      if ((faceMap[config.type] ?? 'rear') !== targetFace) return [];
 
       const alreadyUsed = typeConsumed[config.type] ?? 0;
       const remaining = totalForType - alreadyUsed;
-      if (remaining <= 0) continue;
+      if (remaining <= 0) return [];
 
       const count = Math.min(config.count ?? remaining, remaining);
+      typeConsumed[config.type] = alreadyUsed + count;
+      return [{ config, sourceIndex, count, startIndex: alreadyUsed }];
+    });
+
+    return renderableConfigs.map(({ config, sourceIndex, count, startIndex }, groupIndex) => {
       const group = layoutPortGroup(
         config.type,
         count,
         device,
         faceWidth,
         faceHeight,
-        faceLayout.length,
+        renderableConfigs.length,
         config.xRatio,
-        i,
-        alreadyUsed,
+        groupIndex,
+        startIndex,
         config.columns
       );
-      group.key = `${config.type}-${i}`;
-      groups.push(group);
-      typeConsumed[config.type] = alreadyUsed + count;
-    }
-    return groups;
+      group.key = `${config.type}-${sourceIndex}`;
+      return group;
+    });
   }
 
   // Default behavior
   const sorted = sortPortTypes(entries, device.category);
-  return sorted.map(([type, count]) =>
-    layoutPortGroup(type, count, device, faceWidth, faceHeight, sorted.length)
+  return sorted.map(([type, count], groupIndex) =>
+    layoutPortGroup(type, count, device, faceWidth, faceHeight, sorted.length, undefined, groupIndex)
   );
 }
 
