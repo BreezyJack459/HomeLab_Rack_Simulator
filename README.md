@@ -1,25 +1,95 @@
 # Homelab Rack Simulator
 
-Interactive React prototype for planning 10-inch and 19-inch homelab rack layouts before buying or moving equipment.
+> Interactive React prototype for planning 10-inch and 19-inch homelab rack layouts before buying or moving equipment.
+
+---
+
+## Overview
+
+Plan your homelab rack layout in 2D, inspect it in 3D, and map every cable — all in the browser with no backend required. The simulator includes a growing library of community-inspired hardware templates, validation warnings for real-world constraints, and full JSON import/export so you can share and iterate on layouts.
+
+---
+
+## Screenshots
+
+### 2D Rack Editor
+
+Drag devices from the library, snap them to U slots, and manage properties in real time. Overlap prevention and multi-device shelf sharing are built in.
+
+![2D Editor — Sample 10-inch Home Cloud](./artifacts/smoke/desktop-2d.png)
+
+![2D Editor — Multi-device Layout](./artifacts/smoke/desktop-2d-multidevice.png)
+
+---
+
+### 3D Inspection View
+
+Rotate, zoom, and compare device depth. The 3D renderer uses approximate dimensions for quick visual validation before you commit to hardware.
+
+![3D Inspection — 19-inch 18U Rack](./artifacts/smoke/desktop-3d-canvas.png)
+
+![3D Inspection — Multi-device Depth View](./artifacts/smoke/desktop-3d-multidevice.png)
+
+---
+
+### Hardware Template Library
+
+60+ built-in templates covering TinyMiniMicro nodes, Mini-PCs, switches, routers, firewalls, NAS, UPS, PDUs, patch panels, KVMs, and more. Filter by category and add to your rack in one click.
+
+![Hardware Template Library](./artifacts/smoke/desktop-hardware-templates.png)
+
+---
+
+### Cable Routing & Map
+
+Plan tray-style routed paths for Ethernet, power, fiber, USB, HDMI, ATX, and coax. The Cable Map gives you a dedicated view to trace connections without cluttering the rack editor.
+
+![Cable Routing — 2D View](./artifacts/smoke/desktop-routing-2d.png)
+
+![Cable Map — Tray-style Routing](./artifacts/smoke/desktop-routing-map.png)
+
+![Cable Routing — 3D View](./artifacts/smoke/desktop-routing-3d.png)
+
+---
+
+### Mobile Responsive
+
+The layout library and property panels adapt to narrower viewports so you can check or tweak your rack on the go.
+
+![Mobile View](./artifacts/smoke/mobile-smoke.png)
+
+---
 
 ## Features
 
-- 10-inch and 19-inch rack support
-- Rack heights: every size from 2U to 45U
-- 2D front/rear rack editor with U numbering, drag/drop, snap-to-U placement and overlap prevention
-- Multiple shelf-mounted devices can share the same U when their horizontal footprints fit
-- Side labels for 1U and narrow devices so names remain readable when rack tiles are cramped
-- Device properties for size, depth, width type, weight, power, heat, color and port counts
-- Port layout columns for realistic front panel planning, such as a 24-port patch panel in one row
-- Community-inspired templates for common homelab gear, including TinyMiniMicro PCs, Minisforum MS-01/UM790 Pro, Protectli Vault, MikroTik CRS305, UniFi rack and desktop gear, ISP modems, Synology NAS, APC UPS units, Raspberry Pi trays, patch panels, and shelf variants
-- IP KVM templates, including JetKVM, Sipeed NanoKVM Full/Lite/PCIe, and PiKVM-style planning profiles
-- Validation warnings for width, overlap, depth, rack weight, UPS placement, heavy devices, heat clustering, airflow and power budget
-- Dedicated Cable Map tab with tray-style routed paths for Ethernet, power, fiber, USB, HDMI, ATX and coax routes
-- 3D inspection view with approximate rack/device dimensions and depth
-- Local save/load, JSON import/export and PNG export of the 2D diagram
-- Seed layouts for a compact 10-inch lab, your on-hand device layout, and one 19-inch home cloud rack
+| Feature | Description |
+|---------|-------------|
+| **Rack Sizes** | 10-inch and 19-inch rack widths; heights from 2U to 45U |
+| **2D Editor** | Front/rear views, U numbering, drag-and-drop, snap-to-U placement, overlap prevention |
+| **Shelf Sharing** | Multiple shelf-mounted devices can share the same U when their horizontal footprints fit |
+| **Side Labels** | 1U and narrow devices show side labels so names remain readable when tiles are cramped |
+| **Device Properties** | Size, depth, width type, weight, power draw, heat level, color, and port counts |
+| **Port Layout Columns** | Realistic front-panel planning — e.g. a 24-port patch panel in one row |
+| **Validation Warnings** | Width, overlap, depth, rack weight, UPS placement, heavy devices, heat clustering, airflow, and power budget |
+| **Cable Map** | Dedicated tab with tray-style routed paths per cable type |
+| **3D Inspection** | Approximate rack and device dimensions with full camera control |
+| **Save / Load / Export** | Local storage, JSON import/export, and PNG export of the 2D diagram |
+| **Seed Layouts** | Compact 10-inch lab, on-hand device layout, and a 19-inch home cloud rack to get started |
 
-## Setup
+---
+
+## Tech Stack
+
+- **React 18** with TypeScript
+- **Vite** for dev and production builds
+- **Zustand** for client-only state management (undo/redo + localStorage persistence)
+- **React Three Fiber / Three.js** for 3D views (lazy-loaded to keep initial bundle small)
+- **Tailwind CSS** for styling
+- **Vitest** for unit and store regression tests
+
+---
+
+## Quick Start
 
 ```bash
 npm install
@@ -38,17 +108,47 @@ Build a production bundle:
 npm run build
 ```
 
-## How The App Is Organized
+---
 
-- `src/types/rack.ts` contains the rack, device, cable and validation data models.
-- `src/data/deviceCatalog.ts` defines the reusable device templates shown in the left sidebar.
-- `src/data/sampleLayouts.ts` contains the seed 10-inch and 19-inch layouts.
-- `src/store/rackStore.ts` owns the layout state and mutation rules.
-- `src/utils/rackMath.ts` contains rack dimensions, snapping, overlap and free-space helpers.
-- `src/utils/validation.ts` contains layout validation rules.
-- `src/components/RackEditor2D.tsx` is the reliable 2D editor.
-- `src/components/RackViewer3D.tsx` renders the React Three Fiber scene.
-- `src/components/three/RackModel.tsx` and `src/components/three/DeviceModel.tsx` render rack/device geometry.
+## Project Structure
+
+```text
+App.tsx (toolbar + view switcher)
+  ├─ ComponentLibrary       ← drag source — device templates
+  ├─ RackEditor2D           ← reliable 2D editor
+  ├─ RackViewer3D           ← React Three Fiber scene (lazy)
+  ├─ CableViewer3D          ← 3D cable routing (lazy)
+  ├─ CableMap               ← tray-style cable map
+  ├─ PropertyPanel          ← selected device editor
+  ├─ CablePlanner           ← cable connection editor
+  └─ ValidationPanel        ← constraint issues
+           │
+           ▼
+    useRackStore (Zustand)  ← all mutations, undo/redo, localStorage
+           │
+           ▼
+    src/utils/*             ← pure functions: rackMath, portLayout,
+                              routing, validation, exporters, powerChain
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/types/rack.ts` | Data models: `RackLayout`, `PlacedDevice`, `CableRoute`, `PortLayout` |
+| `src/data/deviceCatalog.ts` | 60+ reusable device templates shown in the left sidebar |
+| `src/data/sampleLayouts.ts` | Seed 10-inch and 19-inch layouts |
+| `src/store/rackStore.ts` | Layout state, mutations, undo/redo, localStorage persistence |
+| `src/utils/rackMath.ts` | Rack dimensions, snapping, overlap, free-space helpers |
+| `src/utils/portLayout.ts` | Port positioning per device face (consumed by 3D and cable routing) |
+| `src/utils/routing.ts` | Cable path nodes and tray-style routing logic |
+| `src/utils/validation.ts` | Layout validation rules and rack totals |
+| `src/components/RackEditor2D.tsx` | 2D editor with drag/drop and snap |
+| `src/components/RackViewer3D.tsx` | React Three Fiber scene loader |
+| `src/components/three/RackModel.tsx` | Rack frame geometry |
+| `src/components/three/DeviceModel.tsx` | Device geometry and port squares |
+
+---
 
 ## Adding New Device Types
 
@@ -58,13 +158,13 @@ Important fields:
 
 - `category`: one of the supported device categories in `src/types/rack.ts`
 - `defaultU`: default rack height in U
-- `rackMountable`: set to `false` for external gear, such as ceiling APs, that should remain in the library but cannot be placed inside the rack
+- `rackMountable`: set to `false` for external gear (e.g. ceiling APs) that should remain in the library but cannot be placed inside the rack
 - `depthMm`: approximate device depth for validation and 3D
 - `widthType`: `10in`, `19in`, `shelf` or `custom`
 - `customWidthMm`: required for custom-width or shelf-mounted devices when you want realistic fit checks
-- `xMm`: optional placement field on saved devices; it is the left offset inside the usable rack width
+- `xMm`: optional placement field on saved devices; left offset inside the usable rack width
 - `weightKg`, `powerW`, `heatLevel`: used by validation
-- `ports`: optional front port counts for 2D/3D hints. Use `layoutColumns` to control front-panel wrapping.
+- `ports`: optional front port counts for 2D/3D hints. Use `layoutColumns` to control front-panel wrapping
 - `color`: used in both 2D and 3D
 
 Example:
@@ -87,11 +187,13 @@ Example:
 }
 ```
 
-The left library, 2D editor, validation system, JSON export and 3D viewer will pick it up automatically.
+The left library, 2D editor, validation system, JSON export, and 3D viewer will pick it up automatically.
+
+---
 
 ## Template Research Notes
 
-The included hardware templates are planning profiles, not CAD-accurate models. Dimensions, power, and weights are rounded for layout validation and rough airflow/power planning.
+The included hardware templates are **planning profiles**, not CAD-accurate models. Dimensions, power, and weights are rounded for layout validation and rough airflow/power planning.
 
 Reference sources used for the built-in popular hardware set:
 
