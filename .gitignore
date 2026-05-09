@@ -1,6 +1,48 @@
-/.DS_Store
+# Dependencies and package-manager caches
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+
+# Build and tool caches
+dist/
+build/
+.vite/
+.vite-temp/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Test, coverage, and browser artifacts
+coverage/
+test-results/
+playwright-report/
+blob-report/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local agent and handoff files
 /.claude
 /.codex
+/.kimi
+/.opencode
+/.sisyphus
 /AGENTS.md
 /CLAUDE.md
 /DECISIONS.md
@@ -9,6 +51,8 @@
 /PROJECT_CONTEXT.md
 /TASKS.md
 /TRANSFER_FOLLOWUP.md
+/BRAINSTORM.md
+/CODE_REVIEW.md
 /cable-port-selection-redesign.md
 /game-studio-code-review.md
-node_modules
+opencode.json
