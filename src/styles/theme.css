@@ -1,0 +1,68 @@
+/* Theme CSS Variables */
+
+:root {
+  /* Default: dark theme */
+  --theme-bg-body: #0c0f14;
+  --theme-bg-primary: #020617;
+  --theme-bg-secondary: #0f172a;
+  --theme-bg-panel: rgba(2, 6, 23, 0.82);
+  --theme-bg-input: #0f172a;
+  --theme-bg-hover: #1e293b;
+  --theme-border: #1e293b;
+  --theme-border-light: #334155;
+  --theme-text-primary: #f1f5f9;
+  --theme-text-secondary: #94a3b8;
+  --theme-text-muted: #64748b;
+  --theme-accent: #22d3ee;
+  --theme-accent-text: #0f172a;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --theme-bg-body: #f8fafc;
+  --theme-bg-primary: #ffffff;
+  --theme-bg-secondary: #f1f5f9;
+  --theme-bg-panel: rgba(255, 255, 255, 0.95);
+  --theme-bg-input: #f8fafc;
+  --theme-bg-hover: #e2e8f0;
+  --theme-border: #e2e8f0;
+  --theme-border-light: #cbd5e1;
+  --theme-text-primary: #0f172a;
+  --theme-text-secondary: #475569;
+  --theme-text-muted: #94a3b8;
+  --theme-accent: #0891b2;
+  --theme-accent-text: #ffffff;
+}
+
+/* Body background */
+body {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.16), transparent 28rem),
+    linear-gradient(135deg, #0b0d12 0%, #131821 48%, #0d1016 100%);
+  color: var(--theme-text-primary);
+}
+
+/* Light mode: simpler background */
+[data-theme="light"] body {
+  background: var(--theme-bg-body);
+}
+
+/* Scrollbar theming */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-text-muted) var(--theme-bg-secondary);
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: var(--theme-bg-secondary);
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--theme-text-muted);
+  border-radius: 999px;
+}

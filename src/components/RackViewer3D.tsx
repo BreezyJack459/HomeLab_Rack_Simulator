@@ -34,7 +34,7 @@ export function RackViewer3D() {
       </div>
       <CanvasWithRecovery shadows dpr={[1, Math.min(window.devicePixelRatio || 1, 2)]}>
         <SceneSetup
-          cameraPosition={FRONT_CAMERA_POSITION}
+          cameraPosition={cameraPosition}
           fov={42}
           background="#090c12"
           controlsTarget={RACK_CAMERA_TARGET}

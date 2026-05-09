@@ -146,24 +146,22 @@ function StrainRelief({
   color: string;
   atStart: boolean;
 }) {
-  const { pos, quat } = useMemo(() => {
-    // Place boot exactly at the endpoint so cable origin and visual port stay connected.
-    const t = atStart ? 0 : 1;
-    const endpoint = curve.getPointAt(t);
-    const tangent = curve.getTangentAt(t).normalize();
-    const dot = VECTOR_Y_UP.dot(tangent);
-    const orientation = new Quaternion();
-
-    if (Math.abs(dot) > 0.9999) {
-      orientation.setFromAxisAngle(new Vector3(1, 0, 0), dot > 0 ? 0 : Math.PI);
-    } else {
-      const axis = new Vector3().crossVectors(VECTOR_Y_UP, tangent).normalize();
-      const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-      orientation.setFromAxisAngle(axis, angle);
-    }
-
-    return { pos: endpoint, quat: orientation };
-  }, [atStart, curve]);
+  // StrainRelief receives a new CatmullRomCurve3 on every render, so useMemo
+  // on the curve reference would never hit. The math here is cheap enough to
+  // recompute each frame (two getPointAt/getTangentAt calls per boot).
+  const t = atStart ? 0 : 1;
+  const endpoint = curve.getPointAt(t);
+  const tangent = curve.getTangentAt(t).normalize();
+  const dot = VECTOR_Y_UP.dot(tangent);
+  const quat = new Quaternion();
+  if (Math.abs(dot) > 0.9999) {
+    quat.setFromAxisAngle(new Vector3(1, 0, 0), dot > 0 ? 0 : Math.PI);
+  } else {
+    const axis = new Vector3().crossVectors(VECTOR_Y_UP, tangent).normalize();
+    const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+    quat.setFromAxisAngle(axis, angle);
+  }
+  const pos = endpoint;
 
   return (
     <mesh position={pos} quaternion={quat} castShadow>

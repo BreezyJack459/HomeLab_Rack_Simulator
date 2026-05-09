@@ -11,6 +11,7 @@ import type {
   PortRef,
   RackLayout
 } from '../types/rack';
+import { ENABLE_ZERO_U_PDU } from './featureFlags';
 import { getPortFaceMap } from './portLayout';
 
 const STANDARD_U_MM = 44.45;
@@ -64,8 +65,8 @@ const BEND_RADIUS_MM: Record<CableType, number> = {
   structured: 32
 };
 
-function isPdu(device: PlacedDevice): boolean {
-  return device.category === 'pdu' || device.category === 'pdu-0u';
+export function isPdu(device: PlacedDevice): boolean {
+  return device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u');
 }
 
 function isPatchPanel(device: PlacedDevice): boolean {
@@ -203,16 +204,137 @@ function densityRailForCable(layout: RackLayout, cable: CableRoute, rail: 'left'
   return nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
 }
 
-function railDensity(layout: RackLayout, targetCable: CableRoute, rail: 'left' | 'right', separation: 'data' | 'power'): number {
-  return layout.cables.filter((cable) => {
-    if (cable.id === targetCable.id) return false;
-    const from = layout.devices.find((device) => device.id === cable.fromDeviceId);
-    const to = layout.devices.find((device) => device.id === cable.toDeviceId);
-    if (!from || !to) return false;
+// ── Rail stats cache for O(1) density / same-rail lookups ──
+
+interface RailStats {
+  deviceById: Map<string, PlacedDevice>;
+  cableDensityRails: Map<string, 'left' | 'right' | null>;
+  cablePreferredRails: Map<string, 'left' | 'right' | null>;
+  cableSeparations: Map<string, 'data' | 'power'>;
+  densityCounts: Map<string, number>; // key: `${rail}-${separation}`
+  preferredCounts: Map<string, number>; // key: `${rail}-${separation}`
+}
+
+const railStatsCache = new Map<string, RailStats>();
+const MAX_RAIL_CACHE = 8;
+
+function getRailStats(layout: RackLayout): RailStats {
+  const key = `${layout.id}:${layout.updatedAt}`;
+  const cached = railStatsCache.get(key);
+  if (cached) return cached;
+
+  const stats = computeRailStats(layout);
+  railStatsCache.set(key, stats);
+  if (railStatsCache.size > MAX_RAIL_CACHE) {
+    const first = railStatsCache.keys().next().value;
+    if (first) railStatsCache.delete(first);
+  }
+  return stats;
+}
+
+function computeRailStats(layout: RackLayout): RailStats {
+  const deviceById = new Map<string, PlacedDevice>();
+  for (const device of layout.devices) {
+    deviceById.set(device.id, device);
+  }
+
+  const cableDensityRails = new Map<string, 'left' | 'right' | null>();
+  const densityCounts = new Map<string, number>();
+
+  // First pass: densityRail for each cable (used by railDensity)
+  for (const cable of layout.cables) {
+    const from = deviceById.get(cable.fromDeviceId);
+    const to = deviceById.get(cable.toDeviceId);
+    if (!from || !to) {
+      cableDensityRails.set(cable.id, null);
+      continue;
+    }
     const discipline = classifyDiscipline(cable, from, to);
-    const otherSeparation = discipline === 'power' ? 'power' : 'data';
-    return densityRailForCable(layout, cable, rail) === rail && otherSeparation === separation;
-  }).length;
+    if (directFrontPath(cable, from, to)) {
+      cableDensityRails.set(cable.id, null);
+      continue;
+    }
+    const pdu = discipline === 'power' ? (isPdu(from) ? from : isPdu(to) ? to : null) : null;
+    const rail = pdu?.sizeU === 0 ? zeroUEarSide(pdu) : nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
+    cableDensityRails.set(cable.id, rail);
+    const separation = discipline === 'power' ? 'power' : 'data';
+    if (rail) {
+      const key = `${rail}-${separation}`;
+      densityCounts.set(key, (densityCounts.get(key) ?? 0) + 1);
+    }
+  }
+
+  const cablePreferredRails = new Map<string, 'left' | 'right' | null>();
+  const cableSeparations = new Map<string, 'data' | 'power'>();
+  const preferredCounts = new Map<string, number>();
+
+  // Second pass: preferredRail for each cable (used by sameRailCount)
+  for (const cable of layout.cables) {
+    const from = deviceById.get(cable.fromDeviceId);
+    const to = deviceById.get(cable.toDeviceId);
+    if (!from || !to) {
+      cablePreferredRails.set(cable.id, null);
+      continue;
+    }
+    const discipline = classifyDiscipline(cable, from, to);
+    if (directFrontPath(cable, from, to)) {
+      cablePreferredRails.set(cable.id, null);
+      continue;
+    }
+
+    let preferred: 'left' | 'right' | null = null;
+
+    if (discipline === 'power') {
+      const pdu = isPdu(from) ? from : isPdu(to) ? to : null;
+      if (pdu?.sizeU === 0) {
+        preferred = zeroUEarSide(pdu);
+      }
+    }
+
+    const separation = discipline === 'power' ? 'power' : 'data';
+    cableSeparations.set(cable.id, separation);
+
+    if (preferred === null) {
+      const naturalRail = nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
+      const candidates = (['left', 'right'] as const).map((rail) => {
+        const rawLength = candidateLengthForRail(layout, cable, discipline, from, to, rail);
+        const densityKey = `${rail}-${separation}`;
+        const totalDensity = densityCounts.get(densityKey) ?? 0;
+        const thisDensityRail = cableDensityRails.get(cable.id);
+        const density = thisDensityRail === rail ? totalDensity - 1 : totalDensity;
+        return {
+          rail,
+          rawLength,
+          standardLength: standardCableLength(rawLength),
+          density,
+          naturalPenalty: rail === naturalRail ? 0 : 1
+        };
+      });
+      candidates.sort((a, b) => (
+        a.standardLength - b.standardLength ||
+        a.rawLength - b.rawLength ||
+        a.naturalPenalty - b.naturalPenalty ||
+        a.density - b.density
+      ));
+      preferred = candidates[0].rail;
+    }
+
+    cablePreferredRails.set(cable.id, preferred);
+    if (preferred) {
+      const key = `${preferred}-${separation}`;
+      preferredCounts.set(key, (preferredCounts.get(key) ?? 0) + 1);
+    }
+  }
+
+  return { deviceById, cableDensityRails, cablePreferredRails, cableSeparations, densityCounts, preferredCounts };
+}
+
+function railDensity(layout: RackLayout, targetCable: CableRoute, rail: 'left' | 'right', separation: 'data' | 'power'): number {
+  const stats = getRailStats(layout);
+  const key = `${rail}-${separation}`;
+  const total = stats.densityCounts.get(key) ?? 0;
+  const thisRail = stats.cableDensityRails.get(targetCable.id);
+  return thisRail === rail ? total - 1 : total;
 }
 
 function candidateLengthForRail(
@@ -450,30 +572,27 @@ function renderHints(
 }
 
 function sameRailCount(layout: RackLayout, targetCable: CableRoute, targetRail: 'left' | 'right' | null, targetSeparation: 'data' | 'power'): number {
-  return layout.cables.filter((cable) => {
-    if (cable.id === targetCable.id) return false;
-    const from = layout.devices.find((device) => device.id === cable.fromDeviceId);
-    const to = layout.devices.find((device) => device.id === cable.toDeviceId);
-    if (!from || !to) return false;
-    const discipline = classifyDiscipline(cable, from, to);
-    const rail = preferredRail(layout, discipline, cable, from, to);
-    const separation = discipline === 'power' ? 'power' : 'data';
-    return rail === targetRail && separation === targetSeparation;
-  }).length;
+  if (targetRail === null) return 0;
+  const stats = getRailStats(layout);
+  const key = `${targetRail}-${targetSeparation}`;
+  const total = stats.preferredCounts.get(key) ?? 0;
+  const thisRail = stats.cablePreferredRails.get(targetCable.id);
+  const thisSep = stats.cableSeparations.get(targetCable.id);
+  return thisRail === targetRail && thisSep === targetSeparation ? total - 1 : total;
 }
 
 function mixedSeparationOnRail(layout: RackLayout, targetCable: CableRoute, rail: 'left' | 'right' | null, separation: 'data' | 'power'): boolean {
   if (rail === null) return false;
-  return layout.cables.some((cable) => {
-    if (cable.id === targetCable.id) return false;
-    const from = layout.devices.find((device) => device.id === cable.fromDeviceId);
-    const to = layout.devices.find((device) => device.id === cable.toDeviceId);
-    if (!from || !to) return false;
-    const discipline = classifyDiscipline(cable, from, to);
-    const otherRail = preferredRail(layout, discipline, cable, from, to);
-    const otherSeparation = discipline === 'power' ? 'power' : 'data';
-    return otherRail === rail && otherSeparation !== separation;
-  });
+  const stats = getRailStats(layout);
+  const thisRail = stats.cablePreferredRails.get(targetCable.id);
+  const thisSep = stats.cableSeparations.get(targetCable.id);
+  const dataKey = `${rail}-data`;
+  const powerKey = `${rail}-power`;
+  const dataTotal = stats.preferredCounts.get(dataKey) ?? 0;
+  const powerTotal = stats.preferredCounts.get(powerKey) ?? 0;
+  const dataCount = dataTotal - (thisRail === rail && thisSep === 'data' ? 1 : 0);
+  const powerCount = powerTotal - (thisRail === rail && thisSep === 'power' ? 1 : 0);
+  return separation === 'data' ? powerCount > 0 : dataCount > 0;
 }
 
 function planWarnings(
@@ -590,10 +709,10 @@ export function calculateCableNodes(cable: CableRoute, layout: RackLayout): Cabl
   return calculateCablePlan(cable, layout)?.nodes ?? [];
 }
 
-export function pathDescription(cable: CableRoute, nodes: CableNode[], layout: RackLayout): string {
-  const plan = calculateCablePlan(cable, layout);
-  if (plan) {
-    return plan.waypoints
+export function pathDescription(cable: CableRoute, nodes: CableNode[], layout: RackLayout, plan?: CablePlan | null): string {
+  const activePlan = plan ?? calculateCablePlan(cable, layout);
+  if (activePlan) {
+    return activePlan.waypoints
       .filter((point) => point.nodeType || point.role === 'service-loop' || point.role === 'drip-loop')
       .map((point) => {
         if (point.role === 'port') {

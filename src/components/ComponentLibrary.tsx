@@ -50,6 +50,17 @@ export function ComponentLibrary() {
     }
   }, [category]);
 
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     visibleCategories.forEach((c) => {

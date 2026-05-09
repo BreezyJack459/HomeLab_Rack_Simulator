@@ -131,6 +131,45 @@ export function PropertyPanel() {
           </label>
 
           <label className="text-xs text-slate-400">
+            Description
+            <textarea
+              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white outline-none"
+              value={device.description ?? ''}
+              onChange={(event) => patch({ description: event.target.value })}
+              placeholder="Optional notes or description"
+              rows={3}
+            />
+          </label>
+
+          <label className="text-xs text-slate-400">
+            Status
+            <select
+              className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+              value={device.lifecycleStatus ?? 'active'}
+              onChange={(event) => patch({ lifecycleStatus: event.target.value as import('../types/rack').LifecycleStatus })}
+            >
+              <option value="active">Active</option>
+              <option value="planned">Planned</option>
+              <option value="decommissioning">Decommissioning</option>
+            </select>
+          </label>
+
+          {(device.category === 'ups' || device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u')) && (
+            <label className="text-xs text-slate-400">
+              Circuit
+              <select
+                className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                value={device.circuit ?? ''}
+                onChange={(event) => patch({ circuit: event.target.value ? (event.target.value as 'A' | 'B') : undefined })}
+              >
+                <option value="">Unassigned</option>
+                <option value="A">Circuit A</option>
+                <option value="B">Circuit B</option>
+              </select>
+            </label>
+          )}
+
+          <label className="text-xs text-slate-400">
             Mount side
             <select
               className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
