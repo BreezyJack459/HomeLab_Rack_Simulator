@@ -731,7 +731,7 @@ export function CablePlanner() {
                     {((plan?.nodes.length ?? 0) > 0 || (route.nodes?.length ?? 0) > 0) && (
                       <span className="mt-0.5 block text-[10px] text-slate-600">
                         {patchLabel ? `${patchLabel} / ` : ''}
-                        {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout)}
+                        {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout, plan)}
                       </span>
                     )}
                   </span>

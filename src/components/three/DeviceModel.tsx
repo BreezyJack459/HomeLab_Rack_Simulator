@@ -1,10 +1,21 @@
 import { Text } from '@react-three/drei';
+import { useMemo } from 'react';
 import type { PlacedDevice, RackLayout } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
 import { buildPortLayout } from '../../utils/portLayout';
 import { getDeviceWorldBox, ZERO_U_REAR_GAP, ZERO_U_SIDE_GAP } from '../../utils/rackGeometry';
 import { UNIT_BOX_GEOMETRY } from './sharedGeometries';
+
+function lifecycleTint(color: string, status?: string): string {
+  if (status !== 'decommissioning') return color;
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+  const avg = Math.round((r + g + b) / 3);
+  const hex = avg.toString(16).padStart(2, '0');
+  return `#${hex}${hex}${hex}`;
+}
 
 /** Render ports on one face using the shared layout engine */
 function DevicePortFace({
@@ -20,7 +31,10 @@ function DevicePortFace({
   z: number;
   face: 'front' | 'rear';
 }) {
-  const groups = buildPortLayout(device, deviceWidth, deviceHeight, face);
+  const groups = useMemo(
+    () => buildPortLayout(device, deviceWidth, deviceHeight, face),
+    [device.category, device.ports, device.portLayouts, device.portFaceOverrides, deviceWidth, deviceHeight, face]
+  );
   if (groups.length === 0) return null;
 
   return (
@@ -70,7 +84,10 @@ function DeviceZeroUSideFace({
   xOffset: number;
   textRotY: number;
 }) {
-  const groups = buildPortLayout(device, faceWidth, faceHeight, 'front');
+  const groups = useMemo(
+    () => buildPortLayout(device, faceWidth, faceHeight, 'front'),
+    [device.category, device.ports, device.portLayouts, device.portFaceOverrides, faceWidth, faceHeight]
+  );
   if (groups.length === 0) return null;
 
   return (
@@ -199,7 +216,9 @@ export function DeviceModel({ device, layout, rackWidth, rackDepth, rackHeight, 
       >
         <boxGeometry args={[width, height, isShelf ? Math.max(depth, 0.55) : depth]} />
         <meshStandardMaterial
-          color={device.color}
+          color={lifecycleTint(device.color, device.lifecycleStatus)}
+          transparent={device.lifecycleStatus === 'planned'}
+          opacity={device.lifecycleStatus === 'planned' ? 0.55 : 1}
           emissive={selected ? '#06b6d4' : heatEmissive(device.heatLevel)}
           emissiveIntensity={selected ? (isZeroU ? 0.15 : 0.35) : isZeroU ? 0.12 : device.heatLevel >= 4 ? 0.16 : 0.04}
           metalness={isShelf ? 0.32 : isZeroU ? 0.25 : 0.12}

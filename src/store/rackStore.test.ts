@@ -220,3 +220,205 @@ describe('rackStore incremental cable recompute', () => {
     expect(state.selectedDeviceId).toBe('dev-a');
   });
 });
+
+describe('rackStore store operations', () => {
+  beforeEach(() => {
+    useRackStore.getState().newLayout('19in', 12);
+  });
+
+  it('addDeviceFromTemplate adds device and selects it', () => {
+    const added = useRackStore.getState().addDeviceFromTemplate('cat6-patch-12');
+    expect(added).toBe(true);
+    const state = useRackStore.getState();
+    expect(state.layout.devices.length).toBe(1);
+    expect(state.layout.devices[0].name).toBe('12-port patch panel');
+    expect(state.selectedDeviceId).toBe(state.layout.devices[0].id);
+  });
+
+  it('addDeviceFromTemplate rejects non-rack-mountable devices', () => {
+    const added = useRackStore.getState().addDeviceFromTemplate('unifi-u7-pro');
+    expect(added).toBe(false);
+    expect(useRackStore.getState().layout.devices.length).toBe(0);
+  });
+
+  it('addDeviceFromTemplate rejects overlapping placement', () => {
+    useRackStore.getState().addDeviceFromTemplate('cat6-patch-12', 1);
+    const added = useRackStore.getState().addDeviceFromTemplate('cat6-patch-24', 1);
+    expect(added).toBe(false);
+    expect(useRackStore.getState().layout.devices.length).toBe(1);
+  });
+
+  it('addDeviceFromTemplate places device at requested position when specified', () => {
+    const added = useRackStore.getState().addDeviceFromTemplate('cat6-patch-12', 5);
+    expect(added).toBe(true);
+    const device = useRackStore.getState().layout.devices[0];
+    expect(device.positionU).toBe(5);
+  });
+
+  it('addCable creates cable with computed nodes', () => {
+    useRackStore.getState().addDeviceFromTemplate('cat6-patch-12', 1);
+    useRackStore.getState().addDeviceFromTemplate('cat6-patch-12', 3);
+    const state = useRackStore.getState();
+    const dev1 = state.layout.devices[0];
+    const dev2 = state.layout.devices[1];
+
+    useRackStore.getState().addCable({
+      fromDeviceId: dev1.id,
+      toDeviceId: dev2.id,
+      fromPort: { type: 'ethernet', index: 0 },
+      toPort: { type: 'ethernet', index: 0 },
+      type: 'ethernet',
+      color: '#0ea5e9'
+    });
+
+    const nextState = useRackStore.getState();
+    expect(nextState.layout.cables.length).toBe(1);
+    expect((nextState.layout.cables[0]?.nodes ?? []).length).toBeGreaterThan(0);
+    expect(nextState.selectedCableId).toBe(nextState.layout.cables[0].id);
+    expect(nextState.selectedDeviceId).toBeNull();
+  });
+
+  it('addCable rejects self-connection', () => {
+    useRackStore.getState().addDeviceFromTemplate('cat6-patch-12', 1);
+    const dev = useRackStore.getState().layout.devices[0];
+
+    useRackStore.getState().addCable({
+      fromDeviceId: dev.id,
+      toDeviceId: dev.id,
+      fromPort: { type: 'ethernet', index: 0 },
+      toPort: { type: 'ethernet', index: 0 },
+      type: 'ethernet',
+      color: '#0ea5e9'
+    });
+
+    expect(useRackStore.getState().layout.cables.length).toBe(0);
+  });
+
+  it('removeCable deletes cable and clears selection', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    useRackStore.getState().selectCable('cable-ab');
+
+    useRackStore.getState().removeCable('cable-ab');
+
+    const state = useRackStore.getState();
+    expect(state.layout.cables.some((c) => c.id === 'cable-ab')).toBe(false);
+    expect(state.selectedCableId).toBeNull();
+  });
+
+  it('undo restores previous layout state', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    const before = useRackStore.getState().layout;
+
+    useRackStore.getState().removeDevice('dev-a');
+    const after = useRackStore.getState().layout;
+    expect(after.devices.length).toBeLessThan(before.devices.length);
+
+    useRackStore.getState().undo();
+    const undone = useRackStore.getState().layout;
+    expect(undone.devices.length).toBe(before.devices.length);
+    expect(undone.devices.some((d) => d.id === 'dev-a')).toBe(true);
+  });
+
+  it('redo restores undone layout state', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    useRackStore.getState().removeDevice('dev-a');
+
+    const afterRemoval = useRackStore.getState().layout;
+    useRackStore.getState().undo();
+    useRackStore.getState().redo();
+
+    const redone = useRackStore.getState().layout;
+    expect(redone.devices.length).toBe(afterRemoval.devices.length);
+    expect(redone.devices.some((d) => d.id === 'dev-a')).toBe(false);
+  });
+
+  it('canUndo and canRedo reflect history state', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    expect(useRackStore.getState().canUndo()).toBe(false);
+    expect(useRackStore.getState().canRedo()).toBe(false);
+
+    useRackStore.getState().removeDevice('dev-a');
+    expect(useRackStore.getState().canUndo()).toBe(true);
+    expect(useRackStore.getState().canRedo()).toBe(false);
+
+    useRackStore.getState().undo();
+    expect(useRackStore.getState().canUndo()).toBe(false);
+    expect(useRackStore.getState().canRedo()).toBe(true);
+  });
+
+  it('updateRack with non-geometric patch skips cable recompute', () => {
+    useRackStore.getState().loadLayout(testLayout);
+
+    const layout = useRackStore.getState().layout;
+    const cableAB = layout.cables.find((c) => c.id === 'cable-ab')!;
+    const abNodesBefore = cableAB.nodes;
+
+    useRackStore.getState().updateRack({ name: 'Renamed Rack', powerBudgetW: 1500 });
+
+    const nextLayout = useRackStore.getState().layout;
+    const cableABAfter = nextLayout.cables.find((c) => c.id === 'cable-ab')!;
+    expect(cableABAfter.nodes).toBe(abNodesBefore);
+    expect(nextLayout.name).toBe('Renamed Rack');
+    expect(nextLayout.powerBudgetW).toBe(1500);
+  });
+
+  it('updateRack with geometric patch recomputes cables', () => {
+    useRackStore.getState().loadLayout(testLayout);
+
+    const layout = useRackStore.getState().layout;
+    const cableAB = layout.cables.find((c) => c.id === 'cable-ab')!;
+    const abNodesBefore = cableAB.nodes;
+
+    useRackStore.getState().updateRack({ rackDepthMm: 900 });
+
+    const nextLayout = useRackStore.getState().layout;
+    const cableABAfter = nextLayout.cables.find((c) => c.id === 'cable-ab')!;
+    expect(cableABAfter.nodes).not.toBe(abNodesBefore);
+    expect(nextLayout.rackDepthMm).toBe(900);
+  });
+
+  it('newLayout resets state to blank layout', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    useRackStore.getState().newLayout('10in', 6);
+
+    const state = useRackStore.getState();
+    expect(state.layout.devices.length).toBe(0);
+    expect(state.layout.cables.length).toBe(0);
+    expect(state.layout.rackType).toBe('10in');
+    expect(state.layout.heightU).toBe(6);
+    expect(state.selectedDeviceId).toBeNull();
+    expect(state.canUndo()).toBe(false);
+    expect(state.canRedo()).toBe(false);
+  });
+
+  it('selectDevice and selectCable update selection state', () => {
+    useRackStore.getState().loadLayout(testLayout);
+
+    useRackStore.getState().selectDevice('dev-b');
+    expect(useRackStore.getState().selectedDeviceId).toBe('dev-b');
+    expect(useRackStore.getState().selectedCableId).toBeNull();
+
+    useRackStore.getState().selectCable('cable-ab');
+    expect(useRackStore.getState().selectedCableId).toBe('cable-ab');
+    expect(useRackStore.getState().selectedDeviceId).toBeNull();
+  });
+
+  it('setRackHeight removes devices that no longer fit', () => {
+    useRackStore.getState().loadLayout(testLayout);
+
+    useRackStore.getState().setRackHeight(5);
+    const state = useRackStore.getState();
+    expect(state.layout.heightU).toBe(5);
+    expect(state.layout.devices.some((d) => d.id === 'dev-d')).toBe(false);
+    expect(state.layout.cables.some((c) => c.id === 'cable-cd')).toBe(false);
+  });
+
+  it('setRackType updates rack dimensions and reclamps device positions', () => {
+    useRackStore.getState().loadLayout(testLayout);
+
+    useRackStore.getState().setRackType('10in');
+    const state = useRackStore.getState();
+    expect(state.layout.rackType).toBe('10in');
+    expect(state.layout.powerBudgetW).toBe(450);
+  });
+});

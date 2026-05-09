@@ -58,7 +58,8 @@ function templateToDevice(template: DeviceTemplate, positionU: number, xMm?: num
     mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
     mountSide0U: template.mountSide0U,
     outletFacing: template.outletFacing,
-    color: template.color
+    color: template.color,
+    description: template.description
   };
 }
 
@@ -380,10 +381,11 @@ export const useRackStore = create<RackState>((set, get) => ({
       set({ statusMessage: 'Cable route needs two different devices.' });
       return;
     }
-    const cable = { ...route, id: newId('cable') };
-    cable.nodes = calculateCableNodes(cable, layout);
+    const cableId = newId('cable');
+    const cable = { ...route, id: cableId, nodes: calculateCableNodes({ ...route, id: cableId }, layout) };
+    const changedIds = new Set([route.fromDeviceId, route.toDeviceId]);
     set({
-      layout: touch({ ...layout, cables: [...layout.cables, cable] }),
+      layout: touch({ ...layout, cables: [...layout.cables, cable] }, changedIds),
       selectedCableId: cable.id,
       selectedDeviceId: null,
       statusMessage: 'Cable route added.'
@@ -392,8 +394,15 @@ export const useRackStore = create<RackState>((set, get) => ({
 
   removeCable: (cableId) => {
     const layout = get().layout;
+    const next = { ...layout, cables: layout.cables.filter((cable) => cable.id !== cableId) };
+    const updated = { ...next, updatedAt: new Date().toISOString() };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Ignore storage quota errors
+    }
     set({
-      layout: touch({ ...layout, cables: layout.cables.filter((cable) => cable.id !== cableId) }),
+      layout: updated,
       selectedCableId: null,
       statusMessage: 'Cable route removed.'
     });
@@ -401,7 +410,20 @@ export const useRackStore = create<RackState>((set, get) => ({
 
   updateRack: (patch) => {
     const layout = get().layout;
-    set({ layout: touch({ ...layout, ...patch }), statusMessage: null });
+    const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'rackType', 'heightU', 'viewSide']);
+    const needsRecompute = Object.keys(patch).some((key) => geometricKeys.has(key));
+    const next = { ...layout, ...patch };
+    if (needsRecompute) {
+      set({ layout: touch(next), statusMessage: null });
+    } else {
+      const updated = { ...next, updatedAt: new Date().toISOString() };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {
+        // Ignore storage quota errors
+      }
+      set({ layout: updated, statusMessage: null });
+    }
   },
 
   setRackType: (rackType) => {
@@ -534,10 +556,7 @@ useRackStore.subscribe((state, prevState) => {
       useRackStore.setState({ skipNextHistory: false });
       return;
     }
-    if (
-      state.layout !== prevState.layout &&
-      (state.layout.updatedAt !== prevState.layout.updatedAt || state.layout.id !== prevState.layout.id)
-    ) {
+    if (state.layout !== prevState.layout) {
       const history = state.history.slice(0, state.historyIndex + 1);
       history.push(cloneLayout(state.layout));
       const trimmedHistory = history.length > MAX_HISTORY ? history.slice(1) : history;

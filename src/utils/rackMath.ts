@@ -270,3 +270,21 @@ export function estimateCableLength(
 
   return standardCableLength(verticalMm + horizontalMm + CABLE_SLACK_MM);
 }
+
+export function getDepthSummary(layout: RackLayout) {
+  const devices = layout.devices.filter((d) => d.sizeU > 0);
+  const usableDepthMm = Math.max(0, layout.rackDepthMm - (layout.rearClearanceMm ?? 0));
+  const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);
+  return { usableDepthMm, deepestMm };
+}
+
+export function getCenterOfGravityU(layout: RackLayout): { cgU: number; totalWeightKg: number } | null {
+  const rackMounted = layout.devices.filter((d) => d.sizeU > 0);
+  const totalWeightKg = rackMounted.reduce((sum, d) => sum + d.weightKg, 0);
+  if (totalWeightKg === 0) return null;
+  const totalMoment = rackMounted.reduce((sum, d) => {
+    const centerU = d.positionU + (d.sizeU - 1) / 2;
+    return sum + d.weightKg * centerU;
+  }, 0);
+  return { cgU: totalMoment / totalWeightKg, totalWeightKg };
+}

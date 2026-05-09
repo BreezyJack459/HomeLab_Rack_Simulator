@@ -6,6 +6,7 @@ import {
   defaultWeightLimit,
   findFirstFreeSlot,
   formatCableLength,
+  getCenterOfGravityU,
   getDefaultDeviceX,
   getDeviceWidthMm,
   getDeviceXRange,
@@ -252,5 +253,51 @@ describe('getDeviceXRange', () => {
     const device = makeDevice({ sizeU: 0, mountSide0U: 'right', widthType: 'shelf' });
     const range = getDeviceXRange(baseLayout, device);
     expect(range.x).toBeCloseTo(482.6, 1);
+  });
+});
+
+describe('getCenterOfGravityU', () => {
+  it('returns null for empty layout', () => {
+    expect(getCenterOfGravityU(baseLayout)).toBeNull();
+  });
+
+  it('calculates CG for single device at center', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [makeDevice({ positionU: 5, sizeU: 2, weightKg: 10 })],
+    };
+    const cg = getCenterOfGravityU(layout);
+    expect(cg).not.toBeNull();
+    expect(cg!.cgU).toBe(5.5);
+    expect(cg!.totalWeightKg).toBe(10);
+  });
+
+  it('calculates weighted average for multiple devices', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice({ positionU: 1, sizeU: 1, weightKg: 20 }),
+        makeDevice({ positionU: 10, sizeU: 1, weightKg: 10 }),
+      ],
+    };
+    const cg = getCenterOfGravityU(layout);
+    expect(cg).not.toBeNull();
+    // (20*1 + 10*10) / 30 = 120/30 = 4
+    expect(cg!.cgU).toBe(4);
+    expect(cg!.totalWeightKg).toBe(30);
+  });
+
+  it('ignores zero-U devices', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice({ positionU: 1, sizeU: 1, weightKg: 10 }),
+        makeDevice({ sizeU: 0, weightKg: 5 }),
+      ],
+    };
+    const cg = getCenterOfGravityU(layout);
+    expect(cg).not.toBeNull();
+    expect(cg!.cgU).toBe(1);
+    expect(cg!.totalWeightKg).toBe(10);
   });
 });

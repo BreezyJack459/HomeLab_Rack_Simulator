@@ -703,7 +703,7 @@ export function CableMap() {
                     {from.name} <span className="text-slate-500">to</span> {to.name}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {pathDescription(cable, plan.nodes, layout)}
+                    {pathDescription(cable, plan.nodes, layout, plan)}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                     <span>U{from.positionU} to U{to.positionU}</span>

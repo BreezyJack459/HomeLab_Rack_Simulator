@@ -1,7 +1,6 @@
 import type { PlacedDevice, RackLayout, ValidationIssue } from '../types/rack';
-import { ENABLE_ZERO_U_PDU } from './featureFlags';
 import { getPatchPanelJacks } from './patchPanel';
-import { calculateCablePlan } from './routing';
+import { calculateCablePlan, isPdu } from './routing';
 import {
   getDeviceWidthMm,
   getDeviceMountSide,
@@ -13,9 +12,12 @@ import {
   occupiedUnits,
   RACK_SPECS,
   getDeviceXRange,
+  getCenterOfGravityU,
   rangesOverlap,
   isZeroU
 } from './rackMath';
+import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW } from './powerChain';
+import { getServiceabilityIssues } from './serviceability';
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
@@ -85,9 +87,10 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     }
 
     if (!isZeroU(device) && hasOverlap(layout, layout.devices, device)) {
+      const severity = device.lifecycleStatus === 'planned' ? 'warning' : device.lifecycleStatus === 'decommissioning' ? 'info' : 'critical';
       issues.push({
         id: `overlap-${device.id}`,
-        severity: 'critical',
+        severity,
         title: `${device.name} overlaps another device`,
         detail: 'Move or resize one of the components so its U range and horizontal footprint do not collide.',
         deviceIds: [device.id]
@@ -189,6 +192,16 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     });
   }
 
+  const cg = getCenterOfGravityU(layout);
+  if (cg && cg.cgU > layout.heightU * 0.6) {
+    issues.push({
+      id: 'center-of-gravity-high',
+      severity: 'warning',
+      title: 'Rack center of gravity is high',
+      detail: `Center of gravity is at U${cg.cgU.toFixed(1)} (${((cg.cgU / layout.heightU) * 100).toFixed(0)}% of rack height). Move heavy devices lower for stability.`,
+    });
+  }
+
   const power = totalPower(layout.devices);
   if (power > layout.powerBudgetW) {
     issues.push({
@@ -204,6 +217,21 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       title: 'Power usage is near the budget',
       detail: `Estimated usage is ${power}W, over 80% of the configured budget.`
     });
+  }
+
+  // Per-circuit safe breaker utilization
+  const circuitLoads = getCircuitLoads(layout);
+  for (const cl of circuitLoads) {
+    const totalCapacity = cl.sources.reduce((sum, s) => sum + (getDeviceCapacityW(s) ?? 0), 0);
+    if (totalCapacity > 0 && cl.totalW > totalCapacity * 0.8) {
+      issues.push({
+        id: `circuit-overload-${cl.circuit}`,
+        severity: 'warning',
+        title: `Circuit ${cl.circuit} load exceeds safe breaker utilization`,
+        detail: `Circuit ${cl.circuit} load is ${cl.totalW}W, over 80% of ${totalCapacity}W total source capacity. Consider adding more capacity or moving devices to the other circuit.`,
+        deviceIds: cl.sources.map((s) => s.id),
+      });
+    }
   }
 
   const highHeatDevices = layout.devices.filter((device) => !isZeroU(device) && device.heatLevel >= 4);
@@ -346,7 +374,6 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
 
     // Power cables should preferably connect to a PDU.
     if (cable.type === 'power') {
-      const isPdu = (d: PlacedDevice) => d.category === 'pdu' || (ENABLE_ZERO_U_PDU && d.category === 'pdu-0u');
       if (!isPdu(from) && !isPdu(to)) {
         issues.push({
           id: `power-no-pdu-${cable.id}`,
@@ -375,13 +402,13 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
         const connectedDistance =
           connectedPdu.sizeU === 0
             ? Math.abs((poweredDevice.xMm ?? 0) - (connectedPdu.xMm ?? 0))
-            : Math.abs(poweredDevice.positionU - (connectedPdu.positionU + connectedPdu.sizeU / 2));
+            : Math.abs(poweredDevice.positionU - (connectedPdu.positionU + (connectedPdu.sizeU - 1) / 2));
         const hasNearer = pdus.some((candidate) => {
           if (candidate.id === connectedPdu.id) return false;
           const dist =
             candidate.sizeU === 0
               ? Math.abs((poweredDevice.xMm ?? 0) - (candidate.xMm ?? 0))
-              : Math.abs(poweredDevice.positionU - (candidate.positionU + candidate.sizeU / 2));
+              : Math.abs(poweredDevice.positionU - (candidate.positionU + (candidate.sizeU - 1) / 2));
           return dist < connectedDistance;
         });
         if (hasNearer) {
@@ -554,7 +581,6 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       (cable) => cable.type === 'power' && (cable.fromDeviceId === server.id || cable.toDeviceId === server.id)
     );
     if (powerCables.length === 0) return;
-    const isPdu = (d: PlacedDevice) => d.category === 'pdu' || (ENABLE_ZERO_U_PDU && d.category === 'pdu-0u');
     const pduZones = powerCables
       .map((cable) => {
         const pdu = layout.devices.find((d) => isPdu(d) && (d.id === cable.fromDeviceId || d.id === cable.toDeviceId));
@@ -575,14 +601,45 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     }
   });
 
+  // Circuit-level redundancy check for dual-PSU servers
+  const redundancyResults = checkPowerRedundancy(layout);
+  for (const result of redundancyResults) {
+    if (!result.isRedundant) {
+      issues.push({
+        id: `redundancy-${result.device.id}`,
+        severity: 'warning',
+        title: 'Redundant power feeds share the same circuit',
+        detail: `${result.device.name} has ${result.powerCables.length} power cable(s) but they all trace back to Circuit ${result.circuits[0] ?? 'unassigned'}. For true redundancy, connect each PSU to a different circuit (A and B).`,
+        deviceIds: [result.device.id],
+        cableIds: result.powerCables.map((c) => c.id),
+      });
+    }
+  }
+
+  // Serviceability checks
+  issues.push(...getServiceabilityIssues(layout));
+
   return issues;
 }
 
 export function getRackTotals(layout: RackLayout) {
+  const devices = layout.devices.filter((d) => !isZeroU(d));
+  const rearClearanceMm = layout.rearClearanceMm ?? 0;
+  const railMinDepthMm = layout.railMinDepthMm ?? 0;
+  const railMaxDepthMm = layout.railMaxDepthMm ?? layout.rackDepthMm;
+  const usableDepth = Math.max(0, layout.rackDepthMm - rearClearanceMm);
+  const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);
+  const tooDeep = devices.filter((d) => d.depthMm > usableDepth).length;
+  const tooShallow = devices.filter((d) => d.depthMm < railMinDepthMm).length;
+  const tooDeepForRails = devices.filter((d) => d.depthMm > railMaxDepthMm).length;
+
   return {
     weightKg: totalWeight(layout.devices),
     powerW: totalPower(layout.devices),
     heatScore: layout.devices.reduce((sum, device) => sum + device.heatLevel * Math.max(1, device.sizeU), 0),
-    occupiedU: occupiedUnits(layout.devices, layout.heightU).size
+    occupiedU: occupiedUnits(layout.devices, layout.heightU).size,
+    usableDepthMm: usableDepth,
+    deepestMm,
+    depthIssues: tooDeep + tooShallow + tooDeepForRails,
   };
 }

@@ -3,7 +3,7 @@ import { DragEvent, PointerEvent, useEffect, useMemo, useRef, useState } from 'r
 import { deviceCatalog } from '../data/deviceCatalog';
 import { useRackStore } from '../store/rackStore';
 import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, ViewSide } from '../types/rack';
-import { clampDevicePosition, clampDeviceX, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap } from '../utils/portLayout';
 import { pathDescription } from '../utils/routing';
 
@@ -210,6 +210,7 @@ export function RackEditor2D() {
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * BASE_UNIT_HEIGHT;
   const rackUsable = RACK_SPECS[layout.rackType].usableWidthMm;
+  const cg = useMemo(() => getCenterOfGravityU(layout), [layout]);
   const visibleDevices = useMemo(
     () =>
       layout.devices.filter((device) => {
@@ -658,6 +659,33 @@ export function RackEditor2D() {
                 </svg>
               )}
 
+              {cg && (
+                <div
+                  className="pointer-events-none absolute z-10 flex w-full items-center"
+                  style={{
+                    top: (layout.heightU - cg.cgU) * BASE_UNIT_HEIGHT,
+                    height: 1,
+                  }}
+                >
+                  <div
+                    className="h-px w-full"
+                    style={{
+                      backgroundColor: cg.cgU > layout.heightU * 0.5 ? '#f59e0b' : '#34d399',
+                      opacity: 0.85,
+                    }}
+                  />
+                  <span
+                    className="absolute right-1 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: cg.cgU > layout.heightU * 0.5 ? 'rgba(245,158,11,0.15)' : 'rgba(52,211,153,0.15)',
+                      color: cg.cgU > layout.heightU * 0.5 ? '#fbbf24' : '#34d399',
+                    }}
+                  >
+                    CG U{cg.cgU.toFixed(1)}
+                  </span>
+                </div>
+              )}
+
               {rackDevices.map((device) => {
                 const deviceIsZeroU = isZeroU(device);
                 const rackHeightPx = layout.heightU * BASE_UNIT_HEIGHT;
@@ -681,7 +709,7 @@ export function RackEditor2D() {
                     data-zero-u={deviceIsZeroU}
                     className={`absolute select-none rounded-md border px-3 shadow-lg transition ${compact ? 'py-1' : 'py-2'} ${
                       selected ? 'border-cyan-300 ring-2 ring-cyan-300/40' : 'border-white/20 hover:border-cyan-300/70'
-                    } ${dragging?.deviceId === device.id ? 'opacity-55' : ''}`}
+                    } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                     style={{
                       top: top + 3,
                       left,
@@ -691,7 +719,9 @@ export function RackEditor2D() {
                         layout.viewSide === 'rear'
                           ? `linear-gradient(135deg, rgba(15, 23, 42, 0.98), ${device.color}88)`
                           : `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
-                      zIndex: deviceIsZeroU ? 5 : undefined
+                      zIndex: deviceIsZeroU ? 5 : undefined,
+                      borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
+                      filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
                     }}
                     onPointerDown={(event) => startDeviceDrag(event, device)}
                     onClick={(event) => {
@@ -704,7 +734,7 @@ export function RackEditor2D() {
                       selectDevice(device.id);
                       setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
                     }}
-                    title={`${device.name}: ${layout.viewSide} view, ${deviceIsZeroU ? '0U (side)' : `${device.sizeU}U at U${device.positionU}`}`}
+                    title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: ${layout.viewSide} view, ${deviceIsZeroU ? '0U (side)' : `${device.sizeU}U at U${device.positionU}`}`}
                   >
                     {selected && !deviceIsZeroU && (
                       <div
@@ -828,13 +858,15 @@ export function RackEditor2D() {
                         data-device-category={device.category}
                         className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
                           selected ? 'border-cyan-300 ring-2 ring-cyan-300/40' : 'border-white/20 hover:border-cyan-300/70'
-                        } ${dragging?.deviceId === device.id ? 'opacity-55' : ''}`}
+                        } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                         style={{
                           top: 3,
                           left: 0,
                           width: SIDE_STRIP_WIDTH,
                           height: rackHeight - 6,
-                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`
+                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
+                          borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
+                          filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
                         }}
                         onPointerDown={(event) => startDeviceDrag(event, device)}
                         onClick={(event) => {
@@ -847,7 +879,7 @@ export function RackEditor2D() {
                           selectDevice(device.id);
                           setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
                         }}
-                        title={`${device.name}: 0U ${device.mountType ?? 'rear-rail'} (left rail)`}
+                        title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: 0U ${device.mountType ?? 'rear-rail'} (left rail)`}
                       >
                         <div className="flex h-full flex-col justify-between overflow-hidden py-1">
                           <div className="min-w-0">
@@ -895,13 +927,15 @@ export function RackEditor2D() {
                         data-device-category={device.category}
                         className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
                           selected ? 'border-cyan-300 ring-2 ring-cyan-300/40' : 'border-white/20 hover:border-cyan-300/70'
-                        } ${dragging?.deviceId === device.id ? 'opacity-55' : ''}`}
+                        } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                         style={{
                           top: 3,
                           left: 0,
                           width: SIDE_STRIP_WIDTH,
                           height: rackHeight - 6,
-                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`
+                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
+                          borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
+                          filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
                         }}
                         onPointerDown={(event) => startDeviceDrag(event, device)}
                         onClick={(event) => {
@@ -914,7 +948,7 @@ export function RackEditor2D() {
                           selectDevice(device.id);
                           setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
                         }}
-                        title={`${device.name}: 0U ${device.mountType ?? 'rear-rail'} (right rail)`}
+                        title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: 0U ${device.mountType ?? 'rear-rail'} (right rail)`}
                       >
                         <div className="flex h-full flex-col justify-between overflow-hidden py-1">
                           <div className="min-w-0">
@@ -1143,7 +1177,7 @@ export function RackEditor2D() {
                                 selectCable(null);
                               }}
                               style={{ borderLeftColor: selected ? '#67e8f9' : device.color }}
-                              title={`${device.name}: ${device.sizeU}U at U${device.positionU}`}
+                              title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: ${device.sizeU}U at U${device.positionU}`}
                               type="button"
                             >
                               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: device.color }} />

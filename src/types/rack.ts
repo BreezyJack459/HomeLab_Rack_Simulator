@@ -66,6 +66,8 @@ export interface DeviceTemplate {
   description: string;
 }
 
+export type LifecycleStatus = 'active' | 'planned' | 'decommissioning';
+
 export interface PlacedDevice {
   id: string;
   templateId?: string;
@@ -93,6 +95,11 @@ export interface PlacedDevice {
   outletFacing?: OutletFacing;
   color: string;
   label?: string;
+  description?: string;
+  lifecycleStatus?: LifecycleStatus;
+  batteryWh?: number;
+  circuit?: 'A' | 'B';
+  noiseDb?: number;
 }
 
 export type PortType = 'ethernet' | 'fiber' | 'usb' | 'hdmi' | 'power' | 'atx' | 'coax';
@@ -199,6 +206,7 @@ export interface CableRoute {
   color: string;
   notes?: string;
   nodes?: CableNode[];
+  lifecycleStatus?: LifecycleStatus;
   lengthMm?: number;
 }
 
@@ -214,6 +222,10 @@ export interface RackLayout {
   devices: PlacedDevice[];
   cables: CableRoute[];
   updatedAt: string;
+  rearClearanceMm?: number;
+  railMinDepthMm?: number;
+  railMaxDepthMm?: number;
+  electricityRatePerKwh?: number;
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';

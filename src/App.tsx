@@ -18,11 +18,21 @@ import {
 } from 'lucide-react';
 import { CableMap } from './components/CableMap';
 import { CablePlanner } from './components/CablePlanner';
+import { CableTracePanel } from './components/CableTracePanel';
 import { ComponentLibrary } from './components/ComponentLibrary';
+import { DepthCompatibilityPanel } from './components/DepthCompatibilityPanel';
+import { DocumentationAuditPanel } from './components/DocumentationAuditPanel';
+import { EnergySummary } from './components/EnergySummary';
+import { MigrationSummaryPanel } from './components/MigrationSummaryPanel';
+import { NoiseSummary } from './components/NoiseSummary';
 import { PowerChainPanel } from './components/PowerChainPanel';
 import { PropertyPanel } from './components/PropertyPanel';
 import { RackEditor2D } from './components/RackEditor2D';
 const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
+import { RackHealthDashboard } from './components/RackHealthDashboard';
+import { ServiceabilityPanel } from './components/ServiceabilityPanel';
+import { ThemeToggle } from './components/ThemeToggle';
+import { UpsRuntimePanel } from './components/UpsRuntimePanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { sampleLayouts } from './data/sampleLayouts';
 import { useRackStore } from './store/rackStore';
@@ -197,6 +207,7 @@ function App() {
                 <Cable size={16} />
                 Cables
               </button>
+              <ThemeToggle />
             </div>
           </div>
 
@@ -474,9 +485,18 @@ function App() {
               </div>
             </div>
           </section>
+          <RackHealthDashboard layout={layout} />
+          <EnergySummary layout={layout} onRateChange={(rate) => updateRack({ electricityRatePerKwh: rate })} />
+          <NoiseSummary layout={layout} />
+          <UpsRuntimePanel />
           <PropertyPanel />
           <CablePlanner />
+          <CableTracePanel />
+          <DepthCompatibilityPanel />
           <PowerChainPanel />
+          <MigrationSummaryPanel />
+          <ServiceabilityPanel layout={layout} />
+          <DocumentationAuditPanel />
           <ValidationPanel
             issues={issues}
             totals={totals}
