@@ -6,7 +6,7 @@
 
 ## Overview
 
-Plan your homelab rack layout in 2D, inspect it in 3D, and map every cable — all in the browser with no backend required. The simulator includes a growing library of community-inspired hardware templates, validation warnings for real-world constraints, and full JSON import/export so you can share and iterate on layouts.
+Plan your homelab rack layout in 2D, inspect it in 3D, and map every cable — all in the browser with no backend required. The simulator includes a growing library of community-inspired hardware templates, validation warnings for real-world constraints, power/noise/runtime planning panels, and full JSON import/export so you can share and iterate on layouts.
 
 ---
 
@@ -34,7 +34,7 @@ Rotate, zoom, and compare device depth. The 3D renderer uses approximate dimensi
 
 ### Hardware Template Library
 
-60+ built-in templates covering TinyMiniMicro nodes, Mini-PCs, switches, routers, firewalls, NAS, UPS, PDUs, patch panels, KVMs, and more. Filter by category and add to your rack in one click.
+90+ built-in templates covering TinyMiniMicro nodes, Mini-PCs, switches, routers, firewalls, NAS, UPS, PDUs, patch panels, KVMs, access points, modems, SBCs, cable-management parts, and more. Filter by category and add to your rack in one click.
 
 ![Hardware Template Library](./artifacts/smoke/desktop-hardware-templates.png)
 
@@ -71,10 +71,13 @@ The layout library and property panels adapt to narrower viewports so you can ch
 | **Device Properties** | Size, depth, width type, weight, power draw, heat level, color, and port counts |
 | **Port Layout Columns** | Realistic front-panel planning — e.g. a 24-port patch panel in one row |
 | **Validation Warnings** | Width, overlap, depth, rack weight, UPS placement, heavy devices, heat clustering, airflow, and power budget |
+| **Rack Health Panels** | At-a-glance utilization, energy cost, noise estimate, UPS runtime, depth compatibility, serviceability, and documentation audit |
+| **Power Chain Planning** | Model UPS/PDU/device power relationships and trace load paths |
+| **Cable Trace** | Inspect endpoint-to-endpoint cable runs, including patch, structured cabling, power, fiber, USB, HDMI, ATX, and coax |
 | **Cable Map** | Dedicated tab with tray-style routed paths per cable type |
 | **3D Inspection** | Approximate rack and device dimensions with full camera control |
 | **Save / Load / Export** | Local storage, JSON import/export, and PNG export of the 2D diagram |
-| **Seed Layouts** | Compact 10-inch lab, on-hand device layout, and a 19-inch home cloud rack to get started |
+| **Seed Layouts** | Compact 10-inch edge lab, on-hand device layout, 4-zone routing test layout, and a 19-inch home cloud rack to get started |
 
 ---
 
@@ -86,6 +89,7 @@ The layout library and property panels adapt to narrower viewports so you can ch
 - **React Three Fiber / Three.js** for 3D views (lazy-loaded to keep initial bundle small)
 - **Tailwind CSS** for styling
 - **Vitest** for unit and store regression tests
+- **Playwright** for smoke screenshots and browser-level checks
 
 ---
 
@@ -108,6 +112,18 @@ Build a production bundle:
 npm run build
 ```
 
+Run the regression suite:
+
+```bash
+npm test
+```
+
+Refresh the cable-routing screenshots after starting the dev server:
+
+```bash
+npm run smoke:cables
+```
+
 ---
 
 ## Project Structure
@@ -121,6 +137,10 @@ App.tsx (toolbar + view switcher)
   ├─ CableMap               ← tray-style cable map
   ├─ PropertyPanel          ← selected device editor
   ├─ CablePlanner           ← cable connection editor
+  ├─ CableTracePanel        ← endpoint trace detail
+  ├─ PowerChainPanel        ← UPS/PDU/device power path checks
+  ├─ RackHealthDashboard    ← rack utilization summary
+  ├─ Energy / Noise / UPS   ← operating-cost, acoustic, runtime panels
   └─ ValidationPanel        ← constraint issues
            │
            ▼
@@ -143,8 +163,14 @@ App.tsx (toolbar + view switcher)
 | `src/utils/portLayout.ts` | Port positioning per device face (consumed by 3D and cable routing) |
 | `src/utils/routing.ts` | Cable path nodes and tray-style routing logic |
 | `src/utils/validation.ts` | Layout validation rules and rack totals |
+| `src/utils/powerChain.ts` | UPS/PDU/device load path analysis |
+| `src/utils/upsRuntime.ts` | Runtime estimates for UPS-backed load |
+| `src/utils/serviceability.ts` | Rear/front access and maintenance clearance checks |
+| `src/utils/documentationAudit.ts` | Documentation and labeling completeness checks |
 | `src/components/RackEditor2D.tsx` | 2D editor with drag/drop and snap |
 | `src/components/RackViewer3D.tsx` | React Three Fiber scene loader |
+| `src/components/CableMap.tsx` | Cable map tab and routed SVG trace view |
+| `src/components/CableViewer3D.tsx` | Lazy-loaded 3D cable routing scene |
 | `src/components/three/RackModel.tsx` | Rack frame geometry |
 | `src/components/three/DeviceModel.tsx` | Device geometry and port squares |
 
