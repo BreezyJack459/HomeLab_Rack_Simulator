@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RackLayout } from '../types/rack';
-
-function getMigrationSummary(layout: RackLayout) {
-  return {
-    plannedDevices: layout.devices.filter((d) => d.lifecycleStatus === 'planned'),
-    activeDevices: layout.devices.filter((d) => !d.lifecycleStatus || d.lifecycleStatus === 'active'),
-    decommissioningDevices: layout.devices.filter((d) => d.lifecycleStatus === 'decommissioning'),
-    plannedCables: layout.cables.filter((c) => c.lifecycleStatus === 'planned'),
-    activeCables: layout.cables.filter((c) => !c.lifecycleStatus || c.lifecycleStatus === 'active'),
-    decommissioningCables: layout.cables.filter((c) => c.lifecycleStatus === 'decommissioning'),
-  };
-}
+import { getMigrationSummary } from './migrationCalc';
 
 const baseLayout: RackLayout = {
   id: 'test',

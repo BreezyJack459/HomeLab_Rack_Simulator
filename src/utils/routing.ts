@@ -13,8 +13,10 @@ import type {
 } from '../types/rack';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
 import { getPortFaceMap } from './portLayout';
+import { getDeviceXRange } from './rackMath';
 
 const STANDARD_U_MM = 44.45;
+const CABLE_SLACK_MM = 300;
 const FACE_EXIT_MM = 120;
 const MANAGER_HOP_MM = 180;
 const SIDE_TRAY_CLEARANCE_MM = 260;
@@ -158,6 +160,34 @@ export function standardCableLength(estimatedMm: number): number {
     if (estimatedMm <= length) return length;
   }
   return STANDARD_CABLE_LENGTHS_MM[STANDARD_CABLE_LENGTHS_MM.length - 1];
+}
+
+export function estimateCableLength(
+  layout: RackLayout,
+  cable: Pick<CableRoute, 'fromDeviceId' | 'toDeviceId' | 'lengthMm'>
+): number {
+  if (cable.lengthMm && cable.lengthMm > 0) return cable.lengthMm;
+
+  if ('id' in cable && 'type' in cable) {
+    const plan = calculateCablePlan(cable as CableRoute, layout);
+    if (plan) return standardCableLength(plan.estimatedLengthMm);
+  }
+
+  const from = layout.devices.find((d) => d.id === cable.fromDeviceId);
+  const to = layout.devices.find((d) => d.id === cable.toDeviceId);
+  if (!from || !to) return 0;
+
+  const fromCenterU = from.positionU + (from.sizeU - 1) / 2;
+  const toCenterU = to.positionU + (to.sizeU - 1) / 2;
+  const verticalMm = Math.abs(fromCenterU - toCenterU) * STANDARD_U_MM;
+
+  const fromRange = getDeviceXRange(layout, from);
+  const toRange = getDeviceXRange(layout, to);
+  const fromCenterX = fromRange.x + fromRange.width / 2;
+  const toCenterX = toRange.x + toRange.width / 2;
+  const horizontalMm = Math.abs(fromCenterX - toCenterX);
+
+  return standardCableLength(verticalMm + horizontalMm + CABLE_SLACK_MM);
 }
 
 function classifyDiscipline(cable: CableRoute, from: PlacedDevice, to: PlacedDevice): CableRoutingDiscipline {

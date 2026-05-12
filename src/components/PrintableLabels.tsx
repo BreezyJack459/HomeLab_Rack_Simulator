@@ -96,7 +96,7 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       }
     }
     return labels;
-  }, [layout]);
+  }, [layout.devices, layout.cables]);
 
   const visibleLabels = useMemo(() => {
     let labels: { text: string; sub?: string; type: 'ru' | 'device' | 'patch-panel'; length?: string }[] = [];
@@ -170,7 +170,7 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       <div className={`print-label-grid ${presetClass}`}>
         {visibleLabels.map((label, index) => (
           <div
-            key={index}
+            key={`${label.type}-${label.text}-${label.sub ?? ''}-${label.length ?? ''}-${index}`}
             className={`print-label ${label.type === 'device' ? 'print-label-device' : ''} ${label.type === 'patch-panel' ? 'print-label-device' : ''}`}
           >
             <div className="print-label-text">{label.text}</div>

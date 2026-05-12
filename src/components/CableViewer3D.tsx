@@ -337,7 +337,7 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
   const bottom = -rackHeight / 2;
   const selectedCableIds = useMemo(
     () => getPatchPanelLinkedCableIds(layout, selectedCableId),
-    [layout, selectedCableId]
+    [layout.cables, layout.devices, selectedCableId]
   );
   const [expandedBundles, setExpandedBundles] = useState<Set<string>>(new Set());
 
@@ -367,7 +367,7 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
         };
       })
       .filter(Boolean) as Route3D[];
-  }, [layout, rackDepth, rackHeight, rackWidth, typeFilter, selectedCableIds, cableRoutingMode]);
+  }, [layout.cables, layout.devices, layout.rackType, layout.rackDepthMm, layout.heightU, rackDepth, rackHeight, rackWidth, typeFilter, selectedCableIds, cableRoutingMode]);
 
   const recommendation = useMemo(() => {
     const managementCount = layout.devices.filter((device) => device.category === 'cable-management').length;

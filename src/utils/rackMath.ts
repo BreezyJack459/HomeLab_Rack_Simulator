@@ -1,5 +1,4 @@
-import type { CableRoute, PlacedDevice, RackLayout, RackType, SpatialZone, ViewSide } from '../types/rack';
-import { calculateCablePlan } from './routing';
+import type { PlacedDevice, RackLayout, RackType, SpatialZone, ViewSide } from '../types/rack';
 
 export const RACK_HEIGHT_OPTIONS = Array.from({ length: 44 }, (_, index) => index + 2);
 
@@ -243,35 +242,12 @@ export function formatCableLength(mm: number): string {
   return m % 1 === 0 ? `${m}m` : `${m.toFixed(1)}m`;
 }
 
-export function estimateCableLength(
-  layout: RackLayout,
-  cable: Pick<CableRoute, 'fromDeviceId' | 'toDeviceId' | 'lengthMm'>
-): number {
-  if (cable.lengthMm && cable.lengthMm > 0) return cable.lengthMm;
-
-  if ('id' in cable && 'type' in cable) {
-    const plan = calculateCablePlan(cable as CableRoute, layout);
-    if (plan) return standardCableLength(plan.estimatedLengthMm);
-  }
-
-  const from = layout.devices.find((d) => d.id === cable.fromDeviceId);
-  const to = layout.devices.find((d) => d.id === cable.toDeviceId);
-  if (!from || !to) return 0;
-
-  const fromCenterU = from.positionU + (from.sizeU - 1) / 2;
-  const toCenterU = to.positionU + (to.sizeU - 1) / 2;
-  const verticalMm = Math.abs(fromCenterU - toCenterU) * STANDARD_U_MM;
-
-  const fromRange = getDeviceXRange(layout, from);
-  const toRange = getDeviceXRange(layout, to);
-  const fromCenterX = fromRange.x + fromRange.width / 2;
-  const toCenterX = toRange.x + toRange.width / 2;
-  const horizontalMm = Math.abs(fromCenterX - toCenterX);
-
-  return standardCableLength(verticalMm + horizontalMm + CABLE_SLACK_MM);
+export interface DepthSummary {
+  usableDepthMm: number;
+  deepestMm: number;
 }
 
-export function getDepthSummary(layout: RackLayout) {
+export function getDepthSummary(layout: RackLayout): DepthSummary {
   const devices = layout.devices.filter((d) => d.sizeU > 0);
   const usableDepthMm = Math.max(0, layout.rackDepthMm - (layout.rearClearanceMm ?? 0));
   const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);

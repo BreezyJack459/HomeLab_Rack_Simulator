@@ -37,7 +37,10 @@ function getDeviceNoiseDb(device: RackLayout['devices'][number]): number {
 
 function combineDb(levels: number[]): number {
   if (levels.length === 0) return 0;
-  const sumPower = levels.reduce((sum, db) => sum + Math.pow(10, db / 10), 0);
+  const validLevels = levels.filter((db) => Number.isFinite(db));
+  if (validLevels.length === 0) return 0;
+  const sumPower = validLevels.reduce((sum, db) => sum + Math.pow(10, db / 10), 0);
+  if (sumPower <= 0) return 0;
   return 10 * Math.log10(sumPower);
 }
 

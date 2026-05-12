@@ -58,10 +58,14 @@ function makeLayout(devices: PlacedDevice[] = [], cables: Partial<CableRoute>[] 
     name: 'Test Rack',
     rackType: '19in',
     heightU: 12,
-    depthMm: 600,
+    rackDepthMm: 600,
+    weightLimitKg: 200,
+    powerBudgetW: 1200,
+    viewSide: 'front',
     electricityRatePerKwh: 0.1,
     devices,
     cables: cables as CableRoute[],
+    updatedAt: new Date().toISOString(),
   };
 }
 

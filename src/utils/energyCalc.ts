@@ -29,10 +29,10 @@ export function calculateEnergySummary(layout: RackLayout): EnergySummary {
   };
 }
 
-export function formatCurrency(amount: number, rate: number): string {
-  // Simple heuristic: rates > 1 are likely non-USD (e.g. HKD, TWD)
-  const symbol = rate > 1 ? '$' : '$';
-  return `${symbol}${amount.toFixed(2)}`;
+export function formatCurrency(amount: number, _rate: number): string {
+  // Currency symbol selection can be extended when multi-currency support is added.
+  // For now all rates are treated as USD-like single-$ economies.
+  return `$${amount.toFixed(2)}`;
 }
 
 export function formatBtuPerHour(btu: number): string {

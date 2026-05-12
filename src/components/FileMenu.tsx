@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   ChevronDown,
   Copy,
@@ -58,16 +58,19 @@ export function FileMenu({
     }
   }
 
-  const items = [
-    { icon: RotateCcw, label: 'New', action: onNew },
-    { icon: Copy, label: 'Duplicate', action: onDuplicate },
-    { icon: Save, label: 'Save local', action: onSaveLocal },
-    { icon: Upload, label: 'Load local', action: onLoadLocal },
-    null, // separator
-    { icon: FileJson, label: 'Export JSON', action: () => onExportJson(layout) },
-    { icon: Upload, label: 'Import JSON', action: () => fileInputRef.current?.click() },
-    { icon: Download, label: 'Export PNG', action: () => onExportPng(layout) },
-  ] as const;
+  const items = useMemo(
+    () => [
+      { icon: RotateCcw, label: 'New', action: onNew },
+      { icon: Copy, label: 'Duplicate', action: onDuplicate },
+      { icon: Save, label: 'Save local', action: onSaveLocal },
+      { icon: Upload, label: 'Load local', action: onLoadLocal },
+      null, // separator
+      { icon: FileJson, label: 'Export JSON', action: () => onExportJson(layout) },
+      { icon: Upload, label: 'Import JSON', action: () => fileInputRef.current?.click() },
+      { icon: Download, label: 'Export PNG', action: () => onExportPng(layout) },
+    ] as const,
+    [onNew, onDuplicate, onSaveLocal, onLoadLocal, onExportJson, onExportPng, layout]
+  );
 
   return (
     <div ref={menuRef} className="relative">
