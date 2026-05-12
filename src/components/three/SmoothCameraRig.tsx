@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Vector3 } from 'three';
 
 type SmoothCameraRigProps = {
@@ -8,14 +8,30 @@ type SmoothCameraRigProps = {
 };
 
 const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0.2, 0];
+const CONVERGENCE_THRESHOLD = 0.01;
 
 export function SmoothCameraRig({ position, target = DEFAULT_CAMERA_TARGET }: SmoothCameraRigProps) {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls as { target?: Vector3; update?: () => void } | undefined);
   const targetPosition = useMemo(() => new Vector3(...position), [position]);
   const targetLookAt = useMemo(() => new Vector3(...target), [target]);
+  const isTransitioningRef = useRef(true);
+
+  useEffect(() => {
+    isTransitioningRef.current = true;
+  }, [position, target]);
 
   useFrame(() => {
+    if (!isTransitioningRef.current) return;
+
+    const posDist = camera.position.distanceTo(targetPosition);
+    const targetDist = controls?.target?.distanceTo(targetLookAt) ?? Infinity;
+
+    if (posDist < CONVERGENCE_THRESHOLD && targetDist < CONVERGENCE_THRESHOLD) {
+      isTransitioningRef.current = false;
+      return;
+    }
+
     camera.position.lerp(targetPosition, 0.09);
     if (controls?.target) {
       controls.target.lerp(targetLookAt, 0.12);
