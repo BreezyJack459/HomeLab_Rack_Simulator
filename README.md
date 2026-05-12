@@ -8,6 +8,8 @@
 
 Plan your homelab rack layout in 2D, inspect it in 3D, and map every cable — all in the browser with **no backend required**. The simulator includes a growing library of community-inspired hardware templates, validation warnings for real-world constraints, power/noise/runtime planning panels, and full JSON import/export so you can share and iterate on layouts.
 
+🔗 **Live Demo:** https://breezyjack459.github.io/HomeLab_Rack_Simulator/
+
 ---
 
 ## 📸 Screenshots
