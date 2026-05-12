@@ -38,7 +38,7 @@ Rotate, zoom, and compare device depth. The 3D renderer uses approximate dimensi
 
 ### 📦 Hardware Template Library
 
-90+ built-in templates covering TinyMiniMicro nodes, Mini-PCs, switches, routers, firewalls, NAS, UPS, PDUs, patch panels, KVMs, access points, modems, SBCs, cable-management parts, and more. Filter by category and add to your rack in one click.
+100+ built-in templates covering TinyMiniMicro nodes, Mini-PCs, switches, routers, firewalls, NAS, UPS, PDUs, patch panels, KVMs, access points, modems, SBCs, cable-management parts, and more. Filter by category and add to your rack in one click.
 
 ![Hardware Template Library](./artifacts/smoke/desktop-hardware-templates.png)
 
@@ -173,7 +173,7 @@ homelab-rack-simulator/
 │   │       └── sharedGeometries.ts      ← reusable Three.js geometry cache
 │   │
 │   ├── data/
-│   │   ├── deviceCatalog.ts             ← 90+ hardware templates (library source of truth)
+│   │   ├── deviceCatalog.ts             ← 100+ hardware templates (library source of truth)
 │   │   └── sampleLayouts.ts             ← seed layouts for quick start
 │   │
 │   ├── store/
