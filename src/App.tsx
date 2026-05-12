@@ -148,16 +148,16 @@ function App() {
       </aside>
 
       <main className="flex min-w-0 flex-col">
-        <header className="border-b border-slate-800 bg-slate-950/72 px-5 py-3">
+        <header className="border-b border-slate-800 bg-slate-950/72 px-4 py-1.5">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <input
-                className="w-full min-w-[22rem] bg-transparent text-lg font-semibold tracking-normal text-white outline-none placeholder:text-slate-500"
+                className="w-full min-w-[22rem] bg-transparent text-base font-semibold tracking-normal text-white outline-none placeholder:text-slate-500"
                 value={layout.name}
                 onChange={(event) => updateRack({ name: event.target.value })}
                 aria-label="Layout name"
               />
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                 <span>{RACK_SPECS[layout.rackType].label}</span>
                 <span>/</span>
                 <span>{layout.heightU}U</span>
@@ -172,7 +172,7 @@ function App() {
 
             <div className="flex items-center gap-2">
               <button
-                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition ${
+                className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === '2d'
                     ? 'bg-cyan-400 text-slate-950'
                     : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
@@ -180,11 +180,11 @@ function App() {
                 onClick={() => setViewMode('2d')}
                 type="button"
               >
-                <Monitor size={16} />
+                <Monitor size={14} />
                 2D
               </button>
               <button
-                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition ${
+                className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === '3d'
                     ? 'bg-cyan-400 text-slate-950'
                     : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
@@ -192,11 +192,11 @@ function App() {
                 onClick={() => setViewMode('3d')}
                 type="button"
               >
-                <Box size={16} />
+                <Box size={14} />
                 3D
               </button>
               <button
-                className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition ${
+                className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === 'cables'
                     ? 'bg-cyan-400 text-slate-950'
                     : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
@@ -204,16 +204,16 @@ function App() {
                 onClick={() => setViewMode('cables')}
                 type="button"
               >
-                <Cable size={16} />
+                <Cable size={14} />
                 Cables
               </button>
               <ThemeToggle />
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
             <select
-              className="h-9 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
               value={layout.rackType}
               onChange={(event) => setRackType(event.target.value as RackType)}
               aria-label="Rack type"
@@ -223,7 +223,7 @@ function App() {
             </select>
 
             <select
-              className="h-9 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
               value={layout.heightU}
               onChange={(event) => setRackHeight(Number(event.target.value))}
               aria-label="Rack height"
@@ -236,7 +236,7 @@ function App() {
             </select>
 
             <select
-              className="h-9 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
               value={layout.viewSide}
               onChange={(event) => setViewSide(event.target.value as 'front' | 'rear')}
               aria-label="View side"
@@ -246,7 +246,7 @@ function App() {
             </select>
 
             <select
-              className="h-9 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
               value=""
               onChange={(event) => {
                 const value = event.target.value;
@@ -264,105 +264,105 @@ function App() {
             </select>
 
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={handleNewLayout}
               type="button"
             >
-              <RotateCcw size={15} />
+              <RotateCcw size={13} />
               New
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={handleDuplicate}
               type="button"
             >
-              <Copy size={15} />
+              <Copy size={13} />
               Duplicate
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={saveLocal}
               type="button"
             >
-              <Save size={15} />
+              <Save size={13} />
               Save local
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
               onClick={undo}
               disabled={!canUndo()}
               type="button"
               title="Undo (Ctrl+Z)"
             >
-              <Undo size={15} />
+              <Undo size={13} />
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
               onClick={redo}
               disabled={!canRedo()}
               type="button"
               title="Redo (Ctrl+Y)"
             >
-              <Redo size={15} />
+              <Redo size={13} />
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={loadLocal}
               type="button"
             >
-              <Upload size={15} />
+              <Upload size={13} />
               Load local
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={() => exportLayoutJson(layout)}
               type="button"
             >
-              <FileJson size={15} />
+              <FileJson size={13} />
               JSON
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={() => fileInputRef.current?.click()}
               type="button"
             >
-              <Upload size={15} />
+              <Upload size={13} />
               Import
             </button>
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
               onClick={() => exportRackPng(layout)}
               type="button"
             >
-              <Download size={15} />
+              <Download size={13} />
               PNG
             </button>
             <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
           </div>
 
           {statusMessage && (
-            <div className="mt-3 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
+            <div className="mt-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100">
               {statusMessage}
             </div>
           )}
 
-          <div className={`mt-3 rounded-lg border px-3 py-2 ${
+          <div className={`mt-1.5 rounded-lg border px-2 py-1 ${
             issues.length
               ? 'border-sky-500/35 bg-sky-500/10'
               : 'border-emerald-500/30 bg-emerald-500/10'
           }`}>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setIssueBarOpen((value) => !value)}
-                className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-700 bg-slate-950 px-3 text-xs font-semibold text-slate-100 hover:bg-slate-900"
+                className="inline-flex h-6 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs font-semibold text-slate-100 hover:bg-slate-900"
               >
-                {issues.length ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+                {issues.length ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
                 {issues.length ? `${issues.length} layout alerts` : 'Layout clear'}
               </button>
-              <span className="rounded bg-red-500/15 px-2 py-1 text-xs text-red-100">{issueCounts.critical} critical</span>
-              <span className="rounded bg-amber-500/15 px-2 py-1 text-xs text-amber-100">{issueCounts.warning} warning</span>
-              <span className="rounded bg-sky-500/15 px-2 py-1 text-xs text-sky-100">{issueCounts.info} info</span>
+              <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-100">{issueCounts.critical} critical</span>
+              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-100">{issueCounts.warning} warning</span>
+              <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-100">{issueCounts.info} info</span>
               {selectedIssueId && (
                 <span className="min-w-0 flex-1 truncate text-xs text-slate-300">
                   {issues.find((issue) => issue.id === selectedIssueId)?.title ?? 'Selected issue'}
@@ -370,21 +370,21 @@ function App() {
               )}
             </div>
             {issueBarOpen && issues.length > 0 && (
-              <div className="mt-2 grid max-h-40 gap-2 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2">
+              <div className="mt-1.5 grid max-h-40 gap-1.5 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2">
                 {issues.map((issue) => (
                   <button
                     key={issue.id}
                     type="button"
                     onClick={() => handleIssueSelect(issue)}
-                    className={`rounded-md border p-2 text-left text-xs transition hover:bg-slate-900 ${
+                    className={`rounded-md border p-1.5 text-left text-xs transition hover:bg-slate-900 ${
                       selectedIssueId === issue.id ? 'border-cyan-300 bg-cyan-300/10' : 'border-slate-800 bg-slate-950/70'
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <Info size={13} className="mt-0.5 shrink-0 text-sky-300" />
+                      <Info size={12} className="mt-0.5 shrink-0 text-sky-300" />
                       <div className="min-w-0">
                         <div className="truncate font-semibold text-slate-100">{issue.title}</div>
-                        <div className="mt-1 line-clamp-2 text-slate-400">{recommendationForIssue(issue)}</div>
+                        <div className="mt-0.5 line-clamp-2 text-slate-400">{recommendationForIssue(issue)}</div>
                       </div>
                     </div>
                   </button>
