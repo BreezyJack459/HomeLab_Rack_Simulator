@@ -1,6 +1,7 @@
-import type { PlacedDevice, RackLayout, ValidationIssue } from '../types/rack';
+import type { PlacedDevice, RackLayout, ValidationIssue, CableRoute } from '../types/rack';
 import { getPatchPanelJacks } from './patchPanel';
-import { calculateCablePlan, isPdu } from './routing';
+import { calculateCablePlan, isPdu, standardCableLength } from './routing';
+import { validateCableColorConvention } from './cableColors';
 import {
   getDeviceWidthMm,
   getDeviceMountSide,
@@ -52,6 +53,29 @@ function routingWarningTitle(code: string): string {
     default:
       return 'Cable routing issue';
   }
+}
+
+function recommendCableLength(pathLengthMm: number): string {
+  const STANDARD_LENGTHS_MM = [500, 1000, 2000, 3000, 5000];
+  const match = STANDARD_LENGTHS_MM.find((l) => l >= pathLengthMm * 1.15);
+  return match ? `${match / 1000}m` : '5m+';
+}
+
+function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationIssue | null {
+  if (!cable.lengthMm || cable.lengthMm <= 0) return null;
+  const plan = calculateCablePlan(cable, layout);
+  if (!plan) return null;
+  if (cable.lengthMm < plan.baseLengthMm) {
+    return {
+      id: `cable-short-${cable.id}`,
+      severity: 'warning',
+      title: `Cable ${cable.id} may be too short`,
+      detail: `Routed path requires ~${Math.ceil(plan.baseLengthMm / 100) * 100}mm. Declared: ${cable.lengthMm}mm. Recommended: ${recommendCableLength(plan.baseLengthMm)}.`,
+      deviceIds: [cable.fromDeviceId, cable.toDeviceId],
+      cableIds: [cable.id]
+    };
+  }
+  return null;
 }
 
 export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
@@ -293,6 +317,18 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
         cableIds: [cable.id]
       });
     });
+  });
+
+  // Cable length validation
+  layout.cables.forEach((cable) => {
+    const issue = validateCableLength(cable, layout);
+    if (issue) issues.push(issue);
+  });
+
+  // Cable colour convention validation
+  layout.cables.forEach((cable) => {
+    const issue = validateCableColorConvention(cable);
+    if (issue) issues.push(issue);
   });
 
   // Duplicate port usage check

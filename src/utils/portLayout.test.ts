@@ -104,7 +104,7 @@ describe('buildPortLayout', () => {
       category: 'pdu-0u',
       ports: { power: 8 }
     });
-    const groups = buildPortLayout(device, 0.1, 1.2, 'front');
+    const groups = buildPortLayout(device, 0.1, 1.2, 'rear');
     expect(groups.length).toBe(1);
     expect(groups[0].slots.length).toBe(8);
     // Should be arranged vertically due to 0U PDU special handling

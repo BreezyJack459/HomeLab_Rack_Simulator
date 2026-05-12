@@ -146,11 +146,14 @@ function nearestHorizontalManager(
 }
 
 function zeroUEarSide(device: PlacedDevice): 'left' | 'right' {
+  if (device.spatialZone) {
+    return device.spatialZone.includes('left') ? 'left' : 'right';
+  }
   if (device.mountSide0U) return device.mountSide0U;
   return (device.xMm ?? 0) < 0 ? 'left' : 'right';
 }
 
-function standardCableLength(estimatedMm: number): number {
+export function standardCableLength(estimatedMm: number): number {
   for (const length of STANDARD_CABLE_LENGTHS_MM) {
     if (estimatedMm <= length) return length;
   }
@@ -696,6 +699,7 @@ export function calculateCablePlan(cable: CableRoute, layout: RackLayout): Cable
     nodes,
     waypoints,
     segments,
+    baseLengthMm,
     estimatedLengthMm,
     standardLengthMm,
     slackMm,

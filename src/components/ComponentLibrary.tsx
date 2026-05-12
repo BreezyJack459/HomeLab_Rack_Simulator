@@ -111,6 +111,12 @@ export function ComponentLibrary() {
         <button
           className="flex h-9 w-full items-center justify-between rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-white hover:bg-slate-800"
           onClick={() => setOpen((v) => !v)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && open) {
+              event.preventDefault();
+              setOpen(false);
+            }
+          }}
           type="button"
         >
           <span>{selectedLabel}</span>

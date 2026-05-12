@@ -14,8 +14,6 @@
  */
 export function damp(speed: number, delta: number): number {
   if (delta <= 0 || speed <= 0) return 0;
-  const t = 1 - Math.exp(-speed * delta);
-  if (t > 1) return 1;
-  if (t < 0) return 0;
-  return t;
+  // For positive speed and delta, 1 - Math.exp(-x) is always in (0, 1)
+  return 1 - Math.exp(-speed * delta);
 }

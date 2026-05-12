@@ -1,6 +1,7 @@
 import {
   Cable,
   ChevronDown,
+  ChevronRight,
   FileSpreadsheet,
   FileText,
   Link2,
@@ -9,29 +10,36 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { CableRoute, CableType, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
-import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from '../utils/cableColors';
+import { getCableDisplayColor } from '../utils/cableColors';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
 import { estimateCableLength, formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
-import { getPortFaceMap } from '../utils/portLayout';
 import { exportBomCsv, exportBomText } from '../utils/exporters';
-import { ENABLE_ZERO_U_PDU } from '../utils/featureFlags';
-import { getPatchPanelJacks, getPatchPanelLinkedCableIds, patchPanelJackStatusLabel, patchPanelRouteLabel } from '../utils/patchPanel';
+import { getPatchPanelLinkedCableIds, patchPanelRouteLabel } from '../utils/patchPanel';
+import {
+  autoResolveCable,
+  getFreePortSummary,
+  getNextFreePort,
+  getUsedPorts,
+  inferCableType,
+  isPortUsed,
+  portChoicesForDevice,
+  portKey,
+  portOptionsForDevice,
+  portTypeForCableType,
+  resolveCompatibleCable,
+  type FreePortSummary,
+  type PortFace,
+  type PortOption
+} from '../utils/portSelection';
 
-const cableTypes: CableType[] = ['structured', 'patch', 'ethernet', 'power', 'fiber', 'usb', 'hdmi', 'atx', 'coax'];
 const mutedCableColor = '#64748b';
 
-type PairingStage = 'idle' | 'selecting_source' | 'selecting_destination';
-type PortFace = 'front' | 'rear';
-
-type PortOption = {
-  index: number;
-  label: string;
-  side?: PortFace;
-  disabled?: boolean;
-};
+// PairingStage, PairingSource, isSelectingSource, isSelectingDest — now in shared types
+import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
+import { isSelectingDest, isSelectingSource } from '../types/pairing';
 
 type PortChoice = PortOption & {
   deviceId: string;
@@ -40,186 +48,7 @@ type PortChoice = PortOption & {
   cableTypes: CableType[];
 };
 
-type PairingSource = {
-  deviceId: string;
-  deviceName: string;
-  port: PortRef;
-  label: string;
-};
 
-function portTypeForCableType(cableType: CableType): PortType {
-  if (cableType === 'structured' || cableType === 'patch') return 'ethernet';
-  return cableType as PortType;
-}
-
-function portKey(port: Pick<PortRef, 'type' | 'index' | 'side'>) {
-  return `${port.type}:${port.side ?? 'any'}:${port.index}`;
-}
-
-function portClaimMatches(port: PortRef | undefined, portType: PortType, portIndex: number, side?: PortFace) {
-  if (!port || port.type !== portType || port.index !== portIndex) return false;
-  return !side || !port.side || port.side === side;
-}
-
-function getUsedPorts(layout: RackLayout, deviceId: string, portType: PortType, side?: PortFace): Set<number> {
-  const used = new Set<number>();
-  layout.cables.forEach((cable) => {
-    if (cable.fromDeviceId === deviceId && portClaimMatches(cable.fromPort, portType, cable.fromPort?.index ?? -1, side)) {
-      used.add(cable.fromPort!.index);
-    }
-    if (cable.toDeviceId === deviceId && portClaimMatches(cable.toPort, portType, cable.toPort?.index ?? -1, side)) {
-      used.add(cable.toPort!.index);
-    }
-  });
-  return used;
-}
-
-function isPortUsed(layout: RackLayout, deviceId: string, portType: PortType, portIndex: number, side?: PortFace): boolean {
-  return layout.cables.some((cable) => {
-    if (cable.fromDeviceId === deviceId && portClaimMatches(cable.fromPort, portType, portIndex, side)) return true;
-    if (cable.toDeviceId === deviceId && portClaimMatches(cable.toPort, portType, portIndex, side)) return true;
-    return false;
-  });
-}
-
-function inferCableType(from: PlacedDevice | undefined, to: PlacedDevice | undefined): CableType | null {
-  if (!from || !to) return null;
-  const isPatchPanel = (d: PlacedDevice) => d.category === 'patch-panel';
-  const isSwitch = (d: PlacedDevice) => d.category === 'switch';
-  const isPdu = (d: PlacedDevice) => d.category === 'pdu' || (ENABLE_ZERO_U_PDU && d.category === 'pdu-0u');
-  const hasPatchPanel = isPatchPanel(from) || isPatchPanel(to);
-  const hasSwitch = isSwitch(from) || isSwitch(to);
-
-  if (isPdu(from) || isPdu(to)) return 'power';
-  if (hasPatchPanel && hasSwitch) return 'patch';
-  if (hasPatchPanel) return 'structured';
-  return 'ethernet';
-}
-
-function portOptionsForDevice(device: PlacedDevice | undefined, cableType: CableType, layout: RackLayout): PortOption[] {
-  if (!device || !device.ports) return [];
-  const portType = portTypeForCableType(cableType);
-  const count = device.ports[portType];
-  if (!count || count <= 0) return [];
-
-  if (device.category === 'patch-panel') {
-    const options: PortOption[] = [];
-    const jacks = getPatchPanelJacks(layout, device.id);
-    if (cableType !== 'structured') {
-      const used = getUsedPorts(layout, device.id, portType, 'front');
-      for (let i = 0; i < count; i++) {
-        const jack = jacks[i];
-        options.push({
-          index: i,
-          label: jack ? patchPanelJackStatusLabel(jack, 'front') : `Jack ${i + 1} front`,
-          side: 'front',
-          disabled: used.has(i)
-        });
-      }
-    }
-    if (cableType !== 'patch') {
-      const used = getUsedPorts(layout, device.id, portType, 'rear');
-      for (let i = 0; i < count; i++) {
-        const jack = jacks[i];
-        options.push({
-          index: i,
-          label: jack ? patchPanelJackStatusLabel(jack, 'rear') : `Jack ${i + 1} rear`,
-          side: 'rear',
-          disabled: used.has(i)
-        });
-      }
-    }
-    return options;
-  }
-
-  const used = getUsedPorts(layout, device.id, portType);
-  const label = portType.charAt(0).toUpperCase() + portType.slice(1);
-  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
-  const defaultFace = (faceMap[portType] ?? 'rear') as PortFace;
-
-  if (cableType === 'patch') {
-    if (device.category !== 'switch') return [];
-    return Array.from({ length: count }, (_, index) => ({
-      index,
-      label: `${label} ${index + 1}`,
-      side: 'front' as const,
-      disabled: used.has(index)
-    }));
-  }
-
-  return Array.from({ length: count }, (_, index) => ({
-    index,
-    label: `${label} ${index + 1}`,
-    side: defaultFace,
-    disabled: used.has(index)
-  }));
-}
-
-function portChoicesForDevice(device: PlacedDevice, layout: RackLayout): PortChoice[] {
-  const choices = new Map<string, PortChoice>();
-
-  cableTypes.forEach((cableType) => {
-    const type = portTypeForCableType(cableType);
-    portOptionsForDevice(device, cableType, layout).forEach((option) => {
-      const key = portKey({ type, index: option.index, side: option.side });
-      const existing = choices.get(key);
-      if (existing) {
-        existing.cableTypes.push(cableType);
-        existing.disabled = existing.disabled && option.disabled;
-        return;
-      }
-      choices.set(key, {
-        ...option,
-        deviceId: device.id,
-        deviceName: device.name,
-        type,
-        cableTypes: [cableType]
-      });
-    });
-  });
-
-  return Array.from(choices.values()).sort((a, b) => {
-    const faceOrder = (a.side ?? 'rear').localeCompare(b.side ?? 'rear');
-    if (faceOrder !== 0) return faceOrder;
-    const typeOrder = a.type.localeCompare(b.type);
-    return typeOrder !== 0 ? typeOrder : a.index - b.index;
-  });
-}
-
-function sourceSupportsCableType(source: PairingSource, sourceDevice: PlacedDevice, cableType: CableType, layout: RackLayout) {
-  return portOptionsForDevice(sourceDevice, cableType, layout).some(
-    (option) =>
-      option.index === source.port.index &&
-      option.side === source.port.side &&
-      portTypeForCableType(cableType) === source.port.type &&
-      !option.disabled
-  );
-}
-
-function resolveCompatibleCable(
-  layout: RackLayout,
-  source: PairingSource | null,
-  choice: PortChoice
-): { cableType: CableType; color: string } | null {
-  if (!source || source.deviceId === choice.deviceId || choice.disabled) return null;
-  const sourceDevice = layout.devices.find((device) => device.id === source.deviceId);
-  const targetDevice = layout.devices.find((device) => device.id === choice.deviceId);
-  if (!sourceDevice || !targetDevice) return null;
-
-  const inferred = inferCableType(sourceDevice, targetDevice);
-  if (!inferred || portTypeForCableType(inferred) !== source.port.type || choice.type !== source.port.type) {
-    return null;
-  }
-  if (!sourceSupportsCableType(source, sourceDevice, inferred, layout)) return null;
-
-  const targetOption = portOptionsForDevice(targetDevice, inferred, layout).find(
-    (option) => option.index === choice.index && option.side === choice.side && !option.disabled
-  );
-  if (!targetOption) return null;
-  if (isPortUsed(layout, choice.deviceId, choice.type, choice.index, choice.side)) return null;
-
-  return { cableType: inferred, color: DEFAULT_CABLE_COLORS[inferred] };
-}
 
 function portLabel(route: { type: CableType; fromPort?: PortRef; toPort?: PortRef }) {
   const parts: string[] = [];
@@ -234,75 +63,141 @@ function portLabel(route: { type: CableType; fromPort?: PortRef; toPort?: PortRe
   return parts.length ? parts.join(' ') : undefined;
 }
 
-function MiniRackBrowser({
+// Port type badge labels for DeviceListPicker
+const PORT_BADGE_LABEL: Partial<Record<PortType, string>> = {
+  ethernet: 'eth',
+  power: 'pwr',
+  fiber: 'fib',
+  usb: 'usb',
+  hdmi: 'hdmi',
+  atx: 'atx',
+  coax: 'coax'
+};
+
+function DeviceListPicker({
   layout,
   expandedDeviceId,
   source,
   stage,
-  onDeviceClick
+  onDeviceClick,
+  onAutoConnect,
+  onHoverDevice
 }: {
   layout: RackLayout;
   expandedDeviceId: string | null;
   source: PairingSource | null;
   stage: PairingStage;
   onDeviceClick: (deviceId: string) => void;
+  onAutoConnect: (deviceId: string) => void;
+  onHoverDevice: (deviceId: string | null) => void;
 }) {
-  const rackHeight = 188;
-  const activeDevices = layout.devices.filter((device) => device.category !== 'blank');
+  const activeDevices = layout.devices
+    .filter((d) => d.category !== 'blank')
+    .sort((a, b) => a.positionU - b.positionU);
+
+  if (!activeDevices.length) {
+    return (
+      <div className="rounded-md border border-dashed border-slate-800 bg-slate-950/60 p-3 text-center text-[11px] text-slate-500">
+        No devices in rack.
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-md border border-slate-800 bg-slate-950 p-3">
-      <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-        <span>Mini rack browser</span>
+    <div className="rounded-md border border-slate-800 bg-slate-950">
+      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+        <span>Select device</span>
         <span>{activeDevices.length} devices</span>
       </div>
-      <div className="relative overflow-hidden rounded border border-slate-800 bg-slate-900" style={{ height: rackHeight }}>
-        <div className="absolute inset-y-2 left-2 w-8 rounded border border-slate-700 bg-slate-950/80">
-          {Array.from({ length: layout.heightU }, (_, index) => (
-            <span
-              key={index}
-              className="absolute left-0 right-0 border-t border-slate-800 text-[8px] leading-none text-slate-700"
-              style={{ top: `${(index / layout.heightU) * 100}%` }}
-            />
-          ))}
-        </div>
+      <div className="max-h-64 overflow-y-auto">
         {activeDevices.map((device) => {
-          const xRange = getDeviceXRange(layout, device);
-          const top = ((layout.heightU - (device.positionU + device.sizeU - 1)) / layout.heightU) * 100;
-          const height = Math.max(7, (Math.max(device.sizeU, 0.5) / layout.heightU) * 100);
-          const rackWidthMm = RACK_SPECS[layout.rackType].usableWidthMm;
-          const left = 46 + Math.max(0, Math.min(1, xRange.x / Math.max(1, rackWidthMm))) * 126;
-          const width = Math.max(42, Math.min(138, (xRange.width / Math.max(1, rackWidthMm)) * 150));
+          const freeSummary = getFreePortSummary(device, layout);
+          const hasFree = freeSummary.length > 0;
           const isExpanded = expandedDeviceId === device.id;
           const isSource = source?.deviceId === device.id;
-          const isDisabled = stage === 'selecting_destination' && source?.deviceId === device.id;
+          const isDisabledRow = isSelectingDest(stage) && isSource;
+
+          // In destination stage: only highlight devices compatible with source
+          const sourceDevice = source ? layout.devices.find((d) => d.id === source.deviceId) : null;
+          const inferredType = sourceDevice ? inferCableType(sourceDevice, device) : null;
+          const hasCompatiblePort = isSelectingDest(stage)
+            ? !!inferredType && !!getNextFreePort(device, inferredType, layout)
+            : hasFree;
+
+          const rowDisabled = isDisabledRow || !hasCompatiblePort;
 
           return (
-            <button
-              key={device.id}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => onDeviceClick(device.id)}
-              className={`absolute rounded-[4px] border px-1 text-left text-[9px] font-semibold leading-none transition ${
-                isExpanded
-                  ? 'border-cyan-300 bg-cyan-300/15 text-cyan-50'
-                  : isSource
-                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-100'
-                    : isDisabled
-                      ? 'cursor-not-allowed border-slate-800 bg-slate-900 text-slate-600'
-                      : 'border-white/15 text-white hover:border-white/50'
-              }`}
-              style={{
-                top: `${top}%`,
-                height: `${height}%`,
-                left,
-                width,
-                backgroundColor: isExpanded || isSource || isDisabled ? undefined : `${device.color}cc`
-              }}
-              title={`${device.name} U${device.positionU}`}
-            >
-              <span className="block truncate">{device.label || device.name}</span>
-            </button>
+            <div key={device.id} className="border-b border-slate-800/60 last:border-0">
+              {/* Device row — click to auto-connect, hover for ghost preview */}
+              <div
+                className="flex items-center gap-2 px-3 py-2"
+                onMouseEnter={() => !rowDisabled && onHoverDevice(device.id)}
+                onMouseLeave={() => onHoverDevice(null)}
+              >
+                {/* Color dot */}
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: device.color ?? '#64748b' }}
+                />
+
+                {/* Main click area: auto-assign */}
+                <button
+                  type="button"
+                  disabled={rowDisabled}
+                  onClick={() => onAutoConnect(device.id)}
+                  className={`min-w-0 flex-1 text-left ${
+                    isSource
+                      ? 'cursor-default'
+                      : rowDisabled
+                        ? 'cursor-not-allowed opacity-35'
+                        : 'cursor-pointer hover:text-cyan-200'
+                  }`}
+                >
+                  <span className={`block truncate text-[13px] font-medium ${
+                    isSource ? 'text-cyan-300' : rowDisabled ? 'text-slate-500' : 'text-slate-100'
+                  }`}>
+                    {isSource && <span className="mr-1 text-cyan-400">●</span>}
+                    {device.label || device.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    U{device.positionU}
+                    {device.sizeU > 0 ? `–${device.positionU + device.sizeU - 1}` : ' (0U)'}
+                  </span>
+                </button>
+
+                {/* Free port badges */}
+                <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                  {freeSummary.map((s) => (
+                    <span
+                      key={s.type}
+                      className={`rounded px-1 py-0.5 text-[9px] font-bold uppercase ${
+                        isSelectingDest(stage) && inferredType && portTypeForCableType(inferredType) === s.type
+                          ? 'bg-cyan-400/20 text-cyan-300'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {PORT_BADGE_LABEL[s.type] ?? s.type} ×{s.free}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Expand toggle for manual port pick */}
+                {hasFree && !isDisabledRow && (
+                  <button
+                    type="button"
+                    onClick={() => onDeviceClick(device.id)}
+                    className="shrink-0 rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                    title="Manual port selection"
+                    aria-expanded={isExpanded}
+                  >
+                    <ChevronRight
+                      size={13}
+                      className={`transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -372,10 +267,10 @@ function DeviceFaceCard({
                       {group.map((choice) => {
                         const key = portKey(choice);
                         const isSource = source?.deviceId === choice.deviceId && portKey(source.port) === key;
-                        const compatibility = stage === 'selecting_destination'
+                        const compatibility = isSelectingDest(stage)
                           ? resolveCompatibleCable(layout, source, choice)
                           : null;
-                        const disabled = stage === 'selecting_destination'
+                        const disabled = isSelectingDest(stage)
                           ? !compatibility
                           : choice.disabled;
                         const highlighted = hoveredChoiceKey === key || isSource;
@@ -483,11 +378,16 @@ export function CablePlanner() {
   const removeCable = useRackStore((state) => state.removeCable);
   const selectCable = useRackStore((state) => state.selectCable);
   const selectedCableId = useRackStore((state) => state.selectedCableId);
+  const setPreviewCable = useRackStore((state) => state.setPreviewCable);
+  const setPairingStage = useRackStore((state) => state.setPairingStage);
+  const setPairingSource = useRackStore((state) => state.setPairingSource);
+  const registerPortPick3D = useRackStore((state) => state.registerPortPick3D);
   const [isOpen, setIsOpen] = useState(true);
   const [stage, setStage] = useState<PairingStage>('idle');
   const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null);
   const [source, setSource] = useState<PairingSource | null>(null);
   const [hoveredChoice, setHoveredChoice] = useState<PortChoice | null>(null);
+  const [hoveredDeviceId, setHoveredDeviceId] = useState<string | null>(null);
   const [ghostPreview, setGhostPreview] = useState(false);
   const [lastSourceDeviceId, setLastSourceDeviceId] = useState<string | null>(null);
 
@@ -498,25 +398,82 @@ export function CablePlanner() {
 
   const expandedDevice = layout.devices.find((device) => device.id === expandedDeviceId);
   const hoveredChoiceKey = hoveredChoice ? portKey(hoveredChoice) : null;
+
+  // Ghost preview: fires for both manual port hover (hoveredChoice) and device-row hover (hoveredDeviceId)
   const hoverCable = useMemo(() => {
-    if (!ghostPreview || !source || !hoveredChoice) return null;
-    const compatible = resolveCompatibleCable(layout, source, hoveredChoice);
-    if (!compatible) return null;
-    return {
-      id: 'ghost-cable',
-      fromDeviceId: source.deviceId,
-      fromPort: source.port,
-      toDeviceId: hoveredChoice.deviceId,
-      toPort: portRefFromChoice(hoveredChoice),
-      type: compatible.cableType,
-      color: compatible.color
-    } satisfies CableRoute;
-  }, [ghostPreview, hoveredChoice, layout, source]);
+    if (!ghostPreview || !source) return null;
+
+    // Manual port-level hover (DeviceFaceCard)
+    if (hoveredChoice) {
+      const compatible = resolveCompatibleCable(layout, source, hoveredChoice);
+      if (!compatible) return null;
+      return {
+        id: 'ghost-cable',
+        fromDeviceId: source.deviceId,
+        fromPort: source.port,
+        toDeviceId: hoveredChoice.deviceId,
+        toPort: portRefFromChoice(hoveredChoice),
+        type: compatible.cableType,
+        color: compatible.color
+      } satisfies CableRoute;
+    }
+
+    // Device-row hover (DeviceListPicker) — auto-resolve both ports
+    if (hoveredDeviceId && isSelectingDest(stage)) {
+      const sourceDevice = layout.devices.find((d) => d.id === source.deviceId);
+      const destDevice = layout.devices.find((d) => d.id === hoveredDeviceId);
+      if (!sourceDevice || !destDevice || hoveredDeviceId === source.deviceId) return null;
+      const resolved = autoResolveCable(sourceDevice, destDevice, layout);
+      if (!resolved) return null;
+      return {
+        id: 'ghost-cable',
+        fromDeviceId: source.deviceId,
+        fromPort: resolved.fromPort,
+        toDeviceId: hoveredDeviceId,
+        toPort: resolved.toPort,
+        type: resolved.cableType,
+        color: resolved.color
+      } satisfies CableRoute;
+    }
+
+    return null;
+  }, [ghostPreview, hoveredChoice, hoveredDeviceId, layout, source, stage]);
+
+  // Sync ghost preview cable into store so CableViewer3D can render it as a 3D tube
+  useEffect(() => {
+    setPreviewCable(ghostPreview ? (hoverCable ?? null) : null);
+    return () => { setPreviewCable(null); };
+  }, [hoverCable, ghostPreview, setPreviewCable]);
+
+  // Mirror local pairing stage → store so CableViewer3D can read it
+  useEffect(() => { setPairingStage(stage); }, [stage, setPairingStage]);
+  useEffect(() => { setPairingSource(source); }, [source, setPairingSource]);
+
+  // Register 3D port pick handler — translates PortHit3D → existing 2D flow
+  useEffect(() => {
+    registerPortPick3D((hit: PortHit3D) => {
+      const device = layout.devices.find((d) => d.id === hit.deviceId);
+      if (!device) return;
+      // Try to find exact port match first; fall back to auto-connect on device
+      const choices = portChoicesForDevice(device, layout);
+      const match = choices.find(
+        (c) => c.type === hit.portType && c.index === hit.portIndex
+      );
+      if (match) {
+        // Directly invoke the same handler used by DeviceFaceCard manual pick
+        const chosen: PortChoice = { ...match, deviceId: device.id, deviceName: device.name, cableTypes: match.cableTypes ?? [] };
+        handleSelectChoice(chosen);
+      }
+    });
+    return () => { registerPortPick3D(null); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, stage, source]);
 
   function startPairing(deviceId?: string | null) {
-    setStage('selecting_source');
+    setStage('selecting_source_device');
     setSource(null);
     setHoveredChoice(null);
+    setHoveredDeviceId(null);
     setExpandedDeviceId(deviceId ?? lastSourceDeviceId ?? layout.devices.find((device) => portChoicesForDevice(device, layout).length > 0)?.id ?? null);
   }
 
@@ -524,32 +481,83 @@ export function CablePlanner() {
     setStage('idle');
     setSource(null);
     setHoveredChoice(null);
+    setHoveredDeviceId(null);
+    setPreviewCable(null);
   }
 
   function handleDeviceClick(deviceId: string) {
     setExpandedDeviceId((current) => (current === deviceId ? null : deviceId));
   }
 
-  function handleSelectChoice(choice: PortChoice) {
-    if (stage === 'idle') {
-      setStage('selecting_source');
+  // Auto-connect: click a device row to pick next free port automatically
+  function handleAutoConnect(deviceId: string) {
+    const device = layout.devices.find((d) => d.id === deviceId);
+    if (!device) return;
+
+    // SOURCE stage: auto-pick next free port on source device
+    if (!isSelectingDest(stage)) {
+      const allTypes: CableType[] = ['ethernet', 'patch', 'structured', 'power', 'fiber', 'usb', 'hdmi', 'atx', 'coax'];
+      let picked: { port: ReturnType<typeof getNextFreePort>; cableType: CableType } | null = null;
+      for (const ct of allTypes) {
+        const port = getNextFreePort(device, ct, layout);
+        if (port) { picked = { port, cableType: ct }; break; }
+      }
+      if (!picked?.port) return;
+      setSource({
+        deviceId: device.id,
+        deviceName: device.name,
+        port: { type: portTypeForCableType(picked.cableType), index: picked.port.index, side: picked.port.side },
+        label: picked.port.label
+      });
+      setLastSourceDeviceId(device.id);
+      setStage('selecting_dest_device');
+      setHoveredChoice(null);
+      setHoveredDeviceId(null);
+      return;
     }
 
-    if (stage !== 'selecting_destination') {
+    // DESTINATION stage: auto-resolve full cable with source
+    if (!source) return;
+    const sourceDevice = layout.devices.find((d) => d.id === source.deviceId);
+    if (!sourceDevice) return;
+    const resolved = autoResolveCable(sourceDevice, device, layout);
+    if (!resolved) return;
+
+    addCable({
+      fromDeviceId: source.deviceId,
+      fromPort: resolved.fromPort,
+      toDeviceId: device.id,
+      toPort: resolved.toPort,
+      type: resolved.cableType,
+      color: resolved.color
+    });
+    setLastSourceDeviceId(source.deviceId);
+    setSource(null);
+    setHoveredChoice(null);
+    setHoveredDeviceId(null);
+    setPreviewCable(null);
+    setStage('idle');
+  }
+
+  function handleSelectChoice(choice: PortChoice) {
+    // Manual port pick from DeviceFaceCard
+    if (!isSelectingDest(stage)) {
+      // Picking a manual source port (from expanded DeviceFaceCard in source stage)
       if (choice.disabled) return;
-      const nextSource = {
+      setSource({
         deviceId: choice.deviceId,
         deviceName: choice.deviceName,
         port: portRefFromChoice(choice),
         label: choice.label
-      };
-      setSource(nextSource);
+      });
       setLastSourceDeviceId(choice.deviceId);
-      setStage('selecting_destination');
+      setStage('selecting_dest_device');
       setHoveredChoice(null);
+      setHoveredDeviceId(null);
       return;
     }
 
+    // Manual destination port pick
     const compatible = resolveCompatibleCable(layout, source, choice);
     if (!source || !compatible) return;
 
@@ -564,6 +572,8 @@ export function CablePlanner() {
     setLastSourceDeviceId(source.deviceId);
     setSource(null);
     setHoveredChoice(null);
+    setHoveredDeviceId(null);
+    setPreviewCable(null);
     setStage('idle');
   }
 
@@ -596,7 +606,7 @@ export function CablePlanner() {
               type="button"
             >
               <Link2 size={15} />
-              {stage === 'idle' ? 'Add cable' : 'Pick source'}
+              {stage === 'idle' ? 'Add cable' : isSelectingDest(stage) ? 'Pick destination' : 'Pick source'}
             </button>
             {lastSourceDeviceId && stage === 'idle' && (
               <button
@@ -610,12 +620,14 @@ export function CablePlanner() {
             )}
           </div>
 
-          <MiniRackBrowser
+          <DeviceListPicker
             layout={layout}
             expandedDeviceId={expandedDeviceId}
             source={source}
             stage={stage}
             onDeviceClick={handleDeviceClick}
+            onAutoConnect={handleAutoConnect}
+            onHoverDevice={setHoveredDeviceId}
           />
 
           <div className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950 px-3 py-2">

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { sampleLayouts } from '../data/sampleLayouts';
 import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackType, ViewMode, ViewSide } from '../types/rack';
+import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { shouldHideDevice, withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { calculateCableNodes } from '../utils/routing';
 import {
@@ -181,6 +182,15 @@ interface RackState {
   canRedo: () => boolean;
   toggleDebugMode: () => void;
   setCableRoutingMode: (mode: 'clean' | 'realistic') => void;
+  previewCable: CableRoute | null;
+  setPreviewCable: (cable: CableRoute | null) => void;
+  // ── Pairing state (shared between CablePlanner 2D and CableViewer3D 3D raycast) ──
+  pairingStage: PairingStage;
+  pairingSource: PairingSource | null;
+  setPairingStage: (stage: PairingStage) => void;
+  setPairingSource: (source: PairingSource | null) => void;
+  onPortPick3D: ((hit: PortHit3D) => void) | null;
+  registerPortPick3D: (handler: ((hit: PortHit3D) => void) | null) => void;
 }
 
 const MAX_HISTORY = 50;
@@ -546,7 +556,16 @@ export const useRackStore = create<RackState>((set, get) => ({
   },
 
   toggleDebugMode: () => set((state) => ({ debugMode: !state.debugMode })),
-  setCableRoutingMode: (mode) => set({ cableRoutingMode: mode })
+  setCableRoutingMode: (mode) => set({ cableRoutingMode: mode }),
+  previewCable: null,
+  setPreviewCable: (cable) => set({ previewCable: cable }),
+  // ── Pairing state ──
+  pairingStage: 'idle',
+  pairingSource: null,
+  setPairingStage: (stage) => set({ pairingStage: stage }),
+  setPairingSource: (source) => set({ pairingSource: source }),
+  onPortPick3D: null,
+  registerPortPick3D: (handler) => set({ onPortPick3D: handler })
 }));
 
 // Track layout changes for undo/redo

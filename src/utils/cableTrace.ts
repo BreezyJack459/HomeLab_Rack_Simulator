@@ -71,13 +71,14 @@ function traceOneSide(
     const nextCable = currentCable.id === jack.frontCable?.id ? jack.rearCable : jack.frontCable;
 
     if (!nextCable) {
+      const openSide = entrySide === 'front' ? 'rear' : 'front';
       hops.push({
         cable: currentCable,
         fromDevice: fromDev,
         toDevice: toDev,
-        panelJack: { panel: toDev, index: jack.index, entrySide, exitSide: entrySide }
+        panelJack: { panel: toDev, index: jack.index, entrySide, exitSide: openSide }
       });
-      return { hops, terminal: toDev, complete: false, brokenReason: `Jack ${jack.index + 1} ${entrySide === 'front' ? 'rear' : 'front'} side is open` };
+      return { hops, terminal: toDev, complete: false, brokenReason: `Jack ${jack.index + 1} ${openSide} side is open` };
     }
 
     const exitSide = nextCable.id === jack.frontCable?.id ? 'front' : 'rear';

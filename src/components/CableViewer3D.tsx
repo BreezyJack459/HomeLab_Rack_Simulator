@@ -1,6 +1,6 @@
 import { Text } from '@react-three/drei';
 import { CatmullRomCurve3, Quaternion, Vector3 } from 'three';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import { CanvasWithRecovery } from './CanvasWithRecovery';
 import type { CablePlan, CableRoute, CableType, PlacedDevice, RackLayout } from '../types/rack';
@@ -179,6 +179,30 @@ function StrainRelief({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Bundle helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+function bundleColor(routes: Route3D[]): string {
+  const counts = new Map<string, number>();
+  routes.forEach((r) => {
+    counts.set(r.color, (counts.get(r.color) ?? 0) + 1);
+  });
+  let bestColor = '#6B7280';
+  let bestCount = 0;
+  for (const [color, count] of counts) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestColor = color;
+    }
+  }
+  return bestColor;
+}
+
+function bundleRadius(count: number): number {
+  return 0.006 + count * 0.003;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Smooth tube cable renderer                                        */
 /* ------------------------------------------------------------------ */
 
@@ -234,6 +258,68 @@ function CableTube({
   );
 }
 
+function BundleTube({
+  routes,
+  selectedCableId,
+  selectedCableIds,
+  typeFilter,
+  focusMode,
+  onSelect,
+  onExpand
+}: {
+  routes: Route3D[];
+  selectedCableId: string | null;
+  selectedCableIds: Set<string>;
+  typeFilter: CableTypeFilter;
+  focusMode: CableFocusMode;
+  onSelect: (id: string) => void;
+  onExpand: () => void;
+}) {
+  const representative = routes[0];
+  if (!representative) return null;
+
+  const count = routes.length;
+  const color = bundleColor(routes);
+  const radius = bundleRadius(count);
+
+  const anySelected = routes.some((r) => selectedCableIds.has(r.cable.id));
+  const muted = selectedCableId !== null && !anySelected;
+  const isMuted = muted || (selectedCableId === null && typeFilter === 'all' && representative.cable.type === 'structured');
+  if (isMuted && focusMode === 'hide') return null;
+
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onExpand();
+      }}
+    >
+      <mesh castShadow>
+        <tubeGeometry args={[representative.curve, 60, anySelected ? radius * 1.6 : radius, 12, false]} />
+        <meshStandardMaterial
+          color={isMuted ? '#64748b' : color}
+          emissive={isMuted ? '#0f172a' : color}
+          emissiveIntensity={anySelected ? 0.35 : isMuted ? 0.02 : 0.1}
+          opacity={anySelected ? 1 : isMuted ? 0.2 : 0.88}
+          transparent
+          roughness={0.72}
+          metalness={0.02}
+        />
+      </mesh>
+      {/* Bundle count label */}
+      <Text
+        position={representative.curve.getPointAt(0.5)}
+        fontSize={0.035}
+        color={isMuted ? '#94a3b8' : '#e2e8f0'}
+        anchorX="center"
+        anchorY="middle"
+      >
+        {`Bundle: ${count} cables`}
+      </Text>
+    </group>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Main component                                                    */
 /* ------------------------------------------------------------------ */
@@ -253,6 +339,7 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
     () => getPatchPanelLinkedCableIds(layout, selectedCableId),
     [layout, selectedCableId]
   );
+  const [expandedBundles, setExpandedBundles] = useState<Set<string>>(new Set());
 
   const visibleRoutes = useMemo(() => {
     const perTypeCounts = new Map<CableType, number>();
@@ -581,17 +668,85 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
           })}
 
           {/* Cables */}
-          {visibleRoutes.map((route) => (
-            <CableTube
-              key={route.cable.id}
-              route={route}
-              selectedCableId={selectedCableId}
-              selectedCableIds={selectedCableIds}
-              typeFilter={typeFilter}
-              focusMode={focusMode}
-              onSelect={selectCable}
-            />
-          ))}
+          {(() => {
+            const bundleMap = new Map<string, Route3D[]>();
+            const unbundled: Route3D[] = [];
+            for (const route of visibleRoutes) {
+              const bid = route.cable.bundleId;
+              if (bid) {
+                const arr = bundleMap.get(bid) ?? [];
+                arr.push(route);
+                bundleMap.set(bid, arr);
+              } else {
+                unbundled.push(route);
+              }
+            }
+            return (
+              <>
+                {/* Unbundled cables */}
+                {unbundled.map((route) => (
+                  <CableTube
+                    key={route.cable.id}
+                    route={route}
+                    selectedCableId={selectedCableId}
+                    selectedCableIds={selectedCableIds}
+                    typeFilter={typeFilter}
+                    focusMode={focusMode}
+                    onSelect={selectCable}
+                  />
+                ))}
+                {/* Bundles */}
+                {Array.from(bundleMap.entries()).map(([bundleId, routes]) => {
+                  if (routes.length === 1) {
+                    return (
+                      <CableTube
+                        key={routes[0].cable.id}
+                        route={routes[0]}
+                        selectedCableId={selectedCableId}
+                        selectedCableIds={selectedCableIds}
+                        typeFilter={typeFilter}
+                        focusMode={focusMode}
+                        onSelect={selectCable}
+                      />
+                    );
+                  }
+                  const isExpanded = expandedBundles.has(bundleId);
+                  if (isExpanded) {
+                    return routes.map((route) => (
+                      <CableTube
+                        key={route.cable.id}
+                        route={route}
+                        selectedCableId={selectedCableId}
+                        selectedCableIds={selectedCableIds}
+                        typeFilter={typeFilter}
+                        focusMode={focusMode}
+                        onSelect={selectCable}
+                      />
+                    ));
+                  }
+                  return (
+                    <BundleTube
+                      key={`bundle-${bundleId}`}
+                      routes={routes}
+                      selectedCableId={selectedCableId}
+                      selectedCableIds={selectedCableIds}
+                      typeFilter={typeFilter}
+                      focusMode={focusMode}
+                      onSelect={selectCable}
+                      onExpand={() => {
+                        setExpandedBundles((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(bundleId)) next.delete(bundleId);
+                          else next.add(bundleId);
+                          return next;
+                        });
+                      }}
+                    />
+                  );
+                })}
+              </>
+            );
+          })()}
 
           {/* Debug overlays */}
           {debugMode && (

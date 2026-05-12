@@ -15,7 +15,12 @@ function needsPower(device: PlacedDevice): boolean {
     'access-point', 'poe-injector', 'ip-kvm', 'modem', 'patch-panel',
     'ups', 'pdu', 'pdu-0u', 'custom'
   ]);
-  return poweredCategories.has(device.category) && device.powerW > 0;
+  if (!poweredCategories.has(device.category)) return false;
+  // Power distribution devices always need a power feed regardless of their own draw
+  if (device.category === 'pdu' || device.category === 'pdu-0u' || device.category === 'ups') {
+    return true;
+  }
+  return device.powerW > 0;
 }
 
 function needsNetwork(device: PlacedDevice): boolean {

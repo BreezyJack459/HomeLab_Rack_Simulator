@@ -48,7 +48,9 @@ function getDefaultPortFaceMap(category: string): Record<string, 'front' | 'rear
     case 'pdu':
       return { power: 'rear' };
     case 'pdu-0u':
-      return { power: 'front' };
+      // 0U PDU outlets face inward (toward rack center) per ADR-012.
+      // For cable routing consistency they map to the same face as standard PDU.
+      return { power: 'rear' };
     case 'server':
       return { ethernet: 'rear', fiber: 'rear', usb: 'rear', hdmi: 'rear', power: 'rear' };
     case 'nas':

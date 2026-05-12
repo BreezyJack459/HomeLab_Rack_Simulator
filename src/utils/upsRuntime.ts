@@ -73,13 +73,13 @@ export function calculateUpsRuntimes(layout: RackLayout): UpsRuntimeInfo[] {
     const capacityW = getUpsCapacityW(device);
     results.push({
       device,
-      loadW: device.powerW,
+      loadW: 0,
       capacityW,
-      loadPercent: capacityW ? Math.min(100, (device.powerW / capacityW) * 100) : 0,
+      loadPercent: 0,
       batteryWh: device.batteryWh,
-      runtimeMinutes: calculateRuntimeMinutes(device.batteryWh, device.powerW),
-      runtimeLabel: formatRuntime(calculateRuntimeMinutes(device.batteryWh, device.powerW)),
-      status: runtimeStatus(calculateRuntimeMinutes(device.batteryWh, device.powerW)),
+      runtimeMinutes: calculateRuntimeMinutes(device.batteryWh, 0),
+      runtimeLabel: formatRuntime(calculateRuntimeMinutes(device.batteryWh, 0)),
+      status: runtimeStatus(calculateRuntimeMinutes(device.batteryWh, 0)),
     });
   }
 

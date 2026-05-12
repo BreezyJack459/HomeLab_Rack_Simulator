@@ -1,6 +1,6 @@
 import { Text } from '@react-three/drei';
-import { useMemo } from 'react';
-import type { PlacedDevice, RackLayout } from '../../types/rack';
+import { useMemo, useState } from 'react';
+import type { PlacedDevice, PortType, RackLayout } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
 import { buildPortLayout } from '../../utils/portLayout';
@@ -35,35 +35,59 @@ function DevicePortFace({
     () => buildPortLayout(device, deviceWidth, deviceHeight, face),
     [device.category, device.ports, device.portLayouts, device.portFaceOverrides, deviceWidth, deviceHeight, face]
   );
+  // Pairing state from store — drives hover glow + click handler
+  const pairingStage = useRackStore((s) => s.pairingStage);
+  const onPortPick3D = useRackStore((s) => s.onPortPick3D);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const isPairing = pairingStage !== 'idle';
+
   if (groups.length === 0) return null;
 
   return (
     <group position={[0, 0, z]}>
       {groups.map((group) => (
         <group key={group.key ?? group.type}>
-          {group.slots.map((slot) => (
-            <group key={slot.index} position={[slot.x, slot.y, 0.003]}>
-              <mesh scale={[slot.width, slot.height, 0.005]}>
-                <primitive attach="geometry" object={UNIT_BOX_GEOMETRY} />
-                <meshStandardMaterial
-                  color={group.color}
-                  emissive={group.emissive}
-                  emissiveIntensity={0.35}
-                  roughness={0.5}
-                  metalness={0.2}
-                />
-              </mesh>
-              <Text
-                fontSize={Math.min(0.016, slot.width * 0.4)}
-                color="#0f172a"
-                anchorX="center"
-                anchorY="middle"
-                position={[0, 0, 0.003]}
-              >
-                {`${slot.index + 1}`}
-              </Text>
-            </group>
-          ))}
+          {group.slots.map((slot) => {
+            const slotKey = `${group.type}-${slot.index}`;
+            const isHovered = isPairing && hoveredKey === slotKey;
+            return (
+              <group key={slot.index} position={[slot.x, slot.y, 0.003]}>
+                <mesh
+                  scale={[slot.width, slot.height, isHovered ? 0.012 : 0.005]}
+                  onPointerOver={isPairing ? (e) => { e.stopPropagation(); setHoveredKey(slotKey); } : undefined}
+                  onPointerOut={isPairing ? (e) => { e.stopPropagation(); setHoveredKey(null); } : undefined}
+                  onClick={isPairing && onPortPick3D ? (e) => {
+                    e.stopPropagation();
+                    onPortPick3D({
+                      deviceId: device.id,
+                      portType: group.type as PortType,
+                      portIndex: slot.index,
+                      face,
+                      cableTypes: []
+                    });
+                  } : undefined}
+                >
+                  <primitive attach="geometry" object={UNIT_BOX_GEOMETRY} />
+                  <meshStandardMaterial
+                    color={isHovered ? '#ffffff' : group.color}
+                    emissive={isHovered ? '#06b6d4' : group.emissive}
+                    emissiveIntensity={isHovered ? 1.4 : 0.35}
+                    roughness={0.5}
+                    metalness={0.2}
+                  />
+                </mesh>
+                <Text
+                  fontSize={Math.min(0.016, slot.width * 0.4)}
+                  color={isHovered ? '#ffffff' : '#0f172a'}
+                  anchorX="center"
+                  anchorY="middle"
+                  position={[0, 0, 0.003]}
+                >
+                  {`${slot.index + 1}`}
+                </Text>
+              </group>
+            );
+          })}
         </group>
       ))}
     </group>
