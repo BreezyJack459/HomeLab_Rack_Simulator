@@ -36,7 +36,7 @@
 
 ### 📦 硬體範本庫
 
-內建 90+ 範本，涵蓋 TinyMiniMicro 節點、Mini-PC、交換器、路由器、防火牆、NAS、UPS、PDU、配線架、KVM、無線基地台、數據機、SBC、線材管理配件等。可按類別篩選並一鍵加入機架。
+內建 100+ 範本，涵蓋 TinyMiniMicro 節點、Mini-PC、交換器、路由器、防火牆、NAS、UPS、PDU、配線架、KVM、無線基地台、數據機、SBC、線材管理配件等。可按類別篩選並一鍵加入機架。
 
 ![硬體範本庫](../artifacts/smoke/desktop-hardware-templates.png)
 
@@ -171,7 +171,7 @@ homelab-rack-simulator/
 │   │       └── sharedGeometries.ts      ← 可重複使用的 Three.js 幾何快取
 │   │
 │   ├── data/
-│   │   ├── deviceCatalog.ts             ← 90+ 硬體範本（範本庫的資料來源）
+│   │   ├── deviceCatalog.ts             ← 100+ 硬體範本（範本庫的資料來源）
 │   │   └── sampleLayouts.ts             ← 快速入門的種子佈局
 │   │
 │   ├── store/
