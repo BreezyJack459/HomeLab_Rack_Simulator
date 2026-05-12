@@ -392,6 +392,9 @@ export function CablePlanner() {
   const [hoveredDeviceId, setHoveredDeviceId] = useState<string | null>(null);
   const [ghostPreview, setGhostPreview] = useState(false);
   const [lastSourceDeviceId, setLastSourceDeviceId] = useState<string | null>(null);
+  const [cableFilter, setCableFilter] = useState('');
+  const [cableTypeFilter, setCableTypeFilter] = useState<CableType | 'all'>('all');
+  const [expandedCableGroups, setExpandedCableGroups] = useState<Record<string, boolean>>({});
 
   const deviceMap = useMemo(() => {
     const map = new Map<string, PlacedDevice>();
@@ -446,6 +449,22 @@ export function CablePlanner() {
 
     return null;
   }, [ghostPreview, hoveredChoice, hoveredDeviceId, layout, source, stage]);
+
+  // Filtered + grouped cables for the compact list view
+  const filteredCables = useMemo(() => {
+    const q = cableFilter.trim().toLowerCase();
+    return layout.cables.filter((route) => {
+      if (cableTypeFilter !== 'all' && route.type !== cableTypeFilter) return false;
+      if (!q) return true;
+      const from = deviceMap.get(route.fromDeviceId);
+      const to = deviceMap.get(route.toDeviceId);
+      return (
+        (from?.name.toLowerCase().includes(q) ?? false) ||
+        (to?.name.toLowerCase().includes(q) ?? false) ||
+        route.type.toLowerCase().includes(q)
+      );
+    });
+  }, [layout.cables, cableTypeFilter, cableFilter, deviceMap]);
 
   // Sync ghost preview cable into store so CableViewer3D can render it as a 3D tube
   useEffect(() => {
@@ -700,76 +719,148 @@ export function CablePlanner() {
             </div>
           )}
 
-          <div className="space-y-2">
-            {layout.cables.map((route) => {
-              const from = layout.devices.find((device) => device.id === route.fromDeviceId);
-              const to = layout.devices.find((device) => device.id === route.toDeviceId);
-              const plan = calculateCablePlan(route, layout);
-              const selected = selectedCableIds.has(route.id);
-              const muted = selectedCableId !== null && !selected;
-              const portsLabel = portLabel(route);
-              const patchLabel = patchPanelRouteLabel(layout, route);
-              const displayColor = getCableDisplayColor(route.type, route.color);
-              return (
-                <button
-                  key={route.id}
-                  className={`flex w-full items-center gap-3 rounded-md border p-2 text-left text-sm transition ${
-                    selected
-                      ? 'border-cyan-300 bg-cyan-300/10'
-                      : muted
-                        ? 'border-slate-800 bg-slate-950/70 opacity-70 hover:border-slate-700'
-                        : 'border-slate-800 bg-slate-950 hover:border-slate-700'
-                  }`}
-                  data-cable-planner-route-state={selected ? 'selected' : muted ? 'muted' : 'normal'}
-                  onClick={() => selectCable(route.id)}
-                  type="button"
-                >
-                  <span
-                    className="h-8 w-1.5 rounded-full"
-                    style={{ backgroundColor: muted ? mutedCableColor : displayColor, opacity: muted ? 0.55 : 1 }}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className={`block truncate ${muted ? 'text-slate-400' : 'text-slate-100'}`}>
-                      {from?.name ?? 'Missing'} -&gt; {to?.name ?? 'Missing'}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      <span className="capitalize">{route.type}</span>
-                      <span className="mx-1">-</span>
-                      <span>{plan ? formatCableLength(plan.standardLengthMm) : `~${formatCableLength(estimateCableLength(layout, route))}`}</span>
-                      {plan && (
-                        <>
-                          <span className="mx-1">-</span>
-                          <span>{plan.discipline} / {plan.rail ? `${plan.rail} tray` : 'front manager'}</span>
-                        </>
-                      )}
-                      {portsLabel && (
-                        <>
-                          <span className="mx-1">-</span>
-                          <span>{portsLabel}</span>
-                        </>
-                      )}
-                    </span>
-                    {((plan?.nodes.length ?? 0) > 0 || (route.nodes?.length ?? 0) > 0) && (
-                      <span className="mt-0.5 block text-[10px] text-slate-600">
-                        {patchLabel ? `${patchLabel} / ` : ''}
-                        {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout, plan)}
+          {/* ── Cable filter bar ── */}
+          {layout.cables.length > 0 && (
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                placeholder="Filter cables…"
+                value={cableFilter}
+                onChange={(e) => setCableFilter(e.target.value)}
+                className="h-7 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 text-[11px] text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-500"
+              />
+              <select
+                value={cableTypeFilter}
+                onChange={(e) => setCableTypeFilter(e.target.value as CableType | 'all')}
+                className="h-7 rounded-md border border-slate-700 bg-slate-950 px-1.5 text-[11px] text-slate-300 outline-none focus:border-cyan-500"
+              >
+                <option value="all">All types</option>
+                {Array.from(new Set(layout.cables.map((c) => c.type))).sort().map((t) => (
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* ── Grouped compact cable list ── */}
+          <div className="space-y-1.5">
+            {filteredCables.length === 0 && layout.cables.length > 0 && (
+              <div className="rounded-md border border-dashed border-slate-800 bg-slate-950/60 p-3 text-center text-[11px] text-slate-500">
+                No cables match the filter.
+              </div>
+            )}
+
+            {(() => {
+              const groups = filteredCables.reduce<Record<string, typeof filteredCables>>((acc, route) => {
+                acc[route.type] = acc[route.type] ?? [];
+                acc[route.type].push(route);
+                return acc;
+              }, {});
+
+              return Object.entries(groups).map(([type, routes]) => {
+                const isGroupOpen = expandedCableGroups[type] !== false;
+                const toggleGroup = () =>
+                  setExpandedCableGroups((prev) => ({ ...prev, [type]: !isGroupOpen }));
+                const groupColor = getCableDisplayColor(type as CableType, undefined);
+
+                return (
+                  <div key={type} className="rounded-md border border-slate-800 bg-slate-950">
+                    {/* Group header */}
+                    <button
+                      type="button"
+                      onClick={toggleGroup}
+                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition hover:bg-slate-800/50"
+                    >
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: groupColor }} />
+                      <span className="flex-1 text-[11px] font-semibold capitalize tracking-[0.1em] text-slate-400">
+                        {type}
                       </span>
+                      <span className="text-[10px] text-slate-600">{routes.length}</span>
+                      <ChevronDown
+                        size={12}
+                        className={`shrink-0 text-slate-600 transition-transform duration-150 ${isGroupOpen ? '' : '-rotate-90'}`}
+                      />
+                    </button>
+
+                    {/* Compact cable rows */}
+                    {isGroupOpen && (
+                      <div className="border-t border-slate-800/60 px-1 pb-1 pt-0.5 space-y-0.5">
+                        {routes.map((route) => {
+                          const from = deviceMap.get(route.fromDeviceId);
+                          const to = deviceMap.get(route.toDeviceId);
+                          const plan = calculateCablePlan(route, layout);
+                          const selected = selectedCableIds.has(route.id);
+                          const muted = selectedCableId !== null && !selected;
+                          const displayColor = getCableDisplayColor(route.type, route.color);
+                          const lengthStr = plan
+                            ? formatCableLength(plan.standardLengthMm)
+                            : `~${formatCableLength(estimateCableLength(layout, route))}`;
+                          const portsLabel = portLabel(route);
+                          const patchLabel = patchPanelRouteLabel(layout, route);
+
+                          return (
+                            <div
+                              key={route.id}
+                              className={`group cursor-pointer rounded px-1.5 py-1 text-[11px] transition ${
+                                selected
+                                  ? 'bg-cyan-300/10 text-cyan-100'
+                                  : muted
+                                    ? 'opacity-50 hover:opacity-80 text-slate-400'
+                                    : 'text-slate-300 hover:bg-slate-800/60'
+                              }`}
+                              data-cable-planner-route-state={selected ? 'selected' : muted ? 'muted' : 'normal'}
+                              onClick={() => selectCable(route.id)}
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                {/* Color pip */}
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{ backgroundColor: muted ? mutedCableColor : displayColor, opacity: muted ? 0.5 : 1 }}
+                                />
+                                {/* From → To */}
+                                <span className="min-w-0 flex-1 truncate font-medium">
+                                  {from?.name ?? '?'}
+                                  <span className="mx-1 text-slate-600">→</span>
+                                  {to?.name ?? '?'}
+                                </span>
+                                {/* Length */}
+                                <span className="shrink-0 text-[10px] text-slate-500">{lengthStr}</span>
+                                {/* Delete */}
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-0.5 text-slate-600 opacity-40 transition group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400"
+                                  onClick={(e) => { e.stopPropagation(); removeCable(route.id); }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+
+                              {/* Expanded detail when selected */}
+                              {selected && (
+                                <div className="mt-1 pl-4 text-[10px] text-slate-500">
+                                  {portsLabel && <span>{portsLabel}</span>}
+                                  {plan && (
+                                    <span className={portsLabel ? ' ml-1.5' : ''}>
+                                      {plan.discipline} / {plan.rail ? `${plan.rail} tray` : 'front manager'}
+                                    </span>
+                                  )}
+                                  {((plan?.nodes.length ?? 0) > 0 || (route.nodes?.length ?? 0) > 0) && (
+                                    <span className="mt-0.5 block text-slate-600">
+                                      {patchLabel ? `${patchLabel} / ` : ''}
+                                      {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout, plan)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                  </span>
-                  <span
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-red-500/15 hover:text-red-100"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      removeCable(route.id);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <Trash2 size={14} />
-                  </span>
-                </button>
-              );
-            })}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
