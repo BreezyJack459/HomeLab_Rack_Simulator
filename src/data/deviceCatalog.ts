@@ -1752,6 +1752,322 @@ export const deviceCatalog: DeviceTemplate[] = [
     color: '#27272a',
     description: 'Two-unit vented filler panel for rack airflow planning.'  },
   {
+    id: 'usw-pro-24-poe',
+    category: 'switch',
+    name: 'UniFi Switch Pro 24 PoE',
+    defaultU: 1,
+    depthMm: 285,
+    widthType: '19in',
+    weightKg: 4.4,
+    powerW: 50,
+    heatLevel: 4,
+    ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 12, xRatio: 0.38 },
+        { type: 'fiber', columns: 2, xRatio: 0.9 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#1d4ed8',
+    description: 'UniFi Pro 24 PoE: 24x GbE (16 PoE+, 8 PoE++), 2x 10G SFP+, 400W PoE budget, Layer 3.'
+  },
+  {
+    id: 'usw-pro-48-poe',
+    category: 'switch',
+    name: 'UniFi Switch Pro 48 PoE',
+    defaultU: 1,
+    depthMm: 400,
+    widthType: '19in',
+    weightKg: 6.3,
+    powerW: 60,
+    heatLevel: 4,
+    ports: { ethernet: 48, fiber: 4, power: 1, layoutColumns: 24 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 24, xRatio: 0.38 },
+        { type: 'fiber', columns: 4, xRatio: 0.9 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#1e40af',
+    description: 'UniFi Pro 48 PoE: 48x GbE (40 PoE+, 8 PoE++), 4x 10G SFP+, 600W PoE budget, Layer 3.'
+  },
+  {
+    id: 'usw-enterprise-24-poe',
+    category: 'switch',
+    name: 'UniFi Switch Enterprise 24 PoE',
+    defaultU: 1,
+    depthMm: 325,
+    widthType: '19in',
+    weightKg: 5.2,
+    powerW: 100,
+    heatLevel: 4,
+    ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 12, xRatio: 0.38 },
+        { type: 'fiber', columns: 2, xRatio: 0.9 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#1d4ed8',
+    description: 'UniFi Enterprise 24 PoE: 12x GbE + 12x 2.5GbE (all PoE+), 2x 10G SFP+, 400W PoE budget, Layer 3.'
+  },
+  {
+    id: 'usw-flex-mini',
+    category: 'switch',
+    name: 'UniFi Switch Flex Mini',
+    defaultU: 1,
+    depthMm: 70,
+    widthType: 'shelf',
+    customWidthMm: 107,
+    weightKg: 0.15,
+    powerW: 2.5,
+    heatLevel: 1,
+    ports: { ethernet: 5, power: 1, layoutColumns: 5 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 5, xRatio: 0.5 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#2563eb',
+    description: 'Compact 5-port GbE desktop switch, USB-C or PoE powered.'
+  },
+  {
+    id: 'usw-16-poe',
+    category: 'switch',
+    name: 'UniFi Switch 16 PoE',
+    defaultU: 1,
+    depthMm: 200,
+    widthType: '19in',
+    weightKg: 2.8,
+    powerW: 25,
+    heatLevel: 3,
+    ports: { ethernet: 16, fiber: 2, power: 1, layoutColumns: 8 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 8, xRatio: 0.38 },
+        { type: 'fiber', columns: 2, xRatio: 0.9 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#2563eb',
+    description: 'UniFi Switch 16 PoE: 16x GbE (PoE+), 2x SFP, 42W PoE budget, fanless.'
+  },
+  {
+    id: 'udm-se',
+    category: 'router',
+    name: 'UniFi Dream Machine Special Edition',
+    defaultU: 1,
+    depthMm: 286,
+    widthType: '19in',
+    weightKg: 4.95,
+    powerW: 50,
+    heatLevel: 4,
+    ports: { ethernet: 9, fiber: 2, power: 1, layoutColumns: 11 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', count: 1, columns: 1, xRatio: 0.12 },
+        { type: 'ethernet', count: 8, columns: 8, xRatio: 0.48 },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.82 },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.92 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#0ea5e9',
+    description: 'UDM-SE: 8x GbE LAN (PoE), 1x 2.5GbE WAN, 2x 10G SFP+, built-in controller, 130W PoE budget.'
+  },
+  {
+    id: 'uxg-pro',
+    category: 'router',
+    name: 'UniFi Next-Gen Gateway Pro',
+    defaultU: 1,
+    depthMm: 285,
+    widthType: '19in',
+    weightKg: 3.5,
+    powerW: 35,
+    heatLevel: 3,
+    ports: { ethernet: 2, fiber: 2, power: 1, layoutColumns: 4 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 1, xRatio: 0.15 },
+        { type: 'fiber', columns: 1, xRatio: 0.35 },
+        { type: 'ethernet', columns: 1, xRatio: 0.65 },
+        { type: 'fiber', columns: 1, xRatio: 0.85 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#0ea5e9',
+    description: 'UXG-Pro: 1x GbE WAN, 1x SFP+ WAN, 1x GbE LAN, 1x SFP+ LAN, rackmount gateway, no built-in controller.'
+  },
+  {
+    id: 'usg-pro-4',
+    category: 'router',
+    name: 'UniFi Security Gateway Pro 4',
+    defaultU: 1,
+    depthMm: 164,
+    widthType: '19in',
+    weightKg: 2.3,
+    powerW: 40,
+    heatLevel: 3,
+    ports: { ethernet: 4, fiber: 2, power: 1, layoutColumns: 4 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', count: 2, columns: 2, xRatio: 0.25 },
+        { type: 'ethernet', count: 2, columns: 2, xRatio: 0.55 },
+        { type: 'fiber', count: 2, columns: 2, xRatio: 0.85 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#0d9488',
+    description: 'USG-Pro-4: 2x GbE LAN, 2x RJ45/SFP combo WAN, 1U rackmount security gateway (legacy).'
+  },
+  {
+    id: 'usg',
+    category: 'router',
+    name: 'UniFi Security Gateway',
+    defaultU: 1,
+    depthMm: 135,
+    widthType: 'shelf',
+    customWidthMm: 135,
+    weightKg: 0.37,
+    powerW: 7,
+    heatLevel: 2,
+    ports: { ethernet: 3, power: 1, layoutColumns: 3 },
+    portLayouts: {
+      front: [
+        { type: 'ethernet', columns: 3, xRatio: 0.42 }
+      ],
+      rear: [
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#0d9488',
+    description: 'USG: 3x GbE, compact fanless security gateway, wall or shelf mount (legacy).'
+  },
+  {
+    id: 'u6-pro',
+    category: 'access-point',
+    name: 'UniFi U6-Pro',
+    defaultU: 1,
+    rackMountable: false,
+    depthMm: 197,
+    widthType: 'shelf',
+    customWidthMm: 197,
+    weightKg: 0.58,
+    powerW: 13,
+    heatLevel: 2,
+    ports: { ethernet: 1, layoutColumns: 1 },
+    portLayouts: {
+      rear: [
+        { type: 'ethernet', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#38bdf8',
+    description: 'WiFi 6 access point, ceiling or wall mount, 4x4 MIMO, up to 4.8 Gbps.'
+  },
+  {
+    id: 'u6-lite',
+    category: 'access-point',
+    name: 'UniFi U6-Lite',
+    defaultU: 1,
+    rackMountable: false,
+    depthMm: 160,
+    widthType: 'shelf',
+    customWidthMm: 160,
+    weightKg: 0.30,
+    powerW: 12,
+    heatLevel: 2,
+    ports: { ethernet: 1, layoutColumns: 1 },
+    portLayouts: {
+      rear: [
+        { type: 'ethernet', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#38bdf8',
+    description: 'WiFi 6 access point, ceiling or wall mount, 2x2 MIMO, up to 1.2 Gbps.'
+  },
+  {
+    id: 'unvr',
+    category: 'nas',
+    name: 'UniFi Protect NVR',
+    defaultU: 1,
+    depthMm: 325,
+    widthType: '19in',
+    weightKg: 5.2,
+    powerW: 100,
+    heatLevel: 3,
+    ports: { ethernet: 1, fiber: 1, power: 1, layoutColumns: 2 },
+    portLayouts: {
+      rear: [
+        { type: 'ethernet', columns: 1, xRatio: 0.3 },
+        { type: 'fiber', columns: 1, xRatio: 0.7 },
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#f59e0b',
+    description: 'UniFi Protect 4-bay NVR, 1x GbE, 1x 10G SFP+, rackmount, up to 50 cameras.'
+  },
+  {
+    id: 'cloud-key-gen2-plus',
+    category: 'mini-pc',
+    name: 'UniFi Cloud Key Gen2 Plus',
+    defaultU: 1,
+    depthMm: 134,
+    widthType: 'shelf',
+    customWidthMm: 131,
+    weightKg: 0.58,
+    powerW: 13,
+    heatLevel: 2,
+    ports: { ethernet: 1, power: 1, layoutColumns: 1 },
+    portLayouts: {
+      rear: [
+        { type: 'ethernet', columns: 1, xRatio: 0.3 },
+        { type: 'power', columns: 1, xRatio: 0.5 }
+      ]
+    },
+    color: '#7c3aed',
+    description: 'UniFi Cloud Key Gen2 Plus: controller + Protect NVR, 1TB HDD, 1x GbE, PoE or USB-C powered.'
+  },
+  {
+    id: 'usp-rps',
+    category: 'pdu',
+    name: 'UniFi SmartPower RPS',
+    defaultU: 1,
+    depthMm: 285,
+    widthType: '19in',
+    weightKg: 5.0,
+    powerW: 0,
+    heatLevel: 1,
+    ports: { power: 6, layoutColumns: 6 },
+    portFaceOverrides: { power: 'front' },
+    portLayouts: {
+      front: [
+        { type: 'power', columns: 6, xRatio: 0.5 }
+      ]
+    },
+    color: '#111827',
+    description: 'UniFi SmartPower Redundant Power System, 6x USP-RPS DC output ports, 1U rackmount.'
+  },
+  {
     id: 'custom-device',
     category: 'custom',
     name: 'Custom device',

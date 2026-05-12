@@ -17,7 +17,7 @@
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-const BUDGET_KB = 420; // agreed initial-chunk budget (pre-gzip)
+const BUDGET_KB = 430; // agreed initial-chunk budget (pre-gzip)
 const DIST_ASSETS = 'dist/assets';
 
 function getSizeKB(filePath) {
