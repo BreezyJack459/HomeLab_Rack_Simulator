@@ -180,6 +180,7 @@ export type CablePlan = {
   nodes: CableNode[];
   waypoints: CableWaypoint[];
   segments: CableSegment[];
+  baseLengthMm: number;
   estimatedLengthMm: number;
   standardLengthMm: number;
   slackMm: number;
@@ -208,6 +209,8 @@ export interface CableRoute {
   nodes?: CableNode[];
   lifecycleStatus?: LifecycleStatus;
   lengthMm?: number;
+  length?: string; // Human-readable length e.g. '1m', '2m'
+  bundleId?: string; // Groups cables into a visual bundle
 }
 
 export interface RackLayout {

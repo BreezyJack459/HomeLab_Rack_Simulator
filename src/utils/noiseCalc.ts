@@ -8,7 +8,7 @@ export interface NoiseSummary {
   suitability: 'bedroom' | 'office' | 'closet' | 'garage' | 'basement' | 'unknown';
 }
 
-const DEFAULT_NOISE_DB: Record<string, number> = {
+const DEFAULT_NOISE_DB = {
   server: 55,
   switch: 48,
   router: 35,
@@ -27,7 +27,8 @@ const DEFAULT_NOISE_DB: Record<string, number> = {
   sbc: 28,
   'poe-injector': 25,
   'ip-kvm': 30,
-};
+  custom: 35,
+} as const;
 
 function getDeviceNoiseDb(device: RackLayout['devices'][number]): number {
   if (device.noiseDb !== undefined) return device.noiseDb;

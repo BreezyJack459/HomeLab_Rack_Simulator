@@ -45,7 +45,9 @@ function validateDevice(device: unknown, index: number): string[] {
   if (!isNonEmptyString(device.widthType)) errors.push(`${prefix}.widthType missing or invalid`);
   if (!isNonNegativeNumber(device.weightKg)) errors.push(`${prefix}.weightKg must be >= 0`);
   if (!isNonNegativeNumber(device.powerW)) errors.push(`${prefix}.powerW must be >= 0`);
-  if (typeof device.heatLevel !== 'number') errors.push(`${prefix}.heatLevel must be a number`);
+  if (typeof device.heatLevel !== 'number' || !Number.isFinite(device.heatLevel) || device.heatLevel < 1 || device.heatLevel > 5) {
+    errors.push(`${prefix}.heatLevel must be a finite number between 1 and 5`);
+  }
   if (!isNonEmptyString(device.color)) errors.push(`${prefix}.color missing or invalid`);
 
   return errors;
@@ -65,6 +67,12 @@ function validateCable(cable: unknown, index: number): string[] {
   if (!isNonEmptyString(cable.toDeviceId)) errors.push(`${prefix}.toDeviceId missing or invalid`);
   if (!isNonEmptyString(cable.type)) errors.push(`${prefix}.type missing or invalid`);
   if (!isNonEmptyString(cable.color)) errors.push(`${prefix}.color missing or invalid`);
+  if (cable.fromPort !== undefined && !isPlainObject(cable.fromPort)) {
+    errors.push(`${prefix}.fromPort must be an object`);
+  }
+  if (cable.toPort !== undefined && !isPlainObject(cable.toPort)) {
+    errors.push(`${prefix}.toPort must be an object`);
+  }
 
   return errors;
 }
@@ -122,10 +130,10 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     return { valid: false, errors };
   }
 
-  const layout: RackLayout =
-    typeof data.updatedAt === 'string'
-      ? (data as unknown as RackLayout)
-      : ({ ...data, updatedAt: new Date().toISOString() } as unknown as RackLayout);
+  const layout: RackLayout = {
+    ...(data as Record<string, unknown>),
+    updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString(),
+  } as RackLayout;
 
   return { valid: true, layout };
 }

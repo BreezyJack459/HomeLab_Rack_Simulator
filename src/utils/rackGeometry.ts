@@ -1,4 +1,4 @@
-import type { PlacedDevice, PortRef, RackLayout } from '../types/rack';
+import type { PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
 import { buildPortLayout, getPortFaceMap } from './portLayout';
 import { getDeviceMountSide, getDeviceXRange, getZeroUEarSide, RACK_SPECS } from './rackMath';
 
@@ -101,8 +101,11 @@ export function getDeviceWorldBox(
 }
 
 export function getCablePortFace(device: PlacedDevice, portRef?: PortRef): 'front' | 'rear' {
-  if (device.category === 'patch-panel' && portRef?.side) {
-    return portRef.side;
+  if (device.category === 'patch-panel') {
+    // Explicit side wins; missing side: ethernet/fiber = front, structured/patch = rear
+    if (portRef?.side) return portRef.side;
+    const frontTypes: PortType[] = ['ethernet', 'fiber'];
+    return frontTypes.includes(portRef?.type ?? 'ethernet') ? 'front' : 'rear';
   }
   const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
   return (faceMap[portRef?.type ?? 'ethernet'] ?? 'rear') as 'front' | 'rear';

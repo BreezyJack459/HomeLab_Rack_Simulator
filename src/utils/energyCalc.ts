@@ -1,6 +1,6 @@
 import type { RackLayout } from '../types/rack';
 
-const HOURS_PER_MONTH = 730; // ~30.4 days
+const HOURS_PER_MONTH = 730; // Average calendar month: 365 days / 12 months ≈ 30.42 days × 24 h
 const WATTS_TO_BTU_PER_HOUR = 3.412;
 
 export interface EnergySummary {

@@ -34,38 +34,44 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
   const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
   const warningIssues = issues.filter((i) => i.severity === 'warning').length;
 
+  const spacePct = layout.heightU > 0 ? (totals.occupiedU / layout.heightU) * 100 : 0;
+  const powerPct = layout.powerBudgetW > 0 ? (totals.powerW / layout.powerBudgetW) * 100 : 0;
+  const weightPct = layout.weightLimitKg > 0 ? (totals.weightKg / layout.weightLimitKg) * 100 : 0;
+  const cableMax = Math.max(layout.heightU * 2, layout.cables.length, 1);
+  const cablePct = (layout.cables.length / cableMax) * 100;
+
   const metrics: HealthMetric[] = [
     {
       label: 'Space',
       value: totals.occupiedU,
       max: layout.heightU,
       unit: 'U',
-      percent: Math.round((totals.occupiedU / layout.heightU) * 100),
-      status: statusForPercent((totals.occupiedU / layout.heightU) * 100),
+      percent: Math.round(spacePct),
+      status: statusForPercent(spacePct),
     },
     {
       label: 'Power',
       value: totals.powerW,
       max: layout.powerBudgetW,
       unit: 'W',
-      percent: Math.round((totals.powerW / layout.powerBudgetW) * 100),
-      status: statusForPercent((totals.powerW / layout.powerBudgetW) * 100),
+      percent: Math.round(powerPct),
+      status: statusForPercent(powerPct),
     },
     {
       label: 'Weight',
       value: totals.weightKg,
       max: layout.weightLimitKg,
       unit: 'kg',
-      percent: Math.round((totals.weightKg / layout.weightLimitKg) * 100),
-      status: statusForPercent((totals.weightKg / layout.weightLimitKg) * 100),
+      percent: Math.round(weightPct),
+      status: statusForPercent(weightPct),
     },
     {
       label: 'Cables',
       value: layout.cables.length,
-      max: Math.max(layout.heightU * 2, layout.cables.length),
+      max: cableMax,
       unit: '',
-      percent: Math.round((layout.cables.length / Math.max(layout.heightU * 2, 1)) * 100),
-      status: statusForPercent((layout.cables.length / Math.max(layout.heightU * 2, 1)) * 100),
+      percent: Math.round(cablePct),
+      status: statusForPercent(cablePct),
     },
   ];
 

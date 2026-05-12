@@ -96,35 +96,32 @@ export function getFrontRearCollisions(layout: RackLayout): FrontRearCollision[]
 
 export function getHeavyOverLightIssues(layout: RackLayout): HeavyOverLightIssue[] {
   const issues: HeavyOverLightIssue[] = [];
-  const rackMounted = layout.devices.filter((d) => !isZeroU(d));
+  const rackMounted = layout.devices
+    .filter((d) => !isZeroU(d))
+    .sort((a, b) => a.positionU - b.positionU);
 
   for (let i = 0; i < rackMounted.length; i += 1) {
-    for (let j = 0; j < rackMounted.length; j += 1) {
-      if (i === j) continue;
-      const upper = rackMounted[i];
-      const lower = rackMounted[j];
+    const upper = rackMounted[i];
+    if (upper.weightKg < 10) continue;
 
+    for (let j = i + 1; j < rackMounted.length; j += 1) {
+      const lower = rackMounted[j];
       if (getDeviceMountSide(upper) !== getDeviceMountSide(lower)) continue;
-      if (upper.weightKg < 10) continue;
       if (upper.weightKg <= lower.weightKg) continue;
 
-      // Upper device must be above lower device
-      const upperBottomU = upper.positionU + upper.sizeU;
-      const lowerTopU = lower.positionU;
-      const gapU = lowerTopU - upperBottomU;
+      const gapU = lower.positionU - (upper.positionU + upper.sizeU);
+      if (gapU < 0) continue; // overlapping or out of order
+      if (gapU > 1) break; // lower is too far down; all subsequent devices are even farther
 
-      // Must be immediately adjacent or overlapping (overlapping caught by overlap check)
-      if (gapU >= 0 && gapU <= 1) {
-        issues.push({
-          upperDeviceId: upper.id,
-          upperDeviceName: upper.name,
-          upperWeightKg: upper.weightKg,
-          lowerDeviceId: lower.id,
-          lowerDeviceName: lower.name,
-          lowerWeightKg: lower.weightKg,
-          gapU,
-        });
-      }
+      issues.push({
+        upperDeviceId: upper.id,
+        upperDeviceName: upper.name,
+        upperWeightKg: upper.weightKg,
+        lowerDeviceId: lower.id,
+        lowerDeviceName: lower.name,
+        lowerWeightKg: lower.weightKg,
+        gapU,
+      });
     }
   }
 

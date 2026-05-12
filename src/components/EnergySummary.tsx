@@ -88,8 +88,11 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
             type="number"
             min={0.01}
             step={0.01}
-            value={layout.electricityRatePerKwh}
-            onChange={(e) => onRateChange(Number(e.target.value))}
+            value={layout.electricityRatePerKwh ?? ''}
+            onChange={(e) => {
+              const val = e.target.value === '' ? 0 : Number(e.target.value);
+              onRateChange(Number.isNaN(val) ? 0 : Math.max(0, val));
+            }}
           />
         </label>
       )}

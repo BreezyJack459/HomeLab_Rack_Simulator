@@ -74,7 +74,10 @@ export function buildCablePath3D(
   const toPort = getDevicePortWorldPosition(layout, to, cable.toPort, dimensions);
 
   const nodes = plan.nodes;
-  const isDirectPath = !nodes.some((n) => n.type === 'v-rail-left' || n.type === 'v-rail-right');
+  const hasRailNodes = nodes.some((n) => n.type === 'v-rail-left' || n.type === 'v-rail-right');
+  const fromFace = getCablePortFace(from, cable.fromPort);
+  const toFace = getCablePortFace(to, cable.toPort);
+  const isDirectPath = !hasRailNodes && fromFace === toFace;
   const points: Vector3[] = [];
 
   if (isDirectPath) {
