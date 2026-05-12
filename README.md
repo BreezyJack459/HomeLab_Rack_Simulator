@@ -10,6 +10,8 @@ Plan your homelab rack layout in 2D, inspect it in 3D, and map every cable — a
 
 🔗 **Live Demo:** https://breezyjack459.github.io/HomeLab_Rack_Simulator/
 
+🌐 **Languages:** [繁體中文](./docs/README.zh-Hant.md)
+
 ---
 
 ## 📸 Screenshots
