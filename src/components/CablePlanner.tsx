@@ -14,8 +14,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { CableRoute, CableType, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
 import { getCableDisplayColor } from '../utils/cableColors';
-import { calculateCablePlan, pathDescription } from '../utils/routing';
-import { estimateCableLength, formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
+import { calculateCablePlan, estimateCableLength, pathDescription } from '../utils/routing';
+import { formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
 import { exportBomCsv, exportBomText } from '../utils/exporters';
 import { getPatchPanelLinkedCableIds, patchPanelRouteLabel } from '../utils/patchPanel';
 import {
@@ -211,6 +211,7 @@ function DeviceFaceCard({
   source,
   stage,
   hoveredChoiceKey,
+  deviceMap,
   onHoverChoice,
   onSelectChoice
 }: {
@@ -219,6 +220,7 @@ function DeviceFaceCard({
   source: PairingSource | null;
   stage: PairingStage;
   hoveredChoiceKey: string | null;
+  deviceMap: Map<string, PlacedDevice>;
   onHoverChoice: (choice: PortChoice | null) => void;
   onSelectChoice: (choice: PortChoice) => void;
 }) {
@@ -268,7 +270,7 @@ function DeviceFaceCard({
                         const key = portKey(choice);
                         const isSource = source?.deviceId === choice.deviceId && portKey(source.port) === key;
                         const compatibility = isSelectingDest(stage)
-                          ? resolveCompatibleCable(layout, source, choice)
+                          ? resolveCompatibleCable(layout, source, choice, deviceMap)
                           : null;
                         const disabled = isSelectingDest(stage)
                           ? !compatibility
@@ -391,6 +393,12 @@ export function CablePlanner() {
   const [ghostPreview, setGhostPreview] = useState(false);
   const [lastSourceDeviceId, setLastSourceDeviceId] = useState<string | null>(null);
 
+  const deviceMap = useMemo(() => {
+    const map = new Map<string, PlacedDevice>();
+    for (const d of layout.devices) map.set(d.id, d);
+    return map;
+  }, [layout.devices]);
+
   const selectedCableIds = useMemo(
     () => getPatchPanelLinkedCableIds(layout, selectedCableId),
     [layout, selectedCableId]
@@ -405,7 +413,7 @@ export function CablePlanner() {
 
     // Manual port-level hover (DeviceFaceCard)
     if (hoveredChoice) {
-      const compatible = resolveCompatibleCable(layout, source, hoveredChoice);
+      const compatible = resolveCompatibleCable(layout, source, hoveredChoice, deviceMap);
       if (!compatible) return null;
       return {
         id: 'ghost-cable',
@@ -558,7 +566,7 @@ export function CablePlanner() {
     }
 
     // Manual destination port pick
-    const compatible = resolveCompatibleCable(layout, source, choice);
+    const compatible = resolveCompatibleCable(layout, source, choice, deviceMap);
     if (!source || !compatible) return;
 
     addCable({
@@ -657,6 +665,7 @@ export function CablePlanner() {
               source={source}
               stage={stage}
               hoveredChoiceKey={hoveredChoiceKey}
+              deviceMap={deviceMap}
               onHoverChoice={setHoveredChoice}
               onSelectChoice={handleSelectChoice}
             />

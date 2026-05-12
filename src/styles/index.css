@@ -1,3 +1,5 @@
+@import './theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -107,6 +109,115 @@ textarea {
   min-height: 12mm;
   font-size: 9px;
   padding: 3px 5px;
+}
+
+/* Light mode: override common hard-coded Tailwind slate classes */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="light"] .bg-slate-950 {
+  background-color: var(--theme-bg-primary);
+}
+[data-theme="light"] .bg-slate-900 {
+  background-color: var(--theme-bg-secondary);
+}
+[data-theme="light"] .bg-slate-800 {
+  background-color: var(--theme-bg-hover);
+}
+[data-theme="light"] .text-slate-100 {
+  color: var(--theme-text-primary);
+}
+[data-theme="light"] .text-slate-200 {
+  color: var(--theme-text-primary);
+}
+[data-theme="light"] .text-slate-300 {
+  color: var(--theme-text-secondary);
+}
+[data-theme="light"] .text-slate-400 {
+  color: var(--theme-text-secondary);
+}
+[data-theme="light"] .text-slate-500 {
+  color: var(--theme-text-muted);
+}
+[data-theme="light"] .border-slate-700 {
+  border-color: var(--theme-border-light);
+}
+[data-theme="light"] .border-slate-800 {
+  border-color: var(--theme-border);
+}
+[data-theme="light"] .text-white {
+  color: var(--theme-text-primary);
+}
+
+/* Hover states */
+[data-theme="light"] .hover\:bg-slate-800:hover {
+  background-color: var(--theme-bg-hover);
+}
+[data-theme="light"] .hover\:bg-slate-900:hover {
+  background-color: var(--theme-bg-secondary);
+}
+
+/* Placeholder text */
+[data-theme="light"] .placeholder\:text-slate-500::placeholder {
+  color: var(--theme-text-muted);
+}
+
+/* Opacity variants used in App.tsx */
+[data-theme="light"] .bg-slate-950\/82 {
+  background-color: rgb(255 255 255 / 0.95);
+}
+[data-theme="light"] .bg-slate-950\/72 {
+  background-color: rgb(255 255 255 / 0.95);
+}
+[data-theme="light"] .bg-slate-900\/78 {
+  background-color: rgb(241 245 249 / 0.95);
+}
+[data-theme="light"] .bg-slate-950\/70 {
+  background-color: rgb(255 255 255 / 0.92);
+}
+
+/* Accent colors that need to remain readable in light mode */
+[data-theme="light"] .text-cyan-100 {
+  color: #0891b2;
+}
+[data-theme="light"] .bg-cyan-400 {
+  background-color: #0891b2;
+}
+[data-theme="light"] .bg-cyan-300\/10 {
+  background-color: rgb(8 145 178 / 0.1);
+}
+[data-theme="light"] .border-cyan-300 {
+  border-color: #0891b2;
+}
+[data-theme="light"] .text-cyan-400 {
+  color: #0891b2;
+}
+
+/* Semantic colors */
+[data-theme="light"] .text-red-100 {
+  color: #dc2626;
+}
+[data-theme="light"] .text-amber-100 {
+  color: #d97706;
+}
+[data-theme="light"] .text-sky-100 {
+  color: #0284c7;
+}
+[data-theme="light"] .text-emerald-100 {
+  color: #059669;
+}
+[data-theme="light"] .text-rose-200 {
+  color: #be123c;
+}
+[data-theme="light"] .bg-rose-950\/30 {
+  background-color: rgb(255 228 230 / 0.6);
+}
+[data-theme="light"] .border-rose-500\/40 {
+  border-color: rgb(244 63 94 / 0.4);
+}
+[data-theme="light"] .text-rose-100 {
+  color: #be123c;
 }
 
 @media print {

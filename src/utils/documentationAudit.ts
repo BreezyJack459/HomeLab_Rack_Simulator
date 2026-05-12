@@ -20,6 +20,8 @@ function needsPower(device: PlacedDevice): boolean {
   if (device.category === 'pdu' || device.category === 'pdu-0u' || device.category === 'ups') {
     return true;
   }
+  // Devices with power ports need power regardless of estimated draw (template may be 0W)
+  if ((device.ports?.power ?? 0) > 0) return true;
   return device.powerW > 0;
 }
 

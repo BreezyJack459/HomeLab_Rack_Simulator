@@ -217,11 +217,12 @@ export function sourceSupportsCableType(
 export function resolveCompatibleCable(
   layout: RackLayout,
   source: { deviceId: string; port: PortRef } | null,
-  choice: PortChoice
+  choice: PortChoice,
+  deviceMap?: Map<string, PlacedDevice>
 ): { cableType: CableType; color: string } | null {
   if (!source || source.deviceId === choice.deviceId || choice.disabled) return null;
-  const sourceDevice = layout.devices.find((d) => d.id === source.deviceId);
-  const targetDevice = layout.devices.find((d) => d.id === choice.deviceId);
+  const sourceDevice = deviceMap?.get(source.deviceId) ?? layout.devices.find((d) => d.id === source.deviceId);
+  const targetDevice = deviceMap?.get(choice.deviceId) ?? layout.devices.find((d) => d.id === choice.deviceId);
   if (!sourceDevice || !targetDevice) return null;
 
   const inferred = inferCableType(sourceDevice, targetDevice);

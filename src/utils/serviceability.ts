@@ -1,6 +1,6 @@
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import { getDeviceMountSide, getDeviceSpatialZone, isZeroU, rangesOverlap } from './rackMath';
-import { estimateCableLength } from './rackMath';
+import { estimateCableLength } from './routing';
 
 const SERVICE_SLACK_MM = 300;
 

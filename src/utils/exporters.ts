@@ -1,6 +1,7 @@
 import type { CableType, RackLayout } from '../types/rack';
 import { DEFAULT_CABLE_COLORS } from './cableColors';
-import { estimateCableLength, formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from './rackMath';
+import { formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from './rackMath';
+import { estimateCableLength } from './routing';
 
 const cableColors: Record<CableType, string> = DEFAULT_CABLE_COLORS;
 

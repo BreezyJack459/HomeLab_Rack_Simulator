@@ -5,7 +5,7 @@ import type { CablePlan, CableRoute, CableType, PlacedDevice, PortLayout, RackLa
 import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from '../utils/cableColors';
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
-import { estimateCableLength, formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
 const CableViewer3D = lazy(() => import('./CableViewer3D').then((m) => ({ default: m.CableViewer3D })));
 
 const UNIT_HEIGHT = 40;
@@ -263,7 +263,7 @@ export function CableMap() {
   const mapHeight = Math.max(620, RACK_Y * 2 + rackHeight);
   const selectedCableIds = useMemo(
     () => getPatchPanelLinkedCableIds(layout, selectedCableId),
-    [layout, selectedCableId]
+    [layout.cables, layout.devices, selectedCableId]
   );
 
   const cablePaths = useMemo(() => {
@@ -289,7 +289,7 @@ export function CableMap() {
         };
       })
       .filter(Boolean) as CablePath[];
-  }, [layout, rackWidth, typeFilter, selectedCableIds]);
+  }, [layout.cables, layout.devices, layout.rackType, layout.rackDepthMm, layout.heightU, rackWidth, typeFilter, selectedCableIds]);
 
   const hasSelectedCable = selectedCableId !== null && cablePaths.some((path) => selectedCableIds.has(path.cable.id));
   const routeSummary = typeFilter === 'all' ? `${layout.cables.length}` : `${cablePaths.length} / ${layout.cables.length}`;

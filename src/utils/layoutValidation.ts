@@ -53,6 +53,11 @@ function validateDevice(device: unknown, index: number): string[] {
   return errors;
 }
 
+function isValidPort(port: unknown): boolean {
+  if (!isPlainObject(port)) return false;
+  return typeof port.type === 'string' && typeof port.index === 'number' && Number.isFinite(port.index);
+}
+
 function validateCable(cable: unknown, index: number): string[] {
   const errors: string[] = [];
   const prefix = `cables[${index}]`;
@@ -67,11 +72,11 @@ function validateCable(cable: unknown, index: number): string[] {
   if (!isNonEmptyString(cable.toDeviceId)) errors.push(`${prefix}.toDeviceId missing or invalid`);
   if (!isNonEmptyString(cable.type)) errors.push(`${prefix}.type missing or invalid`);
   if (!isNonEmptyString(cable.color)) errors.push(`${prefix}.color missing or invalid`);
-  if (cable.fromPort !== undefined && !isPlainObject(cable.fromPort)) {
-    errors.push(`${prefix}.fromPort must be an object`);
+  if (cable.fromPort !== undefined && !isValidPort(cable.fromPort)) {
+    errors.push(`${prefix}.fromPort must be an object with type (string) and index (number)`);
   }
-  if (cable.toPort !== undefined && !isPlainObject(cable.toPort)) {
-    errors.push(`${prefix}.toPort must be an object`);
+  if (cable.toPort !== undefined && !isValidPort(cable.toPort)) {
+    errors.push(`${prefix}.toPort must be an object with type (string) and index (number)`);
   }
 
   return errors;
@@ -130,10 +135,24 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     return { valid: false, errors };
   }
 
+  // Build a validated RackLayout object explicitly instead of casting raw input
   const layout: RackLayout = {
-    ...(data as Record<string, unknown>),
+    id: String(data.id),
+    name: typeof data.name === 'string' ? data.name : '',
+    rackType: String(data.rackType) as RackLayout['rackType'],
+    heightU: Number(data.heightU),
+    rackDepthMm: Number(data.rackDepthMm),
+    rearClearanceMm: data.rearClearanceMm !== undefined ? Number(data.rearClearanceMm) : undefined,
+    railMinDepthMm: data.railMinDepthMm !== undefined ? Number(data.railMinDepthMm) : undefined,
+    railMaxDepthMm: data.railMaxDepthMm !== undefined ? Number(data.railMaxDepthMm) : undefined,
+    weightLimitKg: Number(data.weightLimitKg),
+    powerBudgetW: Number(data.powerBudgetW),
+    electricityRatePerKwh: data.electricityRatePerKwh !== undefined ? Number(data.electricityRatePerKwh) : undefined,
+    viewSide: String(data.viewSide) as RackLayout['viewSide'],
+    devices: Array.isArray(data.devices) ? data.devices : [],
+    cables: Array.isArray(data.cables) ? data.cables : [],
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString(),
-  } as RackLayout;
+  };
 
   return { valid: true, layout };
 }

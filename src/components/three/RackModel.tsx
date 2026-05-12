@@ -1,4 +1,5 @@
 import { Text } from '@react-three/drei';
+import { memo } from 'react';
 import type { RackLayout } from '../../types/rack';
 import { RACK_SPECS } from '../../utils/rackMath';
 import { useRackStore } from '../../store/rackStore';
@@ -22,7 +23,7 @@ function Rail({ position, scale }: { position: [number, number, number]; scale: 
   );
 }
 
-export function RackModel({ layout }: RackModelProps) {
+function RackModelComponent({ layout }: RackModelProps) {
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const rackHeight = layout.heightU * U_HEIGHT;
   const width = layout.rackType === '10in' ? 1.95 : 3.72;
@@ -106,3 +107,5 @@ export function RackModel({ layout }: RackModelProps) {
     </group>
   );
 }
+
+export const RackModel = memo(RackModelComponent);

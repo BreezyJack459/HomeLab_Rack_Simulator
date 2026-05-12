@@ -1,5 +1,5 @@
 import { Text } from '@react-three/drei';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { PlacedDevice, PortType, RackLayout } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
@@ -94,6 +94,8 @@ function DevicePortFace({
   );
 }
 
+export const DeviceModel = memo(DeviceModelComponent);
+
 /** Render ports on the X-facing face of a side-mounted 0U device */
 function DeviceZeroUSideFace({
   device,
@@ -164,7 +166,7 @@ function heatEmissive(heatLevel: number) {
   return '#111827';
 }
 
-export function DeviceModel({ device, layout, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
+function DeviceModelComponent({ device, layout, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
   const debugMode = useRackStore((state) => state.debugMode);
