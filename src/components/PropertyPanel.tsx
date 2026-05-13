@@ -22,10 +22,10 @@ function NumberField({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="text-xs text-slate-400">
+    <label className="text-xs text-slate-500 dark:text-slate-400">
       {label}
       <input
-        className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+        className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         type="number"
         min={min}
         max={max}
@@ -87,11 +87,11 @@ export function PropertyPanel() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900/78 p-4">
+    <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 transition hover:text-slate-200"
+        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={15} />
@@ -106,34 +106,34 @@ export function PropertyPanel() {
         <div className="overflow-hidden">
 
       {!device ? (
-        <div className="rounded-md border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+        <div className="rounded-md border border-slate-200 bg-slate-100 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
           Select a component in the rack to edit name, size, depth, power and port layout.
         </div>
       ) : (
         <div className="space-y-3">
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-slate-500 dark:text-slate-400">
             Name
             <input
-              className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+              className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               value={device.name}
               onChange={(event) => patch({ name: event.target.value })}
             />
           </label>
 
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-slate-500 dark:text-slate-400">
             Label
             <input
-              className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+              className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               value={device.label ?? ''}
               onChange={(event) => patch({ label: event.target.value })}
               placeholder="Optional front label"
             />
           </label>
 
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-slate-500 dark:text-slate-400">
             Description
             <textarea
-              className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               value={device.description ?? ''}
               onChange={(event) => patch({ description: event.target.value })}
               placeholder="Optional notes or description"
@@ -141,10 +141,10 @@ export function PropertyPanel() {
             />
           </label>
 
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-slate-500 dark:text-slate-400">
             Status
             <select
-              className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+              className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               value={device.lifecycleStatus ?? 'active'}
               onChange={(event) => patch({ lifecycleStatus: event.target.value as import('../types/rack').LifecycleStatus })}
             >
@@ -155,10 +155,10 @@ export function PropertyPanel() {
           </label>
 
           {(device.category === 'ups' || device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u')) && (
-            <label className="text-xs text-slate-400">
+            <label className="text-xs text-slate-500 dark:text-slate-400">
               Circuit
               <select
-                className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 value={device.circuit ?? ''}
                 onChange={(event) => patch({ circuit: event.target.value ? (event.target.value as 'A' | 'B') : undefined })}
               >
@@ -169,10 +169,10 @@ export function PropertyPanel() {
             </label>
           )}
 
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-slate-500 dark:text-slate-400">
             Mount side
             <select
-              className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+              className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               value={getDeviceMountSide(device)}
               onChange={(event) => patch({ mountSide: event.target.value as ViewSide })}
             >
@@ -182,13 +182,13 @@ export function PropertyPanel() {
           </label>
 
           {ENABLE_ZERO_U_PDU && device.sizeU === 0 && (
-            <div className="rounded-md border border-slate-800 bg-slate-950 p-3">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">0U Mount</div>
+            <div className="rounded-md border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">0U Mount</div>
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">
+                <label className="text-xs text-slate-500 dark:text-slate-400">
                   Mount type
                   <select
-                    className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                     value={device.mountType ?? 'rear-rail'}
                     onChange={(event) => patch({ mountType: event.target.value as ZeroUMountType })}
                   >
@@ -196,10 +196,10 @@ export function PropertyPanel() {
                     <option value="side-rail">Side rail (outer face)</option>
                   </select>
                 </label>
-                <label className="text-xs text-slate-400">
+                <label className="text-xs text-slate-500 dark:text-slate-400">
                   Side
                   <select
-                    className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                     value={device.mountSide0U ?? 'left'}
                     onChange={(event) => patch({ mountSide0U: event.target.value as ZeroUMountSide })}
                   >
@@ -207,10 +207,10 @@ export function PropertyPanel() {
                     <option value="right">Right</option>
                   </select>
                 </label>
-                <label className="text-xs text-slate-400">
+                <label className="text-xs text-slate-500 dark:text-slate-400">
                   Outlet facing
                   <select
-                    className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                     value={device.outletFacing ?? 'forward'}
                     onChange={(event) => patch({ outletFacing: event.target.value as OutletFacing })}
                   >
@@ -236,10 +236,10 @@ export function PropertyPanel() {
             <NumberField label="Depth mm" min={1} value={device.depthMm} onChange={(value) => patch({ depthMm: value })} />
             <NumberField label="Weight kg" min={0} step={0.1} value={device.weightKg} onChange={(value) => patch({ weightKg: value })} />
             <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
-            <label className="text-xs text-slate-400">
+            <label className="text-xs text-slate-500 dark:text-slate-400">
               Heat
               <select
-                className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 value={device.heatLevel}
                 onChange={(event) => patch({ heatLevel: Number(event.target.value) as HeatLevel })}
               >
@@ -253,10 +253,10 @@ export function PropertyPanel() {
           </div>
 
           <div className="grid grid-cols-[1fr_92px] gap-3">
-            <label className="text-xs text-slate-400">
+            <label className="text-xs text-slate-500 dark:text-slate-400">
               Width type
               <select
-                className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 value={device.widthType}
                 onChange={(event) => patch({ widthType: event.target.value as WidthType })}
               >
@@ -266,10 +266,10 @@ export function PropertyPanel() {
                 <option value="custom">Custom</option>
               </select>
             </label>
-            <label className="text-xs text-slate-400">
+            <label className="text-xs text-slate-500 dark:text-slate-400">
               Color
               <input
-                className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 p-1 outline-none"
+                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white p-1 outline-none dark:border-slate-700 dark:bg-slate-950"
                 type="color"
                 value={device.color}
                 onChange={(event) => patch({ color: event.target.value })}
@@ -286,8 +286,8 @@ export function PropertyPanel() {
             />
           )}
 
-          <div className="rounded-md border border-slate-800 bg-slate-950 p-3">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Ports</div>
+          <div className="rounded-md border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Ports</div>
             <div className="grid grid-cols-3 gap-2">
               <NumberField label="ETH" min={0} value={device.ports?.ethernet ?? 0} onChange={(value) => patchPort('ethernet', value)} />
               <NumberField label="Fiber" min={0} value={device.ports?.fiber ?? 0} onChange={(value) => patchPort('fiber', value)} />
@@ -304,9 +304,9 @@ export function PropertyPanel() {
                 value={device.ports?.layoutColumns ?? device.ports?.ethernet ?? 1}
                 onChange={(value) => patchPort('layoutColumns', value)}
               />
-              <div className="rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-400">
+              <div className="rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
                 Width used
-                <div className="mt-1 font-semibold text-white">
+                <div className="mt-1 font-semibold text-slate-900 dark:text-white">
                   {Math.min(getDeviceWidthMm(device), rackUsableWidth).toFixed(0)} / {rackUsableWidth.toFixed(0)}mm
                 </div>
               </div>
@@ -329,8 +329,8 @@ export function PropertyPanel() {
               if (activeTypes.length === 0) return null;
               const defaults = getPortFaceMap(device.category);
               return (
-                <div className="mt-3 border-t border-slate-800 pt-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Port placement</div>
+                <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Port placement</div>
                   <div className="space-y-1.5">
                     {activeTypes.map((pt) => {
                       const defaultFace = defaults[pt.key] ?? 'rear';
@@ -338,12 +338,12 @@ export function PropertyPanel() {
                       const currentFace = override ?? defaultFace;
                       return (
                         <div key={pt.key} className="flex items-center gap-2">
-                          <span className="w-16 text-xs text-slate-400">{pt.label}</span>
-                          <span className="text-[10px] text-slate-600">
+                          <span className="w-16 text-xs text-slate-500 dark:text-slate-400">{pt.label}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-600">
                             default {defaultFace}
                           </span>
                           <select
-                            className="ml-auto h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-xs text-white outline-none"
+                            className="ml-auto h-7 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                             value={override ?? ''}
                             onChange={(event) => {
                               const value = event.target.value as 'front' | 'rear' | '';
@@ -376,32 +376,32 @@ export function PropertyPanel() {
           </div>
 
           {pdu0uMeta && (
-            <div className="rounded-md border border-slate-800 bg-slate-950 p-3">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <div className="rounded-md border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                 <Zap size={13} />
                 0U PDU Status
               </div>
-              <div className="space-y-1 text-xs text-slate-300">
+              <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Outlets</span>
+                  <span className="text-slate-400 dark:text-slate-500">Outlets</span>
                   <span>{pdu0uMeta.outlets} total</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Used</span>
+                  <span className="text-slate-400 dark:text-slate-500">Used</span>
                   <span>
                     {pdu0uMeta.used} ({pdu0uMeta.outlets > 0 ? Math.round((pdu0uMeta.used / pdu0uMeta.outlets) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Power budget</span>
+                  <span className="text-slate-400 dark:text-slate-500">Power budget</span>
                   <span>{pdu0uMeta.powerBudget}W / 2400W</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Location</span>
+                  <span className="text-slate-400 dark:text-slate-500">Location</span>
                   <span className="capitalize">{pdu0uMeta.location.replace('-', ' ')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Feed</span>
+                  <span className="text-slate-400 dark:text-slate-500">Feed</span>
                   <span>Feed {pdu0uMeta.feed}</span>
                 </div>
               </div>
@@ -409,7 +409,7 @@ export function PropertyPanel() {
           )}
 
           <button
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-100 hover:bg-red-500/20"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 hover:bg-red-500/20 dark:text-red-100"
             onClick={() => removeDevice(device.id)}
             type="button"
           >

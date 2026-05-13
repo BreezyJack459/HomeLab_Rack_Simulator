@@ -23,13 +23,13 @@
   --theme-bg-primary: #ffffff;
   --theme-bg-secondary: #f1f5f9;
   --theme-bg-panel: rgba(255, 255, 255, 0.95);
-  --theme-bg-input: #f8fafc;
+  --theme-bg-input: #f1f5f9;        /* was #f8fafc — now distinct from panel */
   --theme-bg-hover: #e2e8f0;
-  --theme-border: #e2e8f0;
+  --theme-border: #cbd5e1;          /* was #e2e8f0 — more visible on white */
   --theme-border-light: #cbd5e1;
   --theme-text-primary: #0f172a;
   --theme-text-secondary: #475569;
-  --theme-text-muted: #94a3b8;
+  --theme-text-muted: #64748b;      /* was #94a3b8 — fixes WCAG AA contrast */
   --theme-accent: #0891b2;
   --theme-accent-text: #ffffff;
 }
