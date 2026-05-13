@@ -14,11 +14,11 @@ export function DocumentationAuditPanel() {
   const infos = issues.filter((i) => i.severity === 'info');
 
   const iconForIssue = (id: string) => {
-    if (id.startsWith('missing-label-')) return <Tag size={13} className="shrink-0 text-slate-400" />;
+    if (id.startsWith('missing-label-')) return <Tag size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
     if (id.startsWith('no-power-')) return <Unplug size={13} className="shrink-0 text-red-400" />;
     if (id.startsWith('no-network-')) return <Wifi size={13} className="shrink-0 text-amber-400" />;
     if (id.startsWith('unused-power-')) return <Info size={13} className="shrink-0 text-sky-400" />;
-    return <FileText size={13} className="shrink-0 text-slate-400" />;
+    return <FileText size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
   };
 
   return (

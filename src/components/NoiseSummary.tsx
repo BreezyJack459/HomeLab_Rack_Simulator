@@ -11,7 +11,7 @@ const SUITABILITY_COLORS: Record<string, { bg: string; text: string }> = {
   closet: { bg: 'bg-amber-500/15', text: 'text-amber-100' },
   garage: { bg: 'bg-orange-500/15', text: 'text-orange-100' },
   basement: { bg: 'bg-red-500/15', text: 'text-red-100' },
-  unknown: { bg: 'bg-slate-500/15', text: 'text-slate-100' },
+  unknown: { bg: 'bg-slate-400/15 dark:bg-slate-500/15', text: 'text-slate-800 dark:text-slate-100' },
 };
 
 export function NoiseSummary({ layout }: NoiseSummaryProps) {

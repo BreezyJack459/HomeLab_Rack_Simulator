@@ -67,7 +67,7 @@ export function KeyboardShortcuts() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-500 hover:text-slate-300"
+            className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
           >
             <X size={14} />
           </button>

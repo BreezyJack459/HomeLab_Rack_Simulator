@@ -25,7 +25,7 @@ class RootErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBo
     if (!this.state.error) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-slate-950 p-6 text-rose-200" style={{ backgroundColor: 'var(--theme-bg-primary)', color: '#be123c' }}>
+      <div className="min-h-screen bg-white p-6 text-rose-800 dark:bg-slate-950 dark:text-rose-200" style={{ backgroundColor: 'var(--theme-bg-primary)', color: '#be123c' }}>
         <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 p-4" style={{ backgroundColor: 'rgba(255, 228, 230, 0.6)', borderColor: 'rgba(244, 63, 94, 0.4)' }}>
           <div className="text-sm font-semibold text-rose-100" style={{ color: '#be123c' }}>Application error</div>
           <pre className="mt-3 max-h-[70vh] overflow-auto whitespace-pre-wrap text-xs leading-5 text-rose-200">

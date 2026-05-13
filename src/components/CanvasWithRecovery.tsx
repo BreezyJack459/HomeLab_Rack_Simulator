@@ -45,10 +45,10 @@ export function CanvasWithRecovery({ children, onCreated, ...props }: CanvasWith
         {children}
       </Canvas>
       {contextLost && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/86 px-6 text-center">
-          <div className="max-w-sm rounded-lg border border-amber-400/40 bg-slate-950 px-5 py-4 shadow-panel">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 px-6 text-center dark:bg-slate-950/86">
+          <div className="max-w-sm rounded-lg border border-amber-400/40 bg-white px-5 py-4 shadow-panel dark:bg-slate-950">
             <div className="text-sm font-semibold text-amber-100">3D renderer paused</div>
-            <div className="mt-2 text-xs leading-5 text-slate-300">
+            <div className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
               WebGL context was lost. Restore may happen automatically, or refresh this view to rebuild GPU resources.
             </div>
             <button

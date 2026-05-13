@@ -142,22 +142,22 @@ function App() {
   }
 
   return (
-    <div className="grid h-screen grid-cols-[320px_minmax(620px,1fr)_380px] overflow-hidden text-slate-100">
-      <aside className="min-h-0 border-r border-slate-800 bg-slate-950/82">
+    <div className="grid h-screen grid-cols-[320px_minmax(620px,1fr)_380px] overflow-hidden text-slate-900 dark:text-slate-100">
+      <aside className="min-h-0 border-r border-slate-200 dark:border-slate-800 bg-white/82 dark:bg-slate-950/82">
         <ComponentLibrary />
       </aside>
 
       <main className="flex min-w-0 flex-col">
-        <header className="border-b border-slate-800 bg-slate-950/72 px-4 py-1.5">
+        <header className="border-b border-slate-200 dark:border-slate-800 bg-white/72 dark:bg-slate-950/72 px-4 py-1.5">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <input
-                className="w-full min-w-[22rem] bg-transparent text-base font-semibold tracking-normal text-white outline-none placeholder:text-slate-500"
+                className="w-full min-w-[22rem] bg-transparent text-base font-semibold tracking-normal text-slate-900 dark:text-white outline-none placeholder:text-slate-500 dark:text-slate-400 dark:placeholder:text-slate-500"
                 value={layout.name}
                 onChange={(event) => updateRack({ name: event.target.value })}
                 aria-label="Layout name"
               />
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <span>{RACK_SPECS[layout.rackType].label}</span>
                 <span>/</span>
                 <span>{layout.heightU}U</span>
@@ -174,8 +174,8 @@ function App() {
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === '2d'
-                    ? 'bg-cyan-400 text-slate-950'
-                    : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
+                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => setViewMode('2d')}
                 type="button"
@@ -186,8 +186,8 @@ function App() {
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === '3d'
-                    ? 'bg-cyan-400 text-slate-950'
-                    : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
+                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => setViewMode('3d')}
                 type="button"
@@ -198,8 +198,8 @@ function App() {
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
                   viewMode === 'cables'
-                    ? 'bg-cyan-400 text-slate-950'
-                    : 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
+                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => setViewMode('cables')}
                 type="button"
@@ -213,7 +213,7 @@ function App() {
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
               value={layout.rackType}
               onChange={(event) => setRackType(event.target.value as RackType)}
               aria-label="Rack type"
@@ -223,7 +223,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
               value={layout.heightU}
               onChange={(event) => setRackHeight(Number(event.target.value))}
               aria-label="Rack height"
@@ -236,7 +236,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
               value={layout.viewSide}
               onChange={(event) => setViewSide(event.target.value as 'front' | 'rear')}
               aria-label="View side"
@@ -246,7 +246,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-100 outline-none"
+              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
               value=""
               onChange={(event) => {
                 const value = event.target.value;
@@ -264,7 +264,7 @@ function App() {
             </select>
 
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={handleNewLayout}
               type="button"
             >
@@ -272,7 +272,7 @@ function App() {
               New
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={handleDuplicate}
               type="button"
             >
@@ -280,7 +280,7 @@ function App() {
               Duplicate
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={saveLocal}
               type="button"
             >
@@ -288,7 +288,7 @@ function App() {
               Save local
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-40"
               onClick={undo}
               disabled={!canUndo()}
               type="button"
@@ -297,7 +297,7 @@ function App() {
               <Undo size={13} />
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800 disabled:opacity-40"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-40"
               onClick={redo}
               disabled={!canRedo()}
               type="button"
@@ -306,7 +306,7 @@ function App() {
               <Redo size={13} />
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={loadLocal}
               type="button"
             >
@@ -314,7 +314,7 @@ function App() {
               Load local
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={() => exportLayoutJson(layout)}
               type="button"
             >
@@ -322,7 +322,7 @@ function App() {
               JSON
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={() => fileInputRef.current?.click()}
               type="button"
             >
@@ -330,7 +330,7 @@ function App() {
               Import
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={() => exportRackPng(layout)}
               type="button"
             >
@@ -341,7 +341,7 @@ function App() {
           </div>
 
           {statusMessage && (
-            <div className="mt-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100">
+            <div className="mt-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-800 dark:text-cyan-100">
               {statusMessage}
             </div>
           )}
@@ -355,16 +355,16 @@ function App() {
               <button
                 type="button"
                 onClick={() => setIssueBarOpen((value) => !value)}
-                className="inline-flex h-6 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950 px-2 text-xs font-semibold text-slate-100 hover:bg-slate-900"
+                className="inline-flex h-6 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900"
               >
                 {issues.length ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
                 {issues.length ? `${issues.length} layout alerts` : 'Layout clear'}
               </button>
-              <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-100">{issueCounts.critical} critical</span>
-              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-100">{issueCounts.warning} warning</span>
-              <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-100">{issueCounts.info} info</span>
+              <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-800 dark:text-red-100">{issueCounts.critical} critical</span>
+              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-800 dark:text-amber-100">{issueCounts.warning} warning</span>
+              <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-800 dark:text-sky-100">{issueCounts.info} info</span>
               {selectedIssueId && (
-                <span className="min-w-0 flex-1 truncate text-xs text-slate-300">
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-600 dark:text-slate-300">
                   {issues.find((issue) => issue.id === selectedIssueId)?.title ?? 'Selected issue'}
                 </span>
               )}
@@ -376,15 +376,15 @@ function App() {
                     key={issue.id}
                     type="button"
                     onClick={() => handleIssueSelect(issue)}
-                    className={`rounded-md border p-1.5 text-left text-xs transition hover:bg-slate-900 ${
-                      selectedIssueId === issue.id ? 'border-cyan-300 bg-cyan-300/10' : 'border-slate-800 bg-slate-950/70'
+                    className={`rounded-md border p-1.5 text-left text-xs transition hover:bg-slate-100 dark:hover:bg-slate-900 ${
+                      selectedIssueId === issue.id ? 'border-cyan-300 bg-cyan-300/10' : 'border-slate-200 dark:border-slate-200 bg-slate-100/70 dark:border-slate-800 dark:bg-slate-950/70'
                     }`}
                   >
                     <div className="flex items-start gap-2">
-                      <Info size={12} className="mt-0.5 shrink-0 text-sky-300" />
+                      <Info size={12} className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
                       <div className="min-w-0">
-                        <div className="truncate font-semibold text-slate-100">{issue.title}</div>
-                        <div className="mt-0.5 line-clamp-2 text-slate-400">{recommendationForIssue(issue)}</div>
+                        <div className="truncate font-semibold text-slate-900 dark:text-slate-100">{issue.title}</div>
+                        <div className="mt-0.5 line-clamp-2 text-slate-500 dark:text-slate-400">{recommendationForIssue(issue)}</div>
                       </div>
                     </div>
                   </button>
@@ -397,7 +397,7 @@ function App() {
         <section className="min-h-0 flex-1">
           {viewMode === '2d' && <RackEditor2D />}
           {viewMode === '3d' && (
-            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-400">Loading 3D…</div>}>
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading 3D…</div>}>
               <RackViewer3D />
             </Suspense>
           )}
@@ -407,26 +407,26 @@ function App() {
         {/* Confirm dialog for destructive actions (New / Load sample) */}
         {confirmAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-80 rounded-lg border border-slate-700 bg-slate-900 p-5 shadow-xl">
-              <div className="mb-3 text-sm font-semibold text-white">
+            <div className="w-80 rounded-lg border border-slate-300 bg-slate-100 p-5 dark:border-slate-700 dark:bg-slate-900 shadow-xl">
+              <div className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
                 {confirmAction.type === 'new' && 'Start a new layout?'}
                 {confirmAction.type === 'sample' && 'Load sample layout?'}
               </div>
-              <div className="mb-4 text-xs text-slate-400">
+              <div className="mb-4 text-xs text-slate-500 dark:text-slate-400">
                 {confirmAction.type === 'new'
                   ? 'This will clear all devices and cables.'
                   : 'This will replace your current rack with the selected sample.'}
               </div>
               <div className="flex gap-2">
                 <button
-                  className="h-9 flex-1 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-100 hover:bg-red-500/20"
+                  className="h-9 flex-1 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 dark:text-red-100 hover:bg-red-500/20"
                   onClick={handleConfirm}
                   type="button"
                 >
                   Confirm
                 </button>
                 <button
-                  className="h-9 flex-1 rounded-md border border-slate-700 bg-slate-800 text-sm text-slate-200 hover:bg-slate-700"
+                  className="h-9 flex-1 rounded-md border border-slate-300 bg-slate-200 text-sm text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   onClick={() => setConfirmAction(null)}
                   type="button"
                 >
@@ -438,38 +438,38 @@ function App() {
         )}
       </main>
 
-      <aside className="min-h-0 overflow-y-auto border-l border-slate-800 bg-slate-950/82 thin-scrollbar">
+      <aside className="min-h-0 overflow-y-auto border-l border-slate-200 dark:border-slate-800 bg-white/82 dark:bg-slate-950/82 thin-scrollbar">
         <div className="space-y-4 p-4">
-          <section className="rounded-lg border border-slate-800 bg-slate-900/78 p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/78 p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               <View size={15} />
               Rack Limits
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-xs text-slate-400">
+              <label className="text-xs text-slate-500 dark:text-slate-400">
                 Depth mm
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
                   type="number"
                   min={100}
                   value={layout.rackDepthMm}
                   onChange={(event) => updateRack({ rackDepthMm: Number(event.target.value) })}
                 />
               </label>
-              <label className="text-xs text-slate-400">
+              <label className="text-xs text-slate-500 dark:text-slate-400">
                 Weight kg
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
                   type="number"
                   min={1}
                   value={layout.weightLimitKg}
                   onChange={(event) => updateRack({ weightLimitKg: Number(event.target.value) })}
                 />
               </label>
-              <label className="text-xs text-slate-400">
+              <label className="text-xs text-slate-500 dark:text-slate-400">
                 Power budget W
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-white outline-none"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
                   type="number"
                   min={1}
                   value={layout.powerBudgetW}
@@ -477,11 +477,11 @@ function App() {
                 />
               </label>
               <div
-                className="rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400"
+                className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-500 dark:text-slate-400"
                 title="Heat score = sum of (heatLevel × sizeU) for all devices. Lower is better. Add blank panels or airflow gaps between high-heat devices to reduce."
               >
                 Heat score
-                <div className="mt-1 text-lg font-semibold text-white">{totals.heatScore}</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">{totals.heatScore}</div>
               </div>
             </div>
           </section>
