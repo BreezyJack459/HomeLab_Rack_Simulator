@@ -40,13 +40,13 @@ export function IssueBar({ issues, selectedIssueId, onIssueSelect }: IssueBarPro
           {issues.length ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
           {issues.length ? `${issues.length} layout alerts` : 'Layout clear'}
         </button>
-        <span className="rounded bg-red-500/15 px-2 py-1 text-xs text-red-100">
+        <span className="rounded bg-red-500/15 px-2 py-1 text-xs text-red-800 dark:text-red-100">
           {counts.critical} critical
         </span>
-        <span className="rounded bg-amber-500/15 px-2 py-1 text-xs text-amber-100">
+        <span className="rounded bg-amber-500/15 px-2 py-1 text-xs text-amber-800 dark:text-amber-100">
           {counts.warning} warning
         </span>
-        <span className="rounded bg-sky-500/15 px-2 py-1 text-xs text-sky-100">
+        <span className="rounded bg-sky-500/15 px-2 py-1 text-xs text-sky-800 dark:text-sky-100">
           {counts.info} info
         </span>
         {selectedIssueId && (
@@ -79,7 +79,7 @@ export function IssueBar({ issues, selectedIssueId, onIssueSelect }: IssueBarPro
               }
             >
               <div className="flex items-start gap-2">
-                <Info size={13} className="mt-0.5 shrink-0 text-sky-300" />
+                <Info size={13} className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
                 <div className="min-w-0">
                   <div className="truncate font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
                     {issue.title}

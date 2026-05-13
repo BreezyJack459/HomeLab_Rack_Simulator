@@ -2,12 +2,9 @@ import { ChangeEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } fro
 import {
   Box,
   Cable,
-  AlertTriangle,
-  CheckCircle2,
   Copy,
   Download,
   FileJson,
-  Info,
   Monitor,
   Redo,
   RotateCcw,
@@ -23,6 +20,7 @@ import { ComponentLibrary } from './components/ComponentLibrary';
 import { DepthCompatibilityPanel } from './components/DepthCompatibilityPanel';
 import { DocumentationAuditPanel } from './components/DocumentationAuditPanel';
 import { EnergySummary } from './components/EnergySummary';
+import { IssueBar } from './components/IssueBar';
 import { MigrationSummaryPanel } from './components/MigrationSummaryPanel';
 import { NoiseSummary } from './components/NoiseSummary';
 import { PowerChainPanel } from './components/PowerChainPanel';
@@ -41,8 +39,13 @@ import type { ValidationIssue } from './types/rack';
 import { exportLayoutJson, exportRackPng, readJsonFile } from './utils/exporters';
 import { RACK_HEIGHT_OPTIONS, RACK_SPECS } from './utils/rackMath';
 import { getRackTotals, validateRackLayout } from './utils/validation';
-import { recommendationForIssue } from './utils/validationRecommendations';
 import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
+
+const VIEW_BUTTON_ACTIVE_CLASS = 'rv-a';
+const VIEW_BUTTON_INACTIVE_CLASS = 'rv-i';
+const TOOLBAR_SELECT_CLASS = 'rt-s';
+const TOOLBAR_BUTTON_CLASS = 'rt-b';
+const RACK_LIMIT_INPUT_CLASS = 'rl-i';
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,7 +70,6 @@ function App() {
   const canRedo = useRackStore((state) => state.canRedo);
   const [confirmAction, setConfirmAction] = useState<null | { type: 'new' | 'sample' | 'import'; payload?: string }>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
-  const [issueBarOpen, setIssueBarOpen] = useState(false);
 
   const issues = useMemo(() => validateRackLayout(layout), [layout]);
   const totals = useMemo(() => getRackTotals(layout), [layout]);
@@ -81,15 +83,6 @@ function App() {
       loadLayout(layout);
     }
   }, [layout, loadLayout]);
-  const issueCounts = useMemo(
-    () => ({
-      critical: issues.filter((issue) => issue.severity === 'critical').length,
-      warning: issues.filter((issue) => issue.severity === 'warning').length,
-      info: issues.filter((issue) => issue.severity === 'info').length
-    }),
-    [issues]
-  );
-
   function handleIssueSelect(issue: ValidationIssue) {
     setSelectedIssueId(issue.id);
     if (issue.deviceIds?.length) selectDevice(issue.deviceIds[0]);
@@ -173,9 +166,7 @@ function App() {
             <div className="flex items-center gap-2">
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
-                  viewMode === '2d'
-                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
-                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                  viewMode === '2d' ? VIEW_BUTTON_ACTIVE_CLASS : VIEW_BUTTON_INACTIVE_CLASS
                 }`}
                 onClick={() => setViewMode('2d')}
                 type="button"
@@ -185,9 +176,7 @@ function App() {
               </button>
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
-                  viewMode === '3d'
-                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
-                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                  viewMode === '3d' ? VIEW_BUTTON_ACTIVE_CLASS : VIEW_BUTTON_INACTIVE_CLASS
                 }`}
                 onClick={() => setViewMode('3d')}
                 type="button"
@@ -197,9 +186,7 @@ function App() {
               </button>
               <button
                 className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
-                  viewMode === 'cables'
-                    ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950'
-                    : 'border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                  viewMode === 'cables' ? VIEW_BUTTON_ACTIVE_CLASS : VIEW_BUTTON_INACTIVE_CLASS
                 }`}
                 onClick={() => setViewMode('cables')}
                 type="button"
@@ -213,7 +200,7 @@ function App() {
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
+              className={TOOLBAR_SELECT_CLASS}
               value={layout.rackType}
               onChange={(event) => setRackType(event.target.value as RackType)}
               aria-label="Rack type"
@@ -223,7 +210,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
+              className={TOOLBAR_SELECT_CLASS}
               value={layout.heightU}
               onChange={(event) => setRackHeight(Number(event.target.value))}
               aria-label="Rack height"
@@ -236,7 +223,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
+              className={TOOLBAR_SELECT_CLASS}
               value={layout.viewSide}
               onChange={(event) => setViewSide(event.target.value as 'front' | 'rear')}
               aria-label="View side"
@@ -246,7 +233,7 @@ function App() {
             </select>
 
             <select
-              className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-slate-900 dark:text-slate-100 outline-none"
+              className={TOOLBAR_SELECT_CLASS}
               value=""
               onChange={(event) => {
                 const value = event.target.value;
@@ -264,7 +251,7 @@ function App() {
             </select>
 
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={handleNewLayout}
               type="button"
             >
@@ -272,7 +259,7 @@ function App() {
               New
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={handleDuplicate}
               type="button"
             >
@@ -280,7 +267,7 @@ function App() {
               Duplicate
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={saveLocal}
               type="button"
             >
@@ -288,7 +275,7 @@ function App() {
               Save local
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-40"
+              className={`${TOOLBAR_BUTTON_CLASS} disabled:opacity-40`}
               onClick={undo}
               disabled={!canUndo()}
               type="button"
@@ -297,7 +284,7 @@ function App() {
               <Undo size={13} />
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-40"
+              className={`${TOOLBAR_BUTTON_CLASS} disabled:opacity-40`}
               onClick={redo}
               disabled={!canRedo()}
               type="button"
@@ -306,7 +293,7 @@ function App() {
               <Redo size={13} />
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={loadLocal}
               type="button"
             >
@@ -314,7 +301,7 @@ function App() {
               Load local
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={() => exportLayoutJson(layout)}
               type="button"
             >
@@ -322,7 +309,7 @@ function App() {
               JSON
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={() => fileInputRef.current?.click()}
               type="button"
             >
@@ -330,7 +317,7 @@ function App() {
               Import
             </button>
             <button
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={() => exportRackPng(layout)}
               type="button"
             >
@@ -346,52 +333,7 @@ function App() {
             </div>
           )}
 
-          <div className={`mt-1.5 rounded-lg border px-2 py-1 ${
-            issues.length
-              ? 'border-sky-500/35 bg-sky-500/10'
-              : 'border-emerald-500/30 bg-emerald-500/10'
-          }`}>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setIssueBarOpen((value) => !value)}
-                className="inline-flex h-6 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-xs font-semibold text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900"
-              >
-                {issues.length ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                {issues.length ? `${issues.length} layout alerts` : 'Layout clear'}
-              </button>
-              <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-800 dark:text-red-100">{issueCounts.critical} critical</span>
-              <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-800 dark:text-amber-100">{issueCounts.warning} warning</span>
-              <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-800 dark:text-sky-100">{issueCounts.info} info</span>
-              {selectedIssueId && (
-                <span className="min-w-0 flex-1 truncate text-xs text-slate-600 dark:text-slate-300">
-                  {issues.find((issue) => issue.id === selectedIssueId)?.title ?? 'Selected issue'}
-                </span>
-              )}
-            </div>
-            {issueBarOpen && issues.length > 0 && (
-              <div className="mt-1.5 grid max-h-40 gap-1.5 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2">
-                {issues.map((issue) => (
-                  <button
-                    key={issue.id}
-                    type="button"
-                    onClick={() => handleIssueSelect(issue)}
-                    className={`rounded-md border p-1.5 text-left text-xs transition hover:bg-slate-100 dark:hover:bg-slate-900 ${
-                      selectedIssueId === issue.id ? 'border-cyan-300 bg-cyan-300/10' : 'border-slate-200 dark:border-slate-200 bg-slate-100/70 dark:border-slate-800 dark:bg-slate-950/70'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <Info size={12} className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-slate-900 dark:text-slate-100">{issue.title}</div>
-                        <div className="mt-0.5 line-clamp-2 text-slate-500 dark:text-slate-400">{recommendationForIssue(issue)}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <IssueBar issues={issues} selectedIssueId={selectedIssueId} onIssueSelect={handleIssueSelect} />
         </header>
 
         <section className="min-h-0 flex-1">
@@ -440,7 +382,7 @@ function App() {
 
       <aside className="min-h-0 overflow-y-auto border-l border-slate-200 dark:border-slate-800 bg-white/82 dark:bg-slate-950/82 thin-scrollbar">
         <div className="space-y-4 p-4">
-          <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-900/78 p-4">
+          <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               <View size={15} />
               Rack Limits
@@ -449,7 +391,7 @@ function App() {
               <label className="text-xs text-slate-500 dark:text-slate-400">
                 Depth mm
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
+                  className={RACK_LIMIT_INPUT_CLASS}
                   type="number"
                   min={100}
                   value={layout.rackDepthMm}
@@ -459,7 +401,7 @@ function App() {
               <label className="text-xs text-slate-500 dark:text-slate-400">
                 Weight kg
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
+                  className={RACK_LIMIT_INPUT_CLASS}
                   type="number"
                   min={1}
                   value={layout.weightLimitKg}
@@ -469,7 +411,7 @@ function App() {
               <label className="text-xs text-slate-500 dark:text-slate-400">
                 Power budget W
                 <input
-                  className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-950 px-2 text-sm text-slate-900 dark:text-white outline-none"
+                  className={RACK_LIMIT_INPUT_CLASS}
                   type="number"
                   min={1}
                   value={layout.powerBudgetW}
@@ -477,7 +419,7 @@ function App() {
                 />
               </label>
               <div
-                className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-500 dark:text-slate-400"
+                className="rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400"
                 title="Heat score = sum of (heatLevel × sizeU) for all devices. Lower is better. Add blank panels or airflow gaps between high-heat devices to reduce."
               >
                 Heat score

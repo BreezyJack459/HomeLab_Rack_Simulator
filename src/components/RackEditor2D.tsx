@@ -17,6 +17,10 @@ const COMPACT_SIDE_PORT_MIN_WIDTH = 310;
 const FIXED_PORT_CELL_WIDTH = 18;
 const SIDE_STRIP_WIDTH = 110;
 const SIDE_STRIP_GAP = 16;
+const EDITOR_TOOL_BUTTON_CLASS = 're-tb';
+const EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS = 're-tbl';
+const EDITOR_TOGGLE_INACTIVE_CLASS = 're-ti';
+const SIDE_LABEL_ITEM_CLASS = 'rs-li';
 
 interface DragState {
   deviceId: string;
@@ -161,7 +165,7 @@ function PortStrip({ ports, compact }: { ports?: PortLayout; compact: boolean })
 function RearFaceHint({ compact }: { compact: boolean }) {
   return (
     <div
-      className={`grid shrink-0 grid-cols-3 gap-1 rounded border border-slate-500 dark:border-slate-400/18 dark:border-slate-400 dark:border-slate-300/18 bg-slate-200 dark:bg-slate-100/28 dark:bg-slate-200 dark:bg-slate-100/28 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/28 p-1 ${
+      className={`grid shrink-0 grid-cols-3 gap-1 rounded border border-slate-400 bg-slate-200 p-1 dark:border-slate-700 dark:bg-slate-950/28 ${
         compact ? 'w-14' : 'w-20'
       }`}
       title="Rear chassis ventilation"
@@ -515,10 +519,10 @@ export function RackEditor2D() {
   }, [selectedDeviceId, layout.devices, moveDevice, removeDevice]);
 
   return (
-    <div className="relative h-full overflow-hidden bg-slate-200 dark:bg-slate-100/55 dark:bg-slate-200 dark:bg-slate-100/55 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/55">
-      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-white/90 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/90 p-2 shadow-panel">
+    <div className="relative h-full overflow-hidden bg-slate-200 dark:bg-slate-950/55">
+      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/90 p-2 shadow-panel dark:border-slate-800 dark:bg-slate-950/90">
         <button
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+          className={EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS}
           onClick={() => setEditorZoom(editorZoom - 0.1)}
           type="button"
           title="Zoom out"
@@ -527,7 +531,7 @@ export function RackEditor2D() {
           {Math.round(editorZoom * 100)}%
         </button>
         <button
-          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 px-3 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+          className={EDITOR_TOOL_BUTTON_CLASS}
           onClick={() => setEditorZoom(editorZoom + 0.1)}
           type="button"
           title="Zoom in"
@@ -537,8 +541,8 @@ export function RackEditor2D() {
         <button
           className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm ${
             panMode
-              ? 'bg-cyan-500 text-slate-900 dark:text-white dark:bg-cyan-500 dark:bg-cyan-400 dark:text-slate-900 dark:text-white dark:text-slate-950'
-              : 'border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:bg-slate-800'
+              ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950'
+              : EDITOR_TOGGLE_INACTIVE_CLASS
           }`}
           onClick={() => setPanMode((value) => !value)}
           type="button"
@@ -548,7 +552,7 @@ export function RackEditor2D() {
           Pan
         </button>
         <button
-          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 px-3 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+          className={EDITOR_TOOL_BUTTON_CLASS}
           onClick={() => {
             setEditorZoom(1);
             setEditorPan({ x: 0, y: 0 });
@@ -561,8 +565,8 @@ export function RackEditor2D() {
         <button
           className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm ${
             debugMode
-              ? 'bg-amber-500 text-slate-900 dark:text-white dark:bg-amber-500 dark:bg-amber-400 dark:text-slate-900 dark:text-white dark:text-slate-950'
-              : 'border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:bg-slate-800'
+              ? 'bg-amber-500 text-slate-950 dark:bg-amber-400 dark:text-slate-950'
+              : EDITOR_TOGGLE_INACTIVE_CLASS
           }`}
           onClick={toggleDebugMode}
           type="button"
@@ -599,7 +603,7 @@ export function RackEditor2D() {
             </div>
             <div
               ref={rackRef}
-              className="relative border-x-[16px] border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950 shadow-panel"
+              className="relative border-x-[16px] border-slate-400 bg-white shadow-panel dark:border-slate-700 dark:bg-slate-950"
               style={{ width: rackWidth, height: rackHeight }}
               onDragOver={(event) => {
                 event.preventDefault();
@@ -619,8 +623,8 @@ export function RackEditor2D() {
                 return (
                   <div
                     key={unit}
-                    className={`absolute left-0 flex items-center border-b border-slate-200/90 dark:border-slate-200/90 dark:border-slate-200 dark:border-slate-800/90 ${
-                      occupied ? 'bg-slate-300 dark:bg-slate-200/45 dark:bg-slate-300 dark:bg-slate-200/45 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900/45' : 'bg-emerald-500/[0.035]'
+                    className={`absolute left-0 flex items-center border-b border-slate-200/90 dark:border-slate-800/90 ${
+                      occupied ? 'bg-slate-300 dark:bg-slate-900/45' : 'bg-emerald-500/[0.035]'
                     }`}
                     style={{ top: index * BASE_UNIT_HEIGHT, height: BASE_UNIT_HEIGHT, width: '100%' }}
                   >
@@ -748,21 +752,21 @@ export function RackEditor2D() {
                       }`}
                     >
                       <div className={`min-w-0 ${useSidePorts ? 'flex-1' : ''}`}>
-                        <div className={`truncate font-semibold text-slate-900 dark:text-white ${compact ? 'text-xs leading-4' : 'text-sm'}`}>
+                        <div className={`rd-n truncate font-semibold ${compact ? 'text-xs leading-4' : 'text-sm'}`}>
                           {device.label || device.name}
                         </div>
                         {compact && layout.viewSide === 'rear' && (
                           <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500/70 dark:text-slate-200/70">rear side</div>
                         )}
                         {!compact && !deviceIsZeroU && (
-                          <div className="truncate text-[11px] text-slate-600/85 dark:text-slate-200/85">
+                          <div className="rd-m truncate text-[11px]">
                             U{device.positionU}
                             {device.sizeU > 1 ? `-U${device.positionU + device.sizeU - 1}` : ''} / {device.depthMm}mm /{' '}
                             {device.powerW}W
                           </div>
                         )}
                         {deviceIsZeroU && (
-                          <div className="truncate text-[11px] text-slate-600/85 dark:text-slate-200/85">
+                          <div className="rd-m truncate text-[11px]">
                             0U side-mount / {device.depthMm}mm / {device.powerW}W
                           </div>
                         )}
@@ -842,11 +846,11 @@ export function RackEditor2D() {
               {/* Left 0U rear/side rail */}
               {sideLeftDevices.length > 0 && (
                 <div
-                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 dark:bg-slate-100/85 dark:bg-slate-200 dark:bg-slate-100/85 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/85 shadow-[0_0_30px_rgba(14,165,233,0.12)]"
+                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-slate-950/85"
                   style={{ left: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
                 >
                   <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-cyan-500/20 dark:border-cyan-300/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-700 dark:text-cyan-200/75">
+                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-200/75">
                     0U left rail
                   </div>
                   {sideLeftDevices.map((device) => {
@@ -883,21 +887,21 @@ export function RackEditor2D() {
                       >
                         <div className="flex h-full flex-col justify-between overflow-hidden py-1">
                           <div className="min-w-0">
-                            <div className="truncate text-xs font-semibold text-slate-900 dark:text-white">{device.label || device.name}</div>
+                            <div className="rd-n truncate text-xs font-semibold">{device.label || device.name}</div>
                             {device.category === 'pdu-0u' ? (() => {
                               const meta = getPdu0uMeta(device, layout);
                               return (
                                 <>
-                                  <div className="truncate text-[10px] text-slate-600/85 dark:text-slate-200/85">
+                                  <div className="rd-m truncate text-[10px]">
                                     {meta.used}/{meta.outlets} outlets · {meta.powerBudget}W
                                   </div>
-                                  <div className="truncate text-[9px] font-medium uppercase tracking-[0.1em] text-slate-500/70 dark:text-slate-300/70">
+                                  <div className="rd-mm truncate text-[9px] font-medium uppercase tracking-[0.1em]">
                                     Feed {meta.feed} · {device.mountType ?? '0U rail'}
                                   </div>
                                 </>
                               );
                             })() : (
-                              <div className="truncate text-[10px] text-slate-600/85 dark:text-slate-200/85">0U rail / {device.powerW}W</div>
+                              <div className="rd-m truncate text-[10px]">0U rail / {device.powerW}W</div>
                             )}
                           </div>
                           <PortStrip ports={portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, true)} compact={false} />
@@ -911,11 +915,11 @@ export function RackEditor2D() {
               {/* Right 0U rear/side rail */}
               {sideRightDevices.length > 0 && (
                 <div
-                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 dark:bg-slate-100/85 dark:bg-slate-200 dark:bg-slate-100/85 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/85 shadow-[0_0_30px_rgba(14,165,233,0.12)]"
+                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-slate-950/85"
                   style={{ right: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
                 >
                   <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-cyan-500/20 dark:border-cyan-300/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-700 dark:text-cyan-200/75">
+                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-200/75">
                     0U right rail
                   </div>
                   {sideRightDevices.map((device) => {
@@ -952,21 +956,21 @@ export function RackEditor2D() {
                       >
                         <div className="flex h-full flex-col justify-between overflow-hidden py-1">
                           <div className="min-w-0">
-                            <div className="truncate text-xs font-semibold text-slate-900 dark:text-white">{device.label || device.name}</div>
+                            <div className="rd-n truncate text-xs font-semibold">{device.label || device.name}</div>
                             {device.category === 'pdu-0u' ? (() => {
                               const meta = getPdu0uMeta(device, layout);
                               return (
                                 <>
-                                  <div className="truncate text-[10px] text-slate-600/85 dark:text-slate-200/85">
+                                  <div className="rd-m truncate text-[10px]">
                                     {meta.used}/{meta.outlets} outlets · {meta.powerBudget}W
                                   </div>
-                                  <div className="truncate text-[9px] font-medium uppercase tracking-[0.1em] text-slate-500/70 dark:text-slate-300/70">
+                                  <div className="rd-mm truncate text-[9px] font-medium uppercase tracking-[0.1em]">
                                     Feed {meta.feed} · {device.mountType ?? '0U rail'}
                                   </div>
                                 </>
                               );
                             })() : (
-                              <div className="truncate text-[10px] text-slate-600/85 dark:text-slate-200/85">0U rail / {device.powerW}W</div>
+                              <div className="rd-m truncate text-[10px]">0U rail / {device.powerW}W</div>
                             )}
                           </div>
                           <PortStrip ports={portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, true)} compact={false} />
@@ -1151,7 +1155,7 @@ export function RackEditor2D() {
                   {sideLabelGroups.map((group) => (
                     <div
                       key={group.key}
-                      className="absolute rounded-lg border border-slate-400 dark:border-slate-300/80 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700/80 bg-white/92 dark:bg-white/92 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-950/92 p-2 shadow-panel backdrop-blur"
+                      className="absolute rounded-lg border border-slate-300 bg-white/92 p-2 shadow-panel backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/92"
                       data-side-label-group={group.key}
                       style={{ top: group.top, width: SIDE_LABEL_WIDTH }}
                     >
@@ -1167,8 +1171,8 @@ export function RackEditor2D() {
                               key={device.id}
                               className={`flex h-6 w-full items-center gap-2 rounded border-l-4 px-2 text-left text-xs transition ${
                                 selected
-                                  ? 'border-cyan-500 dark:border-cyan-300 bg-cyan-500/15 dark:bg-cyan-300/15 text-cyan-900 dark:text-cyan-800 dark:text-cyan-50'
-                                  : 'border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100/80 dark:bg-slate-200 dark:bg-slate-100/80 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900/80 text-slate-700 dark:text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:hover:bg-slate-300 dark:bg-slate-200 dark:bg-slate-800'
+                                  ? 'border-cyan-500 bg-cyan-500/15 text-cyan-900 dark:border-cyan-300 dark:bg-cyan-300/15 dark:text-cyan-50'
+                                  : SIDE_LABEL_ITEM_CLASS
                               }`}
                               data-side-label-device={device.id}
                               onClick={(event) => {
@@ -1199,7 +1203,7 @@ export function RackEditor2D() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
           <div
-            className="fixed z-50 w-44 rounded-lg border border-slate-400 dark:border-slate-300 dark:border-slate-400 dark:border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-100 dark:bg-slate-200 dark:bg-slate-100 dark:bg-slate-900 py-1 shadow-xl"
+            className="fixed z-50 w-44 rounded-lg border border-slate-300 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-900"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             {(() => {
@@ -1230,7 +1234,7 @@ export function RackEditor2D() {
                   >
                     Move to top
                   </button>
-                  <div className="my-1 border-t border-slate-200 dark:border-slate-200 dark:border-slate-800" />
+                  <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
                   <button
                     className="flex h-8 w-full items-center px-3 text-xs text-red-600 dark:text-red-300 hover:bg-red-500/10"
                     onClick={() => {
