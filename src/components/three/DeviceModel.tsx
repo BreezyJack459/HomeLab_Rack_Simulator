@@ -1,6 +1,6 @@
 import { Text } from '@react-three/drei';
 import { memo, useMemo, useState } from 'react';
-import type { PlacedDevice, PortType, RackLayout } from '../../types/rack';
+import type { PlacedDevice, PortType, RackType } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
 import { buildPortLayout } from '../../utils/portLayout';
@@ -152,7 +152,8 @@ function DeviceZeroUSideFace({
 
 interface DeviceModelProps {
   device: PlacedDevice;
-  layout: RackLayout;
+  rackType: RackType;
+  rackDepthMm: number;
   rackWidth: number;
   rackDepth: number;
   rackHeight: number;
@@ -166,16 +167,20 @@ function heatEmissive(heatLevel: number) {
   return '#111827';
 }
 
-function DeviceModelComponent({ device, layout, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
+function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
   const debugMode = useRackStore((state) => state.debugMode);
-  const box = getDeviceWorldBox(layout, device, {
-    rackWidth,
-    rackDepth,
-    rackHeight,
-    bottom: -rackHeight / 2
-  });
+  const box = getDeviceWorldBox(
+    { rackType, rackDepthMm },
+    device,
+    {
+      rackWidth,
+      rackDepth,
+      rackHeight,
+      bottom: -rackHeight / 2
+    }
+  );
   const { x, y, z, width, depth, height, isZeroU, isRearRail0U, isRearMounted } = box;
   const zone = getDeviceSpatialZone(device);
   const earSide = isZeroU ? getZeroUEarSide(device) : 'right';

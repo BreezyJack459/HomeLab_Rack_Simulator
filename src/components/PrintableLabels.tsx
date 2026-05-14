@@ -10,6 +10,13 @@ interface PrintableLabelsProps {
 
 type LabelType = 'ru' | 'device' | 'patch-panel' | 'all';
 type LabelPreset = 'generic-a4' | 'brady-m210' | 'panduit-mp300';
+type PrintableLabel = {
+  id: string;
+  text: string;
+  sub?: string;
+  type: 'ru' | 'device' | 'patch-panel';
+  length?: string;
+};
 
 function formatPresetLabel(text: string, index: number): string {
   return `${text}:${String(index + 1).padStart(2, '0')}`;
@@ -21,15 +28,89 @@ function portLabel(port: { type: string; index: number } | undefined): string {
   return `${typeUpper}${port.index}`;
 }
 
+function portSignature(port: { type: string; index: number; side?: string } | undefined): string {
+  if (!port) return '';
+  return `${port.type}:${port.index}:${port.side ?? ''}`;
+}
+
 export function PrintableLabels({ layout }: PrintableLabelsProps) {
   const [labelType, setLabelType] = useState<LabelType>('all');
   const [includeBlank, setIncludeBlank] = useState(true);
   const [labelPreset, setLabelPreset] = useState<LabelPreset>('generic-a4');
 
+  const deviceLabelSignature = useMemo(() => {
+    return layout.devices
+      .map((device) => [
+        device.id,
+        device.name,
+        device.label ?? '',
+        device.category,
+        device.positionU,
+        device.sizeU,
+        device.widthType,
+        device.customWidthMm ?? '',
+        device.mountType ?? '',
+        device.mountSide0U ?? '',
+        device.spatialZone ?? ''
+      ].join(':'))
+      .join('|');
+  }, [layout.devices]);
+
+  const patchPanelLabelSignature = useMemo(() => {
+    const deviceSignature = layout.devices
+      .map((device) => [
+        device.id,
+        device.name,
+        device.category,
+        device.positionU,
+        device.sizeU,
+        device.xMm ?? '',
+        device.widthType,
+        device.customWidthMm ?? '',
+        device.mountSide ?? '',
+        device.mountType ?? '',
+        device.mountSide0U ?? '',
+        device.spatialZone ?? '',
+        device.portFaceOverrides ? JSON.stringify(device.portFaceOverrides) : ''
+      ].join(':'))
+      .join('|');
+    const cableSignature = layout.cables
+      .map((cable) => [
+        cable.id,
+        cable.type,
+        cable.fromDeviceId,
+        portSignature(cable.fromPort),
+        cable.toDeviceId,
+        portSignature(cable.toPort),
+        cable.lengthMm ?? '',
+        cable.nodes?.length ?? 0
+      ].join(':'))
+      .join('|');
+    return [
+      layout.rackType,
+      layout.heightU,
+      layout.rackDepthMm,
+      layout.rearClearanceMm ?? '',
+      layout.railMinDepthMm ?? '',
+      layout.railMaxDepthMm ?? '',
+      deviceSignature,
+      cableSignature
+    ].join('|');
+  }, [
+    layout.cables,
+    layout.rackDepthMm,
+    layout.devices,
+    layout.heightU,
+    layout.rackType,
+    layout.railMaxDepthMm,
+    layout.railMinDepthMm,
+    layout.rearClearanceMm
+  ]);
+
   const ruLabels = useMemo(() => {
-    const labels: { text: string; sub?: string; type: 'ru' | 'device' | 'patch-panel'; length?: string }[] = [];
+    const labels: PrintableLabel[] = [];
     for (let unit = layout.heightU; unit >= 1; unit -= 1) {
-      labels.push({ text: `U${unit}`, type: 'ru' });
+      labels.push({ id: `ru-${unit}`, text: `U${unit}`, type: 'ru' });
     }
     return labels;
   }, [layout.heightU]);
@@ -38,16 +119,20 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
     return layout.devices
       .filter((d) => !isZeroU(d))
       .map((device) => ({
+        id: `device-${device.id}`,
         text: device.label || device.name,
         sub: `${device.positionU}U–${device.positionU + device.sizeU - 1}U · ${device.sizeU}U`,
+        positionU: device.positionU,
         type: 'device' as const
       }))
-      .sort((a, b) => {
-        const aU = parseInt(a.sub.split('U')[0], 10);
-        const bU = parseInt(b.sub.split('U')[0], 10);
-        return bU - aU;
-      });
-  }, [layout.devices]);
+      .sort((a, b) => b.positionU - a.positionU)
+      .map((label) => ({
+        id: label.id,
+        text: label.text,
+        sub: label.sub,
+        type: label.type
+      }));
+  }, [deviceLabelSignature]);
 
   const blankLabels = useMemo(() => {
     if (!includeBlank) return [];
@@ -58,17 +143,17 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
         usedUnits.add(u);
       }
     });
-    const blanks: { text: string; sub?: string; type: 'ru' | 'device' | 'patch-panel'; length?: string }[] = [];
+    const blanks: PrintableLabel[] = [];
     for (let unit = layout.heightU; unit >= 1; unit -= 1) {
       if (!usedUnits.has(unit)) {
-        blanks.push({ text: `U${unit}`, sub: 'Blank', type: 'ru' });
+        blanks.push({ id: `blank-${unit}`, text: `U${unit}`, sub: 'Blank', type: 'ru' });
       }
     }
     return blanks;
-  }, [layout.devices, layout.heightU, includeBlank]);
+  }, [deviceLabelSignature, layout.heightU, includeBlank]);
 
   const patchPanelLabels = useMemo(() => {
-    const labels: { text: string; sub?: string; type: 'ru' | 'device' | 'patch-panel'; length?: string }[] = [];
+    const labels: PrintableLabel[] = [];
     const panels = layout.devices.filter((d) => d.category === 'patch-panel');
     for (const panel of panels) {
       const jacks = getPatchPanelJacks(layout, panel.id);
@@ -78,6 +163,7 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
           const length = plan ? `${Math.ceil(plan.standardLengthMm / 100) / 10}m` : undefined;
           const frontPort = jack.frontCable.fromDeviceId === panel.id ? jack.frontCable.toPort : jack.frontCable.fromPort;
           labels.push({
+            id: `patch-${panel.id}-${jack.index}-front-${jack.frontCable.id}`,
             text: `${formatPresetLabel(panel.name, jack.index)} → ${jack.frontPeer.name}:${portLabel(frontPort)}`,
             type: 'patch-panel',
             length
@@ -88,6 +174,7 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
           const length = plan ? `${Math.ceil(plan.standardLengthMm / 100) / 10}m` : undefined;
           const rearPort = jack.rearCable.fromDeviceId === panel.id ? jack.rearCable.toPort : jack.rearCable.fromPort;
           labels.push({
+            id: `patch-${panel.id}-${jack.index}-rear-${jack.rearCable.id}`,
             text: `${formatPresetLabel(panel.name, jack.index)} → ${jack.rearPeer.name}:${portLabel(rearPort)}`,
             type: 'patch-panel',
             length
@@ -96,10 +183,10 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       }
     }
     return labels;
-  }, [layout.devices, layout.cables]);
+  }, [patchPanelLabelSignature]);
 
   const visibleLabels = useMemo(() => {
-    let labels: { text: string; sub?: string; type: 'ru' | 'device' | 'patch-panel'; length?: string }[] = [];
+    let labels: PrintableLabel[] = [];
     if (labelType === 'ru' || labelType === 'all') labels = [...labels, ...ruLabels];
     if (labelType === 'device' || labelType === 'all') labels = [...labels, ...deviceLabels];
     if ((labelType === 'ru' || labelType === 'all') && includeBlank) labels = [...labels, ...blankLabels];
@@ -168,9 +255,9 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       </div>
 
       <div className={`print-label-grid ${presetClass}`}>
-        {visibleLabels.map((label, index) => (
+        {visibleLabels.map((label) => (
           <div
-            key={`${label.type}-${label.text}-${label.sub ?? ''}-${label.length ?? ''}-${index}`}
+            key={label.id}
             className={`print-label ${label.type === 'device' ? 'print-label-device' : ''} ${label.type === 'patch-panel' ? 'print-label-device' : ''}`}
           >
             <div className="print-label-text">{label.text}</div>

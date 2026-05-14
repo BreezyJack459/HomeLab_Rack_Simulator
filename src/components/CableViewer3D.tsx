@@ -258,6 +258,35 @@ function CableTube({
   );
 }
 
+function GhostCableTube({ route }: { route: Route3D }) {
+  return (
+    <group key={`preview-${route.cable.id}`}>
+      <mesh>
+        <tubeGeometry args={[route.curve, 56, route.radius * 1.45, 10, false]} />
+        <meshStandardMaterial
+          color={route.color}
+          emissive={route.color}
+          emissiveIntensity={0.42}
+          opacity={0.38}
+          transparent
+          depthWrite={false}
+          roughness={0.55}
+          metalness={0.02}
+        />
+      </mesh>
+      <Text
+        position={route.curve.getPointAt(0.5)}
+        fontSize={0.032}
+        color="#a5f3fc"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Preview
+      </Text>
+    </group>
+  );
+}
+
 function BundleTube({
   routes,
   selectedCableId,
@@ -331,6 +360,7 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
   const debugMode = useRackStore((state) => state.debugMode);
   const cableRoutingMode = useRackStore((state) => state.cableRoutingMode);
   const setCableRoutingMode = useRackStore((state) => state.setCableRoutingMode);
+  const previewCable = useRackStore((state) => state.previewCable);
   const rackHeight = layout.heightU * U_HEIGHT;
   const rackWidth = layout.rackType === '10in' ? 1.95 : 3.72;
   const rackDepth = Math.max(1.4, Math.min(3.3, layout.rackDepthMm / 210));
@@ -368,6 +398,61 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
       })
       .filter(Boolean) as Route3D[];
   }, [layout.cables, layout.devices, layout.rackType, layout.rackDepthMm, layout.heightU, rackDepth, rackHeight, rackWidth, typeFilter, selectedCableIds, cableRoutingMode]);
+
+  const previewRoute = useMemo((): Route3D | null => {
+    if (!previewCable) return null;
+    const from = layout.devices.find((device) => device.id === previewCable.fromDeviceId);
+    const to = layout.devices.find((device) => device.id === previewCable.toDeviceId);
+    if (!from || !to) return null;
+
+    const plan = calculateCablePlan(previewCable, layout);
+    if (!plan) return null;
+
+    const visibleSameTypeCount = visibleRoutes.filter((route) => route.cable.type === previewCable.type).length;
+    const curve = buildCablePath3D(
+      previewCable,
+      plan,
+      layout,
+      rackWidth,
+      rackDepth,
+      rackHeight,
+      visibleSameTypeCount,
+      cableRoutingMode
+    );
+    if (!curve) return null;
+
+    const meta = CABLE_META[previewCable.type];
+    return {
+      cable: previewCable,
+      plan,
+      from,
+      to,
+      curve,
+      color: getCableDisplayColor(previewCable.type, previewCable.color || meta.color),
+      radius: Math.max(meta.radius, plan.render.cableRadiusMm / 1000)
+    };
+  }, [
+    previewCable?.id,
+    previewCable?.fromDeviceId,
+    previewCable?.fromPort?.type,
+    previewCable?.fromPort?.index,
+    previewCable?.fromPort?.side,
+    previewCable?.toDeviceId,
+    previewCable?.toPort?.type,
+    previewCable?.toPort?.index,
+    previewCable?.toPort?.side,
+    previewCable?.type,
+    previewCable?.color,
+    layout.devices,
+    layout.rackType,
+    layout.rackDepthMm,
+    layout.heightU,
+    rackDepth,
+    rackHeight,
+    rackWidth,
+    visibleRoutes,
+    cableRoutingMode
+  ]);
 
   const recommendation = useMemo(() => {
     const managementCount = layout.devices.filter((device) => device.category === 'cable-management').length;
@@ -744,6 +829,7 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
                     />
                   );
                 })}
+                {previewRoute && <GhostCableTube route={previewRoute} />}
               </>
             );
           })()}
