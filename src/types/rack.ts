@@ -213,6 +213,21 @@ export interface CableRoute {
   bundleId?: string; // Groups cables into a visual bundle
 }
 
+export type RackReservationPurpose = 'future-device' | 'shelf' | 'patch-panel' | 'ups' | 'printed-mount' | 'clearance' | 'other';
+
+export interface RackReservation {
+  id: string;
+  name: string;
+  positionU: number;
+  sizeU: number;
+  mountSide: ViewSide;
+  widthType: WidthType;
+  customWidthMm?: number;
+  xMm?: number;
+  purpose: RackReservationPurpose;
+  notes?: string;
+}
+
 export interface RackLayout {
   id: string;
   name: string;
@@ -224,6 +239,7 @@ export interface RackLayout {
   viewSide: ViewSide;
   devices: PlacedDevice[];
   cables: CableRoute[];
+  reservations?: RackReservation[];
   updatedAt: string;
   rearClearanceMm?: number;
   railMinDepthMm?: number;

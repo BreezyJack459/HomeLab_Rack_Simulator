@@ -2,9 +2,10 @@ import { Bug, Move, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { DragEvent, PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { useRackStore } from '../store/rackStore';
-import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, ViewSide } from '../types/rack';
+import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
 import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap } from '../utils/portLayout';
+import { getReservationXRange } from '../utils/reservations';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
 
 const BASE_UNIT_HEIGHT = 34;
@@ -186,6 +187,15 @@ function deviceVisual(layout: RackLayout, device: PlacedDevice, rackWidth: numbe
   };
 }
 
+function reservationVisual(layout: RackLayout, reservation: RackReservation, rackWidth: number) {
+  const rackUsable = RACK_SPECS[layout.rackType].usableWidthMm;
+  const range = getReservationXRange(layout, reservation);
+  return {
+    left: (range.x / rackUsable) * rackWidth,
+    width: (Math.min(range.width, rackUsable) / rackUsable) * rackWidth
+  };
+}
+
 export function RackEditor2D() {
   const rackRef = useRef<HTMLDivElement>(null);
   const layout = useRackStore((state) => state.layout);
@@ -230,6 +240,10 @@ export function RackEditor2D() {
   const rackDevices = useMemo(
     () => visibleDevices.filter((device) => !isZeroU(device)),
     [visibleDevices]
+  );
+  const visibleReservations = useMemo(
+    () => (layout.reservations ?? []).filter((reservation) => reservation.mountSide === layout.viewSide),
+    [layout.reservations, layout.viewSide]
   );
   const sideLeftDevices = useMemo(
     () => visibleDevices.filter((device) => isZeroU(device) && getZeroUEarSide(device) === 'left'),
@@ -689,6 +703,37 @@ export function RackEditor2D() {
                   </span>
                 </div>
               )}
+
+              {visibleReservations.map((reservation) => {
+                const top = (layout.heightU - (reservation.positionU + reservation.sizeU - 1)) * BASE_UNIT_HEIGHT;
+                const height = reservation.sizeU * BASE_UNIT_HEIGHT;
+                const visual = reservationVisual(layout, reservation, rackWidth);
+                return (
+                  <div
+                    key={reservation.id}
+                    className="pointer-events-none absolute rounded-md border border-dashed border-sky-500/60 bg-sky-400/12 dark:border-sky-300/55 dark:bg-sky-300/10"
+                    style={{
+                      top: top + 4,
+                      left: visual.left + 2,
+                      width: Math.max(0, visual.width - 4),
+                      height: Math.max(0, height - 8),
+                      zIndex: 1
+                    }}
+                    title={`${reservation.name}: reserved U${reservation.positionU}${reservation.sizeU > 1 ? `-U${reservation.positionU + reservation.sizeU - 1}` : ''}`}
+                  >
+                    <div className="flex h-full min-h-0 flex-col justify-between overflow-hidden p-2">
+                      <div className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-100">
+                        Reserved
+                      </div>
+                      <div className="truncate text-xs font-semibold text-sky-900 dark:text-sky-50">{reservation.name}</div>
+                      <div className="truncate text-[10px] text-sky-700/80 dark:text-sky-100/75">
+                        U{reservation.positionU}
+                        {reservation.sizeU > 1 ? `-U${reservation.positionU + reservation.sizeU - 1}` : ''} / {reservation.purpose}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
 
               {rackDevices.map((device) => {
                 const deviceIsZeroU = isZeroU(device);

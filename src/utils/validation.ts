@@ -19,6 +19,7 @@ import {
 } from './rackMath';
 import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW } from './powerChain';
 import { getServiceabilityIssues } from './serviceability';
+import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
@@ -81,10 +82,34 @@ function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationI
 export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const rackSpec = RACK_SPECS[layout.rackType];
+  const reservations = layout.reservations ?? [];
   const occupiedBySide = {
     front: occupiedUnits(layout.devices.filter((device) => getDeviceMountSide(device) === 'front' && blocksAirflow(device)), layout.heightU),
     rear: occupiedUnits(layout.devices.filter((device) => getDeviceMountSide(device) === 'rear' && blocksAirflow(device)), layout.heightU)
   };
+
+  reservations.forEach((reservation) => {
+    if (!reservationWithinRack(layout, reservation)) {
+      issues.push({
+        id: `reservation-bounds-${reservation.id}`,
+        severity: 'critical',
+        title: `${reservation.name} reservation is outside the rack`,
+        detail: `Reserved range U${reservation.positionU}-U${reservation.positionU + reservation.sizeU - 1} exceeds the ${layout.heightU}U rack.`
+      });
+    }
+
+    layout.devices.forEach((device) => {
+      if (!reservationOverlapsDevice(layout, reservation, device)) return;
+      const severity = device.lifecycleStatus === 'planned' ? 'warning' : device.lifecycleStatus === 'decommissioning' ? 'info' : 'critical';
+      issues.push({
+        id: `reservation-overlap-${reservation.id}-${device.id}`,
+        severity,
+        title: `${device.name} occupies reserved rack space`,
+        detail: `${reservation.name} reserves U${reservation.positionU}-U${reservation.positionU + reservation.sizeU - 1} on the ${reservation.mountSide} side. Move ${device.name}, resize the reservation, or remove the reservation if the future slot is now in use.`,
+        deviceIds: [device.id]
+      });
+    });
+  });
 
   // Per-device checks stay independent so imported JSON can be audited even if editing prevented the same issue.
   layout.devices.forEach((device) => {
@@ -674,6 +699,14 @@ export function getRackTotals(layout: RackLayout) {
     powerW: totalPower(layout.devices),
     heatScore: layout.devices.reduce((sum, device) => sum + device.heatLevel * Math.max(1, device.sizeU), 0),
     occupiedU: occupiedUnits(layout.devices, layout.heightU).size,
+    reservedU: occupiedUnits(
+      (layout.reservations ?? []).map((reservation) => ({
+        id: reservation.id,
+        positionU: reservation.positionU,
+        sizeU: reservation.sizeU
+      })) as PlacedDevice[],
+      layout.heightU
+    ).size,
     usableDepthMm: usableDepth,
     deepestMm,
     depthIssues: tooDeep + tooShallow + tooDeepForRails,
