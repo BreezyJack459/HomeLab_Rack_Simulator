@@ -84,7 +84,16 @@ function RackModelComponent({ layout }: RackModelProps) {
       </mesh>
 
       {layout.devices.map((device) => (
-        <DeviceModel key={device.id} device={device} layout={layout} rackWidth={width} rackDepth={depth} rackHeight={rackHeight} selected={device.id === selectedDeviceId} />
+        <DeviceModel
+          key={device.id}
+          device={device}
+          rackType={layout.rackType}
+          rackDepthMm={layout.rackDepthMm}
+          rackWidth={width}
+          rackDepth={depth}
+          rackHeight={rackHeight}
+          selected={device.id === selectedDeviceId}
+        />
       ))}
 
       {Array.from({ length: layout.heightU }, (_, index) => {

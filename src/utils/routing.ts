@@ -95,28 +95,8 @@ function portFace(device: PlacedDevice, portRef?: PortRef): 'front' | 'rear' {
   return (faceMap[portRef?.type ?? 'ethernet'] ?? 'rear') as 'front' | 'rear';
 }
 
-function deviceWidthMm(device: Pick<PlacedDevice, 'widthType' | 'customWidthMm'>): number {
-  if (device.widthType === '10in') return RACK_USABLE_WIDTH_MM['10in'];
-  if (device.widthType === '19in') return RACK_USABLE_WIDTH_MM['19in'];
-  if (device.widthType === 'custom') return device.customWidthMm ?? RACK_USABLE_WIDTH_MM['10in'];
-  return device.customWidthMm ?? RACK_USABLE_WIDTH_MM['10in'] * 0.72;
-}
-
-function deviceXRange(layout: RackLayout, device: PlacedDevice): { x: number; width: number } {
-  const usableWidth = RACK_USABLE_WIDTH_MM[layout.rackType];
-  const width = deviceWidthMm(device);
-  if (device.sizeU === 0) {
-    const side = zeroUEarSide(device);
-    return { x: side === 'right' ? usableWidth : -width, width };
-  }
-  const clampedWidth = Math.min(width, usableWidth);
-  const centered = (usableWidth - clampedWidth) / 2;
-  const x = Math.max(0, Math.min(device.xMm ?? centered, usableWidth - clampedWidth));
-  return { x, width };
-}
-
 function deviceCenterXMm(layout: RackLayout, device: PlacedDevice): number {
-  const range = deviceXRange(layout, device);
+  const range = getDeviceXRange(layout, device);
   return range.x + range.width / 2;
 }
 

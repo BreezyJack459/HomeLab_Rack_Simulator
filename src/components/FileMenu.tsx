@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import type { RackLayout } from '../types/rack';
 
+type FileMenuAction = 'new' | 'duplicate' | 'save-local' | 'load-local' | 'export-json' | 'import-json' | 'export-png';
+
 interface FileMenuProps {
   layout: RackLayout;
   onNew: () => void;
@@ -58,18 +60,45 @@ export function FileMenu({
     }
   }
 
+  function runMenuAction(action: FileMenuAction) {
+    switch (action) {
+      case 'new':
+        onNew();
+        break;
+      case 'duplicate':
+        onDuplicate();
+        break;
+      case 'save-local':
+        onSaveLocal();
+        break;
+      case 'load-local':
+        onLoadLocal();
+        break;
+      case 'export-json':
+        onExportJson(layout);
+        break;
+      case 'import-json':
+        fileInputRef.current?.click();
+        break;
+      case 'export-png':
+        onExportPng(layout);
+        break;
+    }
+    setOpen(false);
+  }
+
   const items = useMemo(
     () => [
-      { icon: RotateCcw, label: 'New', action: onNew },
-      { icon: Copy, label: 'Duplicate', action: onDuplicate },
-      { icon: Save, label: 'Save local', action: onSaveLocal },
-      { icon: Upload, label: 'Load local', action: onLoadLocal },
+      { icon: RotateCcw, label: 'New', action: 'new' },
+      { icon: Copy, label: 'Duplicate', action: 'duplicate' },
+      { icon: Save, label: 'Save local', action: 'save-local' },
+      { icon: Upload, label: 'Load local', action: 'load-local' },
       null, // separator
-      { icon: FileJson, label: 'Export JSON', action: () => onExportJson(layout) },
-      { icon: Upload, label: 'Import JSON', action: () => fileInputRef.current?.click() },
-      { icon: Download, label: 'Export PNG', action: () => onExportPng(layout) },
+      { icon: FileJson, label: 'Export JSON', action: 'export-json' },
+      { icon: Upload, label: 'Import JSON', action: 'import-json' },
+      { icon: Download, label: 'Export PNG', action: 'export-png' },
     ] as const,
-    [onNew, onDuplicate, onSaveLocal, onLoadLocal, onExportJson, onExportPng, layout]
+    []
   );
 
   return (
@@ -115,10 +144,7 @@ export function FileMenu({
                 key={item.label}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:opacity-80"
                 style={{ color: 'var(--theme-text-secondary)' }}
-                onClick={() => {
-                  item.action();
-                  setOpen(false);
-                }}
+                onClick={() => runMenuAction(item.action)}
                 type="button"
               >
                 <Icon size={14} />

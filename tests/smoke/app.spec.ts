@@ -31,21 +31,22 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
   test('switches between 2D, 3D, and Cables views', async ({ page }) => {
     const header = page.locator('header');
+    const activeViewClass = /rv-a/;
 
     // 2D is default and active (header buttons only)
-    await expect(header.getByRole('button', { name: '2D', exact: true })).toHaveClass(/bg-cyan-400/);
+    await expect(header.getByRole('button', { name: '2D', exact: true })).toHaveClass(activeViewClass);
 
     // Switch to 3D view
     await header.getByRole('button', { name: '3D', exact: true }).click();
-    await expect(header.getByRole('button', { name: '3D', exact: true })).toHaveClass(/bg-cyan-400/);
+    await expect(header.getByRole('button', { name: '3D', exact: true })).toHaveClass(activeViewClass);
 
     // Switch to Cables view
     await header.getByRole('button', { name: 'Cables', exact: true }).click();
-    await expect(header.getByRole('button', { name: 'Cables', exact: true })).toHaveClass(/bg-cyan-400/);
+    await expect(header.getByRole('button', { name: 'Cables', exact: true })).toHaveClass(activeViewClass);
 
     // Switch back to 2D
     await header.getByRole('button', { name: '2D', exact: true }).click();
-    await expect(header.getByRole('button', { name: '2D', exact: true })).toHaveClass(/bg-cyan-400/);
+    await expect(header.getByRole('button', { name: '2D', exact: true })).toHaveClass(activeViewClass);
   });
 
   test('adds a device from component library', async ({ page }) => {

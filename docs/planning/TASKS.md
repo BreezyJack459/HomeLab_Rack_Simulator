@@ -1,12 +1,14 @@
 # Tasks
 
+> Last audited: 2026-05-14. Checked against current source files, `node node_modules/typescript/bin/tsc --noEmit`, and `npm test -- --pool=threads` (13 files / 257 tests passed).
+
 ## Completed ✅
 
 ### Phase 1: Foundation
 - [x] Project scaffold (Vite + React + TS + Tailwind)
 - [x] Zustand store with undo/redo
 - [x] LocalStorage persistence
-- [x] Device catalog with 60+ templates
+- [x] Device catalog with 100+ templates (108 counted on 2026-05-14)
 - [x] 2D rack editor with drag-and-drop
 - [x] 3D rack viewer with React Three Fiber
 - [x] Device selection, move, resize, delete
@@ -59,7 +61,7 @@
 - [x] Hidden 0U PDU layout cleanup keeps selection pointed at a visible normalized device
 - [x] Playwright smoke tests (10 tests covering load, views, devices, cables, export/import, theme, undo/redo, delete, validation)
 - [x] Dark/light theme toggle (`themeStore.ts`, `ThemeToggle.tsx`, `theme.css`)
-- [x] Bundle budget guard (`scripts/check-bundle-size.mjs`, 400KB initial chunk limit)
+- [x] Bundle budget guard (`scripts/check-bundle-size.mjs`, 430KB initial chunk limit)
 - [x] Cable color infrastructure (`CableRoute.color`, `DEFAULT_CABLE_COLORS`, `getCableDisplayColor`, wired in CablePlanner/3D/Map/export)
 - [x] Cable color assignment UI (`CableColorEditor` with preset colors + custom picker + notes in `CablePlanner`)
 
@@ -71,7 +73,7 @@
 - [x] **Phase 5** — Cable bundle rendering: `bundleId` added to `CableRoute`; `CableViewer3D` groups bundles into single thick tube (`radius = 0.006 + count * 0.003`) with click-to-expand (`src/types/rack.ts`, `src/components/CableViewer3D.tsx`)
 - [x] **Phase 6** — Patch panel label export: `PrintableLabels` generates `Panel:Port → Device:PORTn` format labels with recommended length and label-printer presets (Brady M210, Panduit MP300, Generic A4) (`src/components/PrintableLabels.tsx`, `src/styles/index.css`)
 
-### Phase 7: Cable Port Selection UX Redesign (2026-05-12) 🚧 In Progress
+### Phase 7: Cable Port Selection UX Redesign (2026-05-12) 🚧 Mostly Complete
 
 > **Goal**: Replace the current MiniRackBrowser + port-grid flow with a device-first, auto-assign approach. Happy path reduces from 6+ clicks to 2 clicks.
 > **Plan doc**: `docs/planning/cable-port-selection-ux-redesign.md`
@@ -101,7 +103,7 @@
   - [x] `previewCable` + `setPreviewCable` added to `rackStore` state
   - [x] `useEffect` in `CablePlanner` syncs `hoverCable` → `previewCable` store (with unmount cleanup)
   - [x] `setPreviewCable(null)` called on cancel, auto-connect commit, and manual port pick commit
-  - [x] Edit 5 (CableViewer3D ghost tube) — see ⚠️ note below
+  - [x] Edit 5 (CableViewer3D ghost tube) — `CableViewer3D.tsx` now reads `previewCable` from the store and renders a translucent non-interactive preview route.
 - [x] **Phase D** — 3D Raycast Port Picking _(2026-05-12)_
   - [x] `src/types/pairing.ts` — shared `PairingStage`, `PairingSource`, `PortHit3D` types (moved out of `CablePlanner.tsx`)
   - [x] `rackStore` pairing slab: `pairingStage`, `pairingSource`, `setPairingStage`, `setPairingSource`, `onPortPick3D`, `registerPortPick3D`
@@ -110,8 +112,8 @@
   - [x] `DevicePortFace` (`DeviceModel.tsx`) reads `pairingStage` + `onPortPick3D` from store
   - [x] Port slots glow cyan (emissive 1.4, scale puff) on hover when pairing is active
   - [x] Port slot click fires `onPortPick3D` → routed to `CablePlanner` state machine
-  - ⚠️ **Needs type-check pass**: run `node node_modules/typescript/bin/tsc --noEmit` — one likely issue: `registerPortPick3D` effect captures `handleSelectChoice` before it is defined; fix with a `useRef` or move the effect below the function definition
-  - ⚠️ **CableViewer3D ghost tube (Edit 5)** — `previewCable` slice is in store but the 3D ghost tube render (store read + `previewRoute` useMemo + `<tubeGeometry>` JSX) was not applied to `CableViewer3D.tsx` — still needs to be added manually (see Phase C Edit 5 notes from 2026-05-12 session)
+  - [x] Type-check pass completed on 2026-05-14: `node node_modules/typescript/bin/tsc --noEmit`
+  - [x] 3D ghost preview tube completed on 2026-05-14.
 
 ## Paused / Known Problems ⏸️
 - [ ] **0U PDU 3D visual model needs redesign before continuing.**
@@ -151,109 +153,147 @@
 | 24 | **HIGH** | Multiple immutability violations in utils (`typeConsumed`, `buildBom`, `findFirstFreeSlot`, fragile port key) | `src/utils/*.ts` | ✅ Fixed |
 | 25 | **HIGH** | Sample layouts missing `portLayouts`; `CableRoute.nodes` marked optional but always present | `src/data/sampleLayouts.ts` / `src/types/rack.ts:201` | ✅ Fixed |
 | 26 | **HIGH** | Playwright theme toggle test flaky; missing `routing.test.ts`; unused testing-library deps | `tests/smoke/app.spec.ts` / `package.json` | ✅ Fixed |
-| 27 | **CRITICAL** | `WeakMap` cache on `RackLayout` never hits because layouts are JSON-cloned on every mutation — O(n³) rail assignment recompute | `src/utils/routing.ts:221` | ⏳ Pending |
-| 28 | **CRITICAL** | `addCable`/`removeCable` trigger full cable node recompute instead of incremental — unnecessary O(n) work | `src/store/rackStore.ts:430,441` | ⏳ Pending |
-| 29 | **CRITICAL** | `pdu-0u` face map returns `power: 'front'` violating ADR-012 (0U PDU ports face inward/X-axis, not +Z) | `src/utils/portLayout.ts:51` | ⏳ Pending |
-| 30 | **CRITICAL** | `routing.ts` `deviceXRange()` diverges from `rackMath.ts` `getDeviceXRange()` in 0U handling — cable endpoints mismatch rendered positions | `src/utils/routing.ts:102-113` | ⏳ Pending |
-| 31 | **CRITICAL** | `routing.ts` local `zeroUEarSide()` ignores `spatialZone` unlike `rackMath.ts` equivalent — mis-routes 0U devices | `src/utils/routing.ts:148-151` | ⏳ Pending |
-| 32 | **CRITICAL** | `CableViewer3D` `useMemo` hooks depend on full `layout` object — expensive `CatmullRomCurve3` rebuild on every store mutation | `src/components/CableViewer3D.tsx:255-307` | ⏳ Pending |
-| 33 | **HIGH** | `RackModel` not memoized — entire 3D scene re-renders on every store update | `src/components/three/RackModel.tsx:25` | ⏳ Pending |
-| 34 | **HIGH** | `DeviceModel` receives full `layout` prop — every device re-renders on any layout field change | `src/components/three/RackModel.tsx:86` | ⏳ Pending |
-| 35 | **HIGH** | `CableMap` `cablePaths` `useMemo` depends on full `layout` — recalculates geometry on every mutation | `src/components/CableMap.tsx:269-292` | ⏳ Pending |
-| 36 | **HIGH** | `CablePlanner` `resolveCompatibleCable` called inside render loop — O(n²) scans for 48-port devices | `src/components/CablePlanner.tsx:375-378` | ⏳ Pending |
-| 37 | **HIGH** | `PowerChainPanel` `totalPowerCableW` does repeated `devices.find()` inside reduce | `src/components/PowerChainPanel.tsx:130-138` | ⏳ Pending |
-| 38 | **HIGH** | `validation.ts` `deviceCenterMm()` uses `sizeU / 2` instead of `(sizeU - 1) / 2` — inconsistent with `routing.ts` | `src/utils/validation.ts:23-28` | ⏳ Pending |
-| 39 | **HIGH** | `validation.ts` inline `isPdu` checks `ENABLE_ZERO_U_PDU` but `routing.ts` does not — inconsistent for legacy layouts | `src/utils/validation.ts:380,581` | ⏳ Pending |
-| 40 | **HIGH** | `PropertyPanel` `pdu0uMeta` `useMemo` depends on full `layout` — recomputes on every store change | `src/components/PropertyPanel.tsx:83-100` | ⏳ Pending |
-| 41 | **HIGH** | `updateRack` triggers full cable recompute for non-geometric patches (name, electricityRatePerKwh) | `src/store/rackStore.ts:466` | ⏳ Pending |
-| 42 | **MEDIUM** | `pathDescription()` calls expensive `calculateCablePlan()` twice per invocation | `src/utils/routing.ts:608` | ⏳ Pending |
-| 43 | **MEDIUM** | `estimateCableLength()` in `rackMath.ts` creates architectural dependency on full cable routing planner | `src/utils/rackMath.ts:247-273` | ⏳ Pending |
-| 44 | **MEDIUM** | `getDepthSummary()` returns `undefined` for `deepestMm` when devices array is empty — type violation | `src/utils/rackMath.ts:305-329` | ⏳ Pending |
-| 45 | **MEDIUM** | `templateToDevice` silently drops `description` field — CLAUDE.md invariant 8 violation | `src/store/rackStore.ts:39` | ⏳ Pending |
-| 46 | **MEDIUM** | `DevicePortFace`/`DeviceZeroUSideFace` call `buildPortLayout` without memo inside memo-wrapped components | `src/components/three/DeviceModel.tsx:26,87` | ⏳ Pending |
+| 27 | **CRITICAL** | `WeakMap` cache on `RackLayout` never hits because layouts are JSON-cloned on every mutation — O(n³) rail assignment recompute | `src/utils/routing.ts:221` | ✅ Fixed — `Map` cache keyed by layout id + `updatedAt` with bounded eviction |
+| 28 | **CRITICAL** | `addCable`/`removeCable` trigger full cable node recompute instead of incremental — unnecessary O(n) work | `src/store/rackStore.ts:430,441` | ✅ Fixed — `addCable` touches endpoint devices only; `removeCable` filters without recompute |
+| 29 | **CRITICAL** | `pdu-0u` face map returns `power: 'front'` violating ADR-012 (0U PDU ports face inward/X-axis, not +Z) | `src/utils/portLayout.ts:51` | ✅ Fixed for routing — maps to rear; 0U physical rendering remains paused |
+| 30 | **CRITICAL** | `routing.ts` `deviceXRange()` diverges from `rackMath.ts` `getDeviceXRange()` in 0U handling — cable endpoints mismatch rendered positions | `src/utils/routing.ts:102-113` | ✅ Fixed — local range helper removed; routing now uses shared `getDeviceXRange()` semantics |
+| 31 | **CRITICAL** | `routing.ts` local `zeroUEarSide()` ignores `spatialZone` unlike `rackMath.ts` equivalent — mis-routes 0U devices | `src/utils/routing.ts:148-151` | ✅ Fixed — local helper now checks `spatialZone` first |
+| 32 | **CRITICAL** | `CableViewer3D` `useMemo` hooks depend on full `layout` object — expensive `CatmullRomCurve3` rebuild on every store mutation | `src/components/CableViewer3D.tsx:255-307` | ✅ Fixed — deps narrowed to layout slices used by routing |
+| 33 | **HIGH** | `RackModel` not memoized — entire 3D scene re-renders on every store update | `src/components/three/RackModel.tsx:25` | ✅ Fixed — exported through `memo(RackModelComponent)` |
+| 34 | **HIGH** | `DeviceModel` receives full `layout` prop — every device re-renders on any layout field change | `src/components/three/RackModel.tsx:86` | ✅ Fixed — `RackModel` now passes only rack geometry primitives into `DeviceModel` |
+| 35 | **HIGH** | `CableMap` `cablePaths` `useMemo` depends on full `layout` — recalculates geometry on every mutation | `src/components/CableMap.tsx:269-292` | ✅ Fixed — deps narrowed to cables/devices/rack geometry |
+| 36 | **HIGH** | `CablePlanner` `resolveCompatibleCable` called inside render loop — O(n²) scans for 48-port devices | `src/components/CablePlanner.tsx:375-378` | ✅ Fixed — shared util now receives memoized `deviceMap` |
+| 37 | **HIGH** | `PowerChainPanel` `totalPowerCableW` does repeated `devices.find()` inside reduce | `src/components/PowerChainPanel.tsx:130-138` | ✅ Fixed — uses memoized `deviceById` map |
+| 38 | **HIGH** | `validation.ts` `deviceCenterMm()` uses `sizeU / 2` instead of `(sizeU - 1) / 2` — inconsistent with `routing.ts` | `src/utils/validation.ts:23-28` | ✅ Fixed / removed — validation now relies on shared rack math helpers |
+| 39 | **HIGH** | `validation.ts` inline `isPdu` checks `ENABLE_ZERO_U_PDU` but `routing.ts` does not — inconsistent for legacy layouts | `src/utils/validation.ts:380,581` | ✅ Fixed — validation imports shared `isPdu()` from routing |
+| 40 | **HIGH** | `PropertyPanel` `pdu0uMeta` `useMemo` depends on full `layout` — recomputes on every store change | `src/components/PropertyPanel.tsx:83-100` | ✅ Fixed — deps narrowed to selected device, cables, and devices |
+| 41 | **HIGH** | `updateRack` triggers full cable recompute for non-geometric patches (name, electricityRatePerKwh) | `src/store/rackStore.ts:466` | ✅ Fixed — `geometricKeys` gate skips recompute for non-geometric patches |
+| 42 | **MEDIUM** | `pathDescription()` calls expensive `calculateCablePlan()` twice per invocation | `src/utils/routing.ts:608` | ✅ Fixed — remaining 2D call site now passes the precomputed `CablePlan` |
+| 43 | **MEDIUM** | `estimateCableLength()` in `rackMath.ts` creates architectural dependency on full cable routing planner | `src/utils/rackMath.ts:247-273` | ✅ Fixed — `estimateCableLength()` now lives in `routing.ts`; `rackMath.ts` only keeps length formatting/standard helpers |
+| 44 | **MEDIUM** | `getDepthSummary()` returns `undefined` for `deepestMm` when devices array is empty — type violation | `src/utils/rackMath.ts:305-329` | ✅ Fixed — reducer seed returns `0` for empty devices |
+| 45 | **MEDIUM** | `templateToDevice` silently drops `description` field — CLAUDE.md invariant 8 violation | `src/store/rackStore.ts:39` | ✅ Fixed |
+| 46 | **MEDIUM** | `DevicePortFace`/`DeviceZeroUSideFace` call `buildPortLayout` without memo inside memo-wrapped components | `src/components/three/DeviceModel.tsx:26,87` | ✅ Fixed in `DeviceModel.tsx`; `CableViewer3D` still has its own local port renderer |
 | 47 | **MEDIUM** | `cablePath3D.ts` creates many temporary `Vector3` objects per cable — GC pressure | `src/utils/cablePath3D.ts` | ⏳ Pending |
-| 48 | **MEDIUM** | `StrainRelief` `useMemo` never hits because parent passes new `CatmullRomCurve3` on every invalidation | `src/components/CableViewer3D.tsx:149-166` | ⏳ Pending |
-| 49 | **MEDIUM** | `RackViewer3D` camera jump on view switch — `SceneSetup` always gets front position even for rear view | `src/components/RackViewer3D.tsx:75` | ⏳ Pending |
-| 50 | **LOW** | `ComponentLibrary` dropdown lacks Escape key handler for accessibility | `src/components/ComponentLibrary.tsx:109-166` | ⏳ Pending |
-| 51 | **HIGH** | `migrationCalc.ts` source file is missing despite `migrationCalc.test.ts` existing — any import will break build | `src/utils/migrationCalc.ts` (missing) | ⏳ Pending |
-| 52 | **HIGH** | `cableTrace.ts` potential `undefined` dereference in `startDevice`/`endDevice` resolution and incorrect `entrySide` logic | `src/utils/cableTrace.ts:70-71, 146-151` | ⏳ Pending |
-| 53 | **HIGH** | `serviceability.ts` `getHeavyOverLightIssues` uses O(n²) nested loops with misleading overlap comment | `src/utils/serviceability.ts:97-131` | ⏳ Pending |
-| 54 | **HIGH** | `upsRuntime.ts` orphaned UPS branch contradicts its own comment — uses `device.powerW` instead of 0 | `src/utils/upsRuntime.ts:76-77` | ⏳ Pending |
-| 55 | **MEDIUM** | `energyCalc.ts` `formatCurrency` has dead code ternary (always returns '$'), and missing NaN guard on `electricityRatePerKwh` | `src/utils/energyCalc.ts:14-36` | ⏳ Pending |
-| 56 | **MEDIUM** | `noiseCalc.ts` `combineDb` can return `NaN`/`Infinity` for extreme inputs, and `reduce` returns fake device for empty array | `src/utils/noiseCalc.ts:37-52` | ⏳ Pending |
-| 57 | **MEDIUM** | `layoutValidation.ts` unsafe `as unknown as RackLayout` cast bypasses type safety after validation | `src/utils/layoutValidation.ts:125-130` | ⏳ Pending |
-| 58 | **MEDIUM** | `layoutValidation.ts` `heatLevel` validation too permissive — allows `0`, `6`, `NaN`, `Infinity` | `src/utils/layoutValidation.ts:48` | ⏳ Pending |
-| 59 | **MEDIUM** | `layoutValidation.ts` cable validation missing `fromPort`/`toPort` shape check | `src/utils/layoutValidation.ts:54-70` | ⏳ Pending |
-| 60 | **MEDIUM** | `documentationAudit.ts` `needsPower` returns `false` for `powerW === 0` devices that still need power connections | `src/utils/documentationAudit.ts:12-18` | ⏳ Pending |
-| 61 | **LOW** | `animationMath.ts` `damp` function has redundant mathematically-impossible bounds checks | `src/utils/animationMath.ts:15-21` | ⏳ Pending |
-| 62 | **LOW** | `energyCalc.ts` magic number `730` hours/month lacks documentation | `src/utils/energyCalc.ts:3` | ⏳ Pending |
-| 63 | **LOW** | `noiseCalc.ts` `DEFAULT_NOISE_DB` is mutable — should use `Object.freeze()` or `as const` | `src/utils/noiseCalc.ts:11-30` | ⏳ Pending |
-| 64 | **HIGH** | `RackHealthDashboard` division by zero risk when `layout.heightU`, `powerBudgetW`, or `weightLimitKg` are 0 | `src/components/RackHealthDashboard.tsx:43-68` | ⏳ Pending |
-| 65 | **HIGH** | `EnergySummary` electricity rate input allows `NaN` — clearing input stores `NaN` and breaks controlled component | `src/components/EnergySummary.tsx:91-92` | ⏳ Pending |
-| 66 | **HIGH** | `PrintableLabels` `useMemo` depends on full `layout.devices` array; uses array index as React key | `src/components/PrintableLabels.tsx:36,106` | 🔄 Partially addressed — patch panel labels + presets added; useMemo/key issues remain |
-| 67 | **HIGH** | `FileMenu` inline arrow functions in render for every menu item; `items` array recreated on every render | `src/components/FileMenu.tsx:61-70,115-118` | ⏳ Pending |
+| 48 | **MEDIUM** | `StrainRelief` `useMemo` never hits because parent passes new `CatmullRomCurve3` on every invalidation | `src/components/CableViewer3D.tsx:149-166` | ✅ Fixed — removed ineffective memoization and documented cheap recompute |
+| 49 | **MEDIUM** | `RackViewer3D` camera jump on view switch — `SceneSetup` always gets front position even for rear view | `src/components/RackViewer3D.tsx:75` | ✅ Fixed — rear view now uses `REAR_CAMERA_POSITION` |
+| 50 | **LOW** | `ComponentLibrary` dropdown lacks Escape key handler for accessibility | `src/components/ComponentLibrary.tsx:109-166` | ✅ Fixed |
+| 51 | **HIGH** | `migrationCalc.ts` source file is missing despite `migrationCalc.test.ts` existing — any import will break build | `src/utils/migrationCalc.ts` (missing) | ✅ Fixed — source file exists |
+| 52 | **HIGH** | `cableTrace.ts` potential `undefined` dereference in `startDevice`/`endDevice` resolution and incorrect `entrySide` logic | `src/utils/cableTrace.ts:70-71, 146-151` | ✅ Fixed — guarded fallbacks are present; covered by `cableTrace.test.ts` |
+| 53 | **HIGH** | `serviceability.ts` `getHeavyOverLightIssues` uses O(n²) nested loops with misleading overlap comment | `src/utils/serviceability.ts:97-131` | ✅ Fixed — sorted pass with early break and clearer overlap handling |
+| 54 | **HIGH** | `upsRuntime.ts` orphaned UPS branch contradicts its own comment — uses `device.powerW` instead of 0 | `src/utils/upsRuntime.ts:76-77` | ✅ Fixed |
+| 55 | **MEDIUM** | `energyCalc.ts` `formatCurrency` has dead code ternary (always returns '$'), and missing NaN guard on `electricityRatePerKwh` | `src/utils/energyCalc.ts:14-36` | ✅ Fixed |
+| 56 | **MEDIUM** | `noiseCalc.ts` `combineDb` can return `NaN`/`Infinity` for extreme inputs, and `reduce` returns fake device for empty array | `src/utils/noiseCalc.ts:37-52` | ✅ Fixed |
+| 57 | **MEDIUM** | `layoutValidation.ts` unsafe `as unknown as RackLayout` cast bypasses type safety after validation | `src/utils/layoutValidation.ts:125-130` | ✅ Fixed |
+| 58 | **MEDIUM** | `layoutValidation.ts` `heatLevel` validation too permissive — allows `0`, `6`, `NaN`, `Infinity` | `src/utils/layoutValidation.ts:48` | ✅ Fixed |
+| 59 | **MEDIUM** | `layoutValidation.ts` cable validation missing `fromPort`/`toPort` shape check | `src/utils/layoutValidation.ts:54-70` | ✅ Fixed |
+| 60 | **MEDIUM** | `documentationAudit.ts` `needsPower` returns `false` for `powerW === 0` devices that still need power connections | `src/utils/documentationAudit.ts:12-18` | ✅ Fixed |
+| 61 | **LOW** | `animationMath.ts` `damp` function has redundant mathematically-impossible bounds checks | `src/utils/animationMath.ts:15-21` | ✅ Fixed |
+| 62 | **LOW** | `energyCalc.ts` magic number `730` hours/month lacks documentation | `src/utils/energyCalc.ts:3` | ✅ Fixed |
+| 63 | **LOW** | `noiseCalc.ts` `DEFAULT_NOISE_DB` is mutable — should use `Object.freeze()` or `as const` | `src/utils/noiseCalc.ts:11-30` | ✅ Fixed |
+| 64 | **HIGH** | `RackHealthDashboard` division by zero risk when `layout.heightU`, `powerBudgetW`, or `weightLimitKg` are 0 | `src/components/RackHealthDashboard.tsx:43-68` | ✅ Fixed |
+| 65 | **HIGH** | `EnergySummary` electricity rate input allows `NaN` — clearing input stores `NaN` and breaks controlled component | `src/components/EnergySummary.tsx:91-92` | ✅ Fixed |
+| 66 | **HIGH** | `PrintableLabels` `useMemo` depends on full `layout.devices` array; uses array index as React key | `src/components/PrintableLabels.tsx:36,106` | ✅ Fixed — label memo inputs now use primitive signatures and rendered labels have stable ids |
+| 67 | **HIGH** | `FileMenu` inline arrow functions in render for every menu item; `items` array recreated on every render | `src/components/FileMenu.tsx:61-70,115-118` | ✅ Fixed — static item metadata now dispatches through `runMenuAction()` for current layout-dependent actions |
 
 > _These are tracked in the session task list. The hourly review loop will re-scan and append new findings._
 
 ## Backlog 📋
 - [ ] Port label rendering scalability (48-port switch = 48 `<Text>` meshes)
-- [~] 3D raycast port picking for cable endpoints — Phase D of Port Selection UX Redesign (Phase A–C tracked in Phase 7 above)
+- [x] 3D raycast port picking for cable endpoints — Phase D plus 3D ghost preview tube shipped
 - [x] Rack ear/RU label printing (`PrintableLabels.tsx` with RU numbers, device labels, blank slots; print-friendly CSS)
 - [ ] 3D printed mount / shelf fit-check system for brackets, trays, rails, adapters, and custom holders
-- [ ] Cable trace / path explorer across device ports, patch panels, and pass-through links
-- [ ] Planned / active / decommissioning mode for devices, cables, and rack changes
-- [ ] Power chain / redundant feed planner for circuits, PDUs, outlets, and A/B power checks
+- [~] Cable trace / path explorer across device ports, patch panels, and pass-through links — `cableTrace.ts`, tests, and `CableTracePanel` exist; richer click-to-port UX still pending
+- [~] Planned / active / decommissioning mode for devices, cables, and rack changes — lifecycle fields, device status UI, and `migrationCalc.ts` exist; filtered views/change-summary UX still pending
+- [~] Power chain / redundant feed planner for circuits, PDUs, outlets, and A/B power checks — `powerChain.ts` + `PowerChainPanel` exist; outlet-level modeling still pending
 - [x] Rack capacity dashboard with space, power, port, weight, and cable-density health indicators (`RackHealthDashboard.tsx` with red/yellow/green metrics)
 - [ ] Rack reservation / future-slot planning for planned devices and reserved U ranges
 - [~] Cable/device label protocol generator with both-end cable labels and label-printer export — patch panel port labels (`PP:01 → SW:ETH0`) + length + Brady/Panduit presets done; full both-end cable labels + CSV export still pending
-- [ ] Documentation audit mode for missing labels, stale endpoints, incomplete port maps, and power gaps
+- [~] Documentation audit mode for missing labels, stale endpoints, incomplete port maps, and power gaps — `documentationAudit.ts` + panel exist; stale schema/port-map audit can go deeper
 - [x] Noise / living-space suitability planner with room suitability badges, loudest device tracking, and dB combination math (`noiseCalc.ts`, `NoiseSummary.tsx`, `noiseDb` on device types)
 - [x] Energy cost + heat-load calculator with monthly kWh, electricity cost, and BTU/h room heat estimate (`energyCalc.ts`, `EnergySummary.tsx`, `electricityRatePerKwh` on `RackLayout`)
-- [ ] UPS runtime planner with critical-load grouping and shutdown priority
-- [ ] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space
-- [ ] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices
+- [~] UPS runtime planner with critical-load grouping and shutdown priority — `upsRuntime.ts`, tests, and `UpsRuntimePanel` exist; critical grouping/shutdown priority still pending
+- [~] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space — `DepthCompatibilityPanel` exists; rail/door/cable-bend depth model should be expanded
+- [~] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices — `serviceability.ts` + panel exist; interactive overlay still pending
 - [ ] Live sensor overlay for actual vs planned power, temperature, and fan readings
 - [ ] Full build procurement planner for owned vs needed devices, shelves, rails, screws, cables, and printed parts
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
 
+## Suggested Next Work 🎯
+
+### Removed from active plan after this audit
+The following items should not be picked as next work unless a regression appears: Cable BOM export, Rack/RU label printing, 3D raycast port picking, weight/center-of-gravity warning + 2D marker, Rack Health Dashboard, Energy Summary, and Noise Summary. They are now implemented in source and covered by the current type/test gate.
+
+### 1. Complete Cable Port Selection polish
+**Status**: Completed on 2026-05-14.
+**Why**: The 2-click device-first flow and 3D port picking are shipped, and the ghost route preview promised by Phase 7 now renders in `CableViewer3D`.
+**Scope**:
+- `CableViewer3D.tsx` reads `previewCable` from the store.
+- A translucent `previewRoute` is built with existing `calculateCablePlan()` + `buildCablePath3D()`.
+- It renders as a non-interactive ghost tube and clears through existing cancel/commit/unmount cleanup.
+**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, focused port-selection tests, and Playwright smoke for cable planning.
+
+### 2. Finish remaining correctness/performance cleanup
+**Why**: All high/critical review findings in the tracked table are now closed. The only still-open review cleanup is medium-priority 3D path allocation pressure.
+**Scope**:
+- Reduce `cablePath3D.ts` temporary `Vector3` allocation pressure.
+- Revisit any remaining local/shared geometry helper drift that is unrelated to the deferred 0U PDU visual model.
+**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, then `npm run build` if 3D props change.
+
+### 3. Next product feature after cleanup
+**Recommended**: 3D printed mount / shelf fit-check system.
+**Why**: It is the highest-value still-unstarted homelab feature and connects naturally to rack depth, serviceability, procurement, and 0U physical fit concerns.
+
+### Last. Deferred 0U PDU physical model decision
+**Why**: The 0U PDU work is intentionally last because the visual/physics constraints are much harder than the remaining cleanup and product features.
+**Scope**:
+- Keep `ENABLE_ZERO_U_PDU = false` while other roadmap work continues.
+- Separate true physical anchor from optional inspection/exploded display.
+- Align 0U cable endpoints, outlet rendering, and rear/side rail display with the shared rack geometry.
+- Only re-enable user-facing 0U PDU support after the model is visually believable and does not destabilize 2D/3D routing.
+**Validation**: `npm test`, `npm run build`, bundle size guard, and manual 3D screenshot check.
+
 ## Feature Proposals (2026-05-09 Review) 📋
 
-### 1. Cable BOM / Shopping List Export ⭐ High Value, Low Effort
+### 1. Cable BOM / Shopping List Export ⭐ High Value, Low Effort — ✅ IMPLEMENTED
 **Why**: Users planning physical racks need a cable procurement list.
 **What to do**: Export a shopping list of all cables with type, estimated length, recommended standard length, and quantity totals.
 **Existing foundation**: `rackMath.ts` already has `estimateCableLength`, `standardCableLength`, `formatCableLength`.
+**Status**: Shipped via `buildBom()`, `exportBomCsv()`, and `exportBomText()` in `src/utils/exporters.ts`.
 **Files to touch**: `src/utils/exporters.ts`, `src/components/CablePlanner.tsx`
 **Effort**: Low
 
-### 2. Rack Ear / RU Label Printing ⭐ High Practical Value
+### 2. Rack Ear / RU Label Printing ⭐ High Practical Value — ✅ IMPLEMENTED
 **Why**: Physical rack planning requires printable RU number labels and device labels for standard label printers.
 **What to do**: Add a print-friendly view with RU numbers and device labels formatted for label printers (e.g., 1" x 2-5/8" labels).
+**Status**: Shipped in `PrintableLabels.tsx` with RU, device, blank-slot, patch-panel, and printer-preset support.
 **Files to touch**: New `src/components/PrintableLabels.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 
 ### 3. 3D Raycast Port Picking ⭐ Major UX Improvement — ✅ IMPLEMENTED (Phase D, 2026-05-12)
 **Status**: Shipped as Phase 7 Phase D. Port squares in `DevicePortFace` are now interactive during active cable pairing. Pairing state lives in `rackStore` (`pairingStage`, `pairingSource`, `onPortPick3D`). `CablePlanner` registers handler on mount; `DeviceModel.tsx` fires it on click.
-**Remaining**: Run `tsc --noEmit` to confirm no type errors. Add CableViewer3D ghost tube render (Edit 5 — see Phase 7 Phase C notes).
+**Remaining**: No ghost-preview work remains. Type-check passed on 2026-05-14.
 **Files touched**: `src/types/pairing.ts` (new), `src/store/rackStore.ts`, `src/components/CablePlanner.tsx`, `src/components/three/DeviceModel.tsx`
 
-### 4. Weight Distribution / Center of Gravity Visualization
+### 4. Weight Distribution / Center of Gravity Visualization — ✅ IMPLEMENTED
 **Why**: Users need to know if their rack is top-heavy and at risk of tipping. Currently only a static heavy-device-above-mid-height warning exists.
 **What to do**: Calculate rack center of gravity from device weights and positions. Show a visual indicator in 2D view (e.g., a vertical marker showing CG position, with a safe zone band).
+**Status**: Shipped via `getCenterOfGravityU()` in `rackMath.ts`, validation warning `center-of-gravity-high`, and a 2D CG marker in `RackEditor2D.tsx`.
 **Files to touch**: `src/utils/validation.ts`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
-### 5. Fix Pending HIGH/CRITICAL Review Findings
-**Why**: 11 HIGH/CRITICAL issues from automated review remain unaddressed. Several are quick wins.
-**Quick wins**:
-- Add CSS theme variable fallbacks (`src/styles/theme.css`)
-- Complete `getPortTypeOrder()` missing cases (`src/utils/portLayout.ts`)
-- Extract `FileMenu`, `ConfirmDialog`, `IssueBar` from `App.tsx`
-- Add `importRackJson()` guard with validation/normalization (`src/utils/exporters.ts`)
-- Fix immutability violations in `typeConsumed`, `buildBom`, `findFirstFreeSlot`
-**Performance issue**:
-- Optimize `sameRailCount()` O(n²) → O(n) or O(n log n) (`src/utils/routing.ts`)
+### 5. Fix Pending Review Findings — 🔄 CLEANUP TAIL ONLY
+**Why**: Review findings from the 2026-05-09 audit are effectively closed for high/critical correctness. The remaining value is a small medium-priority 3D allocation cleanup before large 3D feature work.
+**Completed quick wins**:
+- CSS theme variable fallbacks (`src/styles/theme.css`)
+- `getPortTypeOrder()` missing cases (`src/utils/portLayout.ts`)
+- `FileMenu`, `ConfirmDialog`, `IssueBar` extraction from `App.tsx`
+- `importRackJson()` guard with validation/normalization (`src/utils/exporters.ts`)
+- Immutability fixes in `typeConsumed`, `buildBom`, `findFirstFreeSlot`
+- `sameRailCount()` O(n²) path replaced with rail stats cache
+**Remaining**:
+- `cablePath3D.ts` temporary `Vector3` allocation pressure
 **Files to touch**: Multiple — see Review Findings table above
 **Effort**: Low-Medium (mostly quick wins)
 
@@ -274,27 +314,34 @@
 **Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/RackEditor2D.tsx`, `src/components/three/DeviceModel.tsx` or a new accessory model component, `src/utils/validation.ts`, `src/data/deviceCatalog.ts` or a new accessory catalog.
 **Effort**: Medium-High
 
-### 7. Cable Trace / Path Explorer ⭐ Major Troubleshooting Value
+### 7. Cable Trace / Path Explorer ⭐ Major Troubleshooting Value — 🔄 PARTIAL
 **Why**: DCIM tools commonly let users trace a connection from one endpoint through patch panels and pass-through ports to the far endpoint. This would make the current cable map more useful for debugging, not just visualization.
 **What to do**: Let users click a device port or cable and see the full signal path, including patch panel front/rear hops, disconnected endpoints, and broken chains.
+**Status**: Core tracing exists in `src/utils/cableTrace.ts`, is covered by `src/utils/cableTrace.test.ts`, and is surfaced by `CableTracePanel`.
+**Remaining**: Port-level click targets and richer visual highlighting in cable map / rack views.
 **Files to touch**: `src/utils/routing.ts` or new `src/utils/cableTrace.ts`, `src/components/CableMap.tsx`, `src/components/CablePlanner.tsx`
 **Effort**: Medium
 
-### 8. Planned / Active / Decommissioning Mode
+### 8. Planned / Active / Decommissioning Mode — 🔄 PARTIAL
 **Why**: Rack planning is often about migration: what exists now, what is planned, and what should be removed. Real DCIM systems track lifecycle/status so users can compare current and future states.
 **What to do**: Add `status` to devices and cables, then support filtered views and a change summary: additions, removals, moved devices, and new cable runs.
+**Status**: `LifecycleStatus` exists on devices/cables, device lifecycle can be edited in `PropertyPanel`, and `migrationCalc.ts` summarizes planned/active/decommissioning devices and cables.
+**Remaining**: Cable lifecycle editing, filtered layout views, and user-facing migration/change-summary export.
 **Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/PropertyPanel.tsx`, `src/components/CablePlanner.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 
-### 9. Power Chain / Redundant Feed Planner
+### 9. Power Chain / Redundant Feed Planner — 🔄 PARTIAL
 **Why**: Current power validation uses device draw, but real rack planning also needs circuits, PDUs, outlets, breaker utilization, and A/B redundancy.
 **What to do**: Model Circuit A/B, PDU outlets, device power ports, safe utilization thresholds, and failure simulation. Warn when dual-PSU devices are not split across redundant feeds.
+**Status**: `powerChain.ts`, circuit load checks, redundancy checks, and `PowerChainPanel` exist.
+**Remaining**: Outlet-level assignment, failure simulation UX, and stricter A/B feed workflows.
 **Files to touch**: `src/types/rack.ts`, `src/utils/powerChain.ts`, `src/utils/validation.ts`, `src/components/CablePlanner.tsx`, `src/components/ValidationPanel.tsx`
 **Effort**: Medium-High
 
-### 10. Rack Health / Capacity Dashboard
+### 10. Rack Health / Capacity Dashboard — ✅ IMPLEMENTED
 **Why**: Commercial DCIM tools surface capacity through red/yellow/green overlays for space, power, cooling, weight, and port availability. A homelab version would help users quickly see the next bottleneck.
 **What to do**: Add a compact dashboard showing RU utilization, power budget, weight, port usage, cable density, thermal risk, and remaining usable slots.
+**Status**: Shipped as `RackHealthDashboard.tsx`; zero-budget division guards are in place.
 **Files to touch**: `src/utils/validation.ts`, `src/utils/rackMath.ts`, new `src/components/RackHealthDashboard.tsx`
 **Effort**: Medium
 
@@ -310,15 +357,17 @@
 **Files to touch**: `src/utils/exporters.ts`, `src/components/CablePlanner.tsx`, new `src/utils/labeling.ts`
 **Effort**: Low-Medium
 
-### 13. Documentation Audit Mode
+### 13. Documentation Audit Mode — 🔄 PARTIAL
 **Why**: Rack diagrams become unreliable when labels, ports, power, and cable documentation drift. An audit mode can turn the app into a maintenance checklist.
 **What to do**: Flag devices missing labels/asset tags/notes, cables missing endpoint labels or colors, patch panels with only one side connected, powered devices without power paths, and imported layouts with stale schema fields.
+**Status**: `documentationAudit.ts`, tests, and `DocumentationAuditPanel` exist for labels, power gaps, and network gaps.
+**Remaining**: Stale schema, incomplete port maps, endpoint label consistency, and richer audit checklist export.
 **Files to touch**: `src/utils/validation.ts`, `src/components/ValidationPanel.tsx`, `src/utils/exporters.ts`
 **Effort**: Low-Medium
 
 ## Feature Proposals (2026-05-09 Homelab Pain Point Coverage) 📋
 
-### 14. Rack Depth / Rail / Rear-Clearance Compatibility ⭐ High Practical Value
+### 14. Rack Depth / Rail / Rear-Clearance Compatibility ⭐ High Practical Value — 🔄 PARTIAL
 **Why**: A common homelab failure mode is buying or printing hardware that technically fits in U height but fails in real life because rails are too long, rear doors cannot close, power cables need bend space, shelves collide with rear posts, or a short device sits awkwardly behind a deep device.
 **What to do**: Track usable rack depth, rail min/max depth, rear cable clearance, front/rear door clearance, shelf depth, and printed-part depth envelopes. Warn when a device, shelf, rail, bracket, or cable bend radius conflicts with the rack volume.
 **MVP scope**:
@@ -326,10 +375,12 @@
 - Warn when rear cable clearance is below a configurable threshold.
 - Combine device + shelf + printed mount depth into one fit envelope.
 - Flag devices that cannot be serviced because they cannot slide or be removed without conflicts.
+**Status**: `DepthCompatibilityPanel` and depth summary helpers exist.
+**Remaining**: Rail/door/cable-bend depth modeling and combined printed-mount envelope.
 **Files to touch**: `src/types/rack.ts`, `src/utils/rackMath.ts`, `src/utils/validation.ts`, `src/components/PropertyPanel.tsx`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
-### 15. Energy Cost + Heat-Load Calculator ⭐ High Homelab Value
+### 15. Energy Cost + Heat-Load Calculator ⭐ High Homelab Value — ✅ IMPLEMENTED
 **Why**: Homelab users often care as much about monthly power cost and room heat as rack fit. A 300-500W rack can noticeably warm an office or closet and change what hardware is practical.
 **What to do**: Convert rack watts into monthly kWh, estimated electricity cost, and BTU/h heat output. Support idle/typical/peak power values when available, and show how planned devices change the monthly cost.
 **MVP scope**:
@@ -337,10 +388,11 @@
 - Calculate monthly cost from current `powerW`.
 - Show BTU/h heat output and simple room-impact notes.
 - Highlight high-cost devices and planned additions.
+**Status**: Shipped via `energyCalc.ts`, `EnergySummary.tsx`, and `electricityRatePerKwh` on `RackLayout`; NaN input guard is in place.
 **Files to touch**: `src/types/rack.ts`, `src/utils/rackMath.ts`, `src/utils/validation.ts`, new `src/components/EnergySummary.tsx`
 **Effort**: Low-Medium
 
-### 16. Noise / Living-Space Suitability Planner
+### 16. Noise / Living-Space Suitability Planner — ✅ IMPLEMENTED
 **Why**: Noise is one of the biggest homelab pain points. Enterprise switches, 1U servers, high-RPM fans, and HDD arrays can make an office or bedroom layout unacceptable even when the rack is technically valid.
 **What to do**: Add optional noise metadata and rate whether the rack is suitable for bedroom, office, closet, garage, or basement placement. Include warnings that fan swaps and acoustic dampening can increase thermal risk.
 **MVP scope**:
@@ -348,10 +400,11 @@
 - Estimate combined rack noise conservatively.
 - Show placement suitability labels rather than pretending exact acoustics are guaranteed.
 - Add notes for HDD vibration, 1U chassis, fanless/passive gear, and fan-swap risk.
+**Status**: Shipped via `noiseCalc.ts`, `NoiseSummary.tsx`, and `noiseDb` device metadata; invalid/extreme dB guards are in place.
 **Files to touch**: `src/types/rack.ts`, `src/data/deviceCatalog.ts`, `src/utils/validation.ts`, new `src/components/NoiseSummary.tsx`
 **Effort**: Medium
 
-### 17. UPS Runtime Planner
+### 17. UPS Runtime Planner — 🔄 PARTIAL
 **Why**: Power planning is incomplete without knowing how long the rack survives during an outage and which devices should stay up. Homelab users usually care about router/firewall/NAS shutdown order.
 **What to do**: Model UPS capacity, load groups, critical vs non-critical devices, and estimated runtime. Generate shutdown priority recommendations.
 **MVP scope**:
@@ -359,10 +412,12 @@
 - Let users mark devices as critical, graceful-shutdown, or non-critical.
 - Estimate runtime from current and planned loads.
 - Warn when critical load exceeds UPS safe capacity.
+**Status**: Runtime estimates exist in `upsRuntime.ts`, tests exist in `upsRuntime.test.ts`, and `UpsRuntimePanel` is wired into the app.
+**Remaining**: Critical/graceful/non-critical grouping, shutdown priority UI, and critical-load-specific warnings.
 **Files to touch**: `src/types/rack.ts`, `src/utils/powerChain.ts`, `src/utils/validation.ts`, `src/components/PropertyPanel.tsx`, `src/components/ValidationPanel.tsx`
 **Effort**: Medium
 
-### 18. Serviceability / Maintenance Access Mode
+### 18. Serviceability / Maintenance Access Mode — 🔄 PARTIAL
 **Why**: A rack can fit on paper but still be painful to maintain. Users need to know whether devices can slide out, whether cable slack is enough, and whether small devices are blocked behind deeper equipment.
 **What to do**: Add a serviceability overlay that simulates access paths, pull-out clearance, cable slack, and likely maintenance blockers.
 **MVP scope**:
@@ -370,6 +425,8 @@
 - Warn when cable length/slack is too short for pull-out service.
 - Highlight devices that require removing another device or shelf first.
 - Add a maintenance checklist for risky devices.
+**Status**: `serviceability.ts`, `serviceability.test.ts`, and `ServiceabilityPanel` exist for cable strain, front/rear collision, and heavy-over-light checks.
+**Remaining**: Interactive access overlay and selected-device maintenance checklist.
 **Files to touch**: `src/utils/validation.ts`, `src/utils/routing.ts`, `src/components/RackEditor2D.tsx`, `src/components/CableMap.tsx`
 **Effort**: Medium
 

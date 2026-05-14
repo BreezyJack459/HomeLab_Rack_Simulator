@@ -20,6 +20,8 @@ export type RackWorldDimensions = {
   bottom: number;
 };
 
+export type RackGeometryLayout = Pick<RackLayout, 'rackType' | 'rackDepthMm'>;
+
 export type WorldPoint = {
   x: number;
   y: number;
@@ -48,9 +50,9 @@ export function getRackWorldDimensions(layout: RackLayout): RackWorldDimensions 
 }
 
 export function getDeviceWorldBox(
-  layout: RackLayout,
+  layout: RackGeometryLayout,
   device: PlacedDevice,
-  dimensions: RackWorldDimensions = getRackWorldDimensions(layout)
+  dimensions: RackWorldDimensions
 ): DeviceWorldBox {
   const { rackWidth, rackDepth, rackHeight } = dimensions;
   const isZeroU = device.sizeU === 0;

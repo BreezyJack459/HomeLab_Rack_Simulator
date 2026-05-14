@@ -87,7 +87,7 @@ export function getZeroUEarSide(device: SpatialDeviceInput): 'left' | 'right' {
 }
 
 export function clampDeviceX(
-  layout: RackLayout,
+  layout: Pick<RackLayout, 'rackType'>,
   device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU' | 'mountType' | 'mountSide0U'>,
   xMm: number
 ) {
@@ -102,7 +102,7 @@ export function clampDeviceX(
 }
 
 export function getDeviceXRange(
-  layout: RackLayout,
+  layout: Pick<RackLayout, 'rackType'>,
   device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'xMm' | 'sizeU' | 'mountType' | 'mountSide0U'>
 ) {
   const usableWidth = RACK_SPECS[layout.rackType].usableWidthMm;
@@ -118,7 +118,7 @@ export function getDeviceXRange(
 }
 
 export function getDefaultDeviceX(
-  layout: RackLayout,
+  layout: Pick<RackLayout, 'rackType'>,
   device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU' | 'mountType' | 'mountSide0U'>
 ) {
   const usableWidth = RACK_SPECS[layout.rackType].usableWidthMm;

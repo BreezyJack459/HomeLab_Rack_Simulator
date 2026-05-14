@@ -5,7 +5,7 @@ import { useRackStore } from '../store/rackStore';
 import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, ViewSide } from '../types/rack';
 import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap } from '../utils/portLayout';
-import { pathDescription } from '../utils/routing';
+import { calculateCablePlan, pathDescription } from '../utils/routing';
 
 const BASE_UNIT_HEIGHT = 34;
 const SIDE_LABEL_OFFSET = 78;
@@ -1111,7 +1111,8 @@ export function RackEditor2D() {
                       (c) => c.fromDeviceId === device.id || c.toDeviceId === device.id
                     );
                     return cables.map((cable, i) => {
-                      const desc = pathDescription(cable, cable.nodes ?? [], layout);
+                      const plan = calculateCablePlan(cable, layout);
+                      const desc = pathDescription(cable, plan?.nodes ?? cable.nodes ?? [], layout, plan);
                       return (
                         <text
                           key={cable.id}
