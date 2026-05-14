@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-14. Checked against current source files, `node node_modules/typescript/bin/tsc --noEmit`, and `npm test -- --pool=threads` (13 files / 257 tests passed).
+> Last audited: 2026-05-14. Checked against current source files, `node node_modules/typescript/bin/tsc --noEmit`, and `npm test -- --pool=threads` (14 files / 264 tests passed).
 
 ## Completed ✅
 
@@ -206,7 +206,7 @@
 - [~] Planned / active / decommissioning mode for devices, cables, and rack changes — lifecycle fields, device status UI, and `migrationCalc.ts` exist; filtered views/change-summary UX still pending
 - [~] Power chain / redundant feed planner for circuits, PDUs, outlets, and A/B power checks — `powerChain.ts` + `PowerChainPanel` exist; outlet-level modeling still pending
 - [x] Rack capacity dashboard with space, power, port, weight, and cable-density health indicators (`RackHealthDashboard.tsx` with red/yellow/green metrics)
-- [ ] Rack reservation / future-slot planning for planned devices and reserved U ranges
+- [x] Rack reservation / future-slot planning for planned devices and reserved U ranges (`RackReservation`, `ReservationPanel`, 2D reserved overlays, store placement guards, validation issues)
 - [~] Cable/device label protocol generator with both-end cable labels and label-printer export — patch panel port labels (`PP:01 → SW:ETH0`) + length + Brady/Panduit presets done; full both-end cable labels + CSV export still pending
 - [~] Documentation audit mode for missing labels, stale endpoints, incomplete port maps, and power gaps — `documentationAudit.ts` + panel exist; stale schema/port-map audit can go deeper
 - [x] Noise / living-space suitability planner with room suitability badges, loudest device tracking, and dB combination math (`noiseCalc.ts`, `NoiseSummary.tsx`, `noiseDb` on device types)
@@ -348,7 +348,9 @@ The following items should not be picked as next work unless a regression appear
 ### 11. Rack Reservation / Future Slot Planning
 **Why**: Users often reserve space for future NAS, UPS, patch panels, shelves, or printed mounts. Reservations prevent accidental placement conflicts before the hardware exists.
 **What to do**: Let users reserve U ranges and physical volumes, then validate planned devices and accessories against those reservations.
-**Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/RackEditor2D.tsx`, `src/utils/validation.ts`
+**Status**: Shipped on 2026-05-14. Layouts now support `RackReservation` records with front/rear side, U range, purpose, width/x footprint, 2D reserved overlays, a `ReservationPanel`, store placement guards, import preservation, and validation for occupied reserved space.
+**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads` (14 files / 264 tests passed).
+**Files touched**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/RackEditor2D.tsx`, `src/components/ReservationPanel.tsx`, `src/utils/reservations.ts`, `src/utils/validation.ts`, `src/utils/layoutValidation.ts`
 **Effort**: Medium
 
 ### 12. Cable / Device Label Protocol Generator

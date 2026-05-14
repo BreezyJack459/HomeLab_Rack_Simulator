@@ -413,6 +413,42 @@ describe('rackStore store operations', () => {
     expect(state.layout.cables.some((c) => c.id === 'cable-cd')).toBe(false);
   });
 
+  it('addReservation reserves U-space and blocks accidental device placement', () => {
+    useRackStore.getState().newLayout('19in', 12);
+    useRackStore.getState().addReservation({
+      name: 'Future UPS',
+      positionU: 1,
+      sizeU: 2,
+      mountSide: 'front',
+      widthType: '19in',
+      purpose: 'ups'
+    });
+
+    const added = useRackStore.getState().addDeviceFromTemplate('ups-1u', 1);
+    const state = useRackStore.getState();
+
+    expect(state.layout.reservations).toHaveLength(1);
+    expect(added).toBe(false);
+    expect(state.layout.devices).toHaveLength(0);
+    expect(state.statusMessage).toContain('reserved');
+  });
+
+  it('setRackHeight removes reservations that no longer fit', () => {
+    useRackStore.getState().newLayout('19in', 12);
+    useRackStore.getState().addReservation({
+      name: 'Future shelf',
+      positionU: 10,
+      sizeU: 3,
+      mountSide: 'front',
+      widthType: '19in',
+      purpose: 'shelf'
+    });
+
+    useRackStore.getState().setRackHeight(8);
+
+    expect(useRackStore.getState().layout.reservations).toHaveLength(0);
+  });
+
   it('setRackType updates rack dimensions and reclamps device positions', () => {
     useRackStore.getState().loadLayout(testLayout);
 

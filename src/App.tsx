@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { CableMap } from './components/CableMap';
 import { CablePlanner } from './components/CablePlanner';
-import { CableTracePanel } from './components/CableTracePanel';
+const CableTracePanel = lazy(() => import('./components/CableTracePanel').then((m) => ({ default: m.CableTracePanel })));
 import { ComponentLibrary } from './components/ComponentLibrary';
 import { DepthCompatibilityPanel } from './components/DepthCompatibilityPanel';
 import { DocumentationAuditPanel } from './components/DocumentationAuditPanel';
@@ -28,6 +28,7 @@ import { PropertyPanel } from './components/PropertyPanel';
 import { RackEditor2D } from './components/RackEditor2D';
 const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
 import { RackHealthDashboard } from './components/RackHealthDashboard';
+const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
 import { ServiceabilityPanel } from './components/ServiceabilityPanel';
 import { ThemeToggle } from './components/ThemeToggle';
 import { UpsRuntimePanel } from './components/UpsRuntimePanel';
@@ -156,6 +157,12 @@ function App() {
                 <span>{layout.heightU}U</span>
                 <span>/</span>
                 <span>{layout.devices.length} devices</span>
+                {(layout.reservations?.length ?? 0) > 0 && (
+                  <>
+                    <span>/</span>
+                    <span>{layout.reservations?.length} reservations</span>
+                  </>
+                )}
                 <span>/</span>
                 <span>{totals.occupiedU}/{layout.heightU}U occupied</span>
                 <span>/</span>
@@ -430,10 +437,15 @@ function App() {
           <RackHealthDashboard layout={layout} />
           <EnergySummary layout={layout} onRateChange={(rate) => updateRack({ electricityRatePerKwh: rate })} />
           <NoiseSummary layout={layout} />
+          <Suspense fallback={null}>
+            <ReservationPanel />
+          </Suspense>
           <UpsRuntimePanel />
           <PropertyPanel />
           <CablePlanner />
-          <CableTracePanel />
+          <Suspense fallback={null}>
+            <CableTracePanel />
+          </Suspense>
           <DepthCompatibilityPanel />
           <PowerChainPanel />
           <MigrationSummaryPanel />

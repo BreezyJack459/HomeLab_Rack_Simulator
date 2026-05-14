@@ -11,6 +11,7 @@ interface ValidationPanelProps {
     powerW: number;
     heatScore: number;
     occupiedU: number;
+    reservedU?: number;
   };
   selectedIssueId?: string | null;
   onIssueSelect?: (issue: ValidationIssue) => void;
@@ -72,7 +73,10 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-800 dark:bg-slate-950">
           <div className="text-slate-400 dark:text-slate-500">Used U</div>
-          <div className="mt-1 font-semibold text-slate-900 dark:text-white">{totals.occupiedU}</div>
+          <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+            {totals.occupiedU}
+            {totals.reservedU ? <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400"> +{totals.reservedU}r</span> : null}
+          </div>
         </div>
       </div>
 

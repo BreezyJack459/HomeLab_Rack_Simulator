@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { sampleLayouts } from '../data/sampleLayouts';
-import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackType, ViewMode, ViewSide } from '../types/rack';
+import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackReservation, RackType, ViewMode, ViewSide } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { shouldHideDevice, withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { calculateCableNodes } from '../utils/routing';
@@ -18,6 +18,7 @@ import {
   isZeroU,
   RACK_SPECS
 } from '../utils/rackMath';
+import { deviceOverlapsReservations, normalizeReservation } from '../utils/reservations';
 
 const STORAGE_KEY = 'homelab-rack-simulator-layout';
 
@@ -76,6 +77,7 @@ function createBlankLayout(rackType: RackType = '19in', heightU = 12): RackLayou
     viewSide: 'front',
     devices: [],
     cables: [],
+    reservations: [],
     updatedAt: new Date().toISOString()
   };
 }
@@ -111,6 +113,7 @@ function normalizeLayout(layout: RackLayout): RackLayout {
     ...createBlankLayout(visibleLayout.rackType, visibleLayout.heightU),
     ...visibleLayout,
     cables: visibleLayout.cables ?? [],
+    reservations: visibleLayout.reservations ?? [],
     updatedAt: new Date().toISOString()
   };
   const normalized = {
@@ -133,7 +136,8 @@ function normalizeLayout(layout: RackLayout): RackLayout {
           migrated.xMm ?? getDefaultDeviceX(base, migrated)
         )
       };
-    })
+    }),
+    reservations: (visibleLayout.reservations ?? []).map((reservation) => normalizeReservation(base, reservation))
   };
   return withCableNodes(normalized);
 }
@@ -163,6 +167,9 @@ interface RackState {
   selectCable: (cableId: string | null) => void;
   addCable: (route: Omit<CableRoute, 'id'>) => void;
   removeCable: (cableId: string) => void;
+  addReservation: (reservation: Omit<RackReservation, 'id'>) => void;
+  updateReservation: (reservationId: string, patch: Partial<RackReservation>) => void;
+  removeReservation: (reservationId: string) => void;
   updateRack: (patch: Partial<RackLayout>) => void;
   setRackType: (rackType: RackType) => void;
   setRackHeight: (heightU: number) => void;
@@ -269,6 +276,11 @@ export const useRackStore = create<RackState>((set, get) => ({
       set({ statusMessage: `${template.name} would overlap another component.` });
       return false;
     }
+    const reservation = deviceOverlapsReservations(layout, device);
+    if (reservation) {
+      set({ statusMessage: `${template.name} overlaps reserved space "${reservation.name}".` });
+      return false;
+    }
     if (!isDeviceWithinRack(layout, device)) {
       set({ statusMessage: `${template.name} does not fit inside this rack height.` });
       return false;
@@ -300,6 +312,11 @@ export const useRackStore = create<RackState>((set, get) => ({
     };
     if (hasOverlap(layout, layout.devices, nextDevice)) {
       set({ statusMessage: `${device.name} cannot move there; space is occupied.` });
+      return false;
+    }
+    const reservation = deviceOverlapsReservations(layout, nextDevice);
+    if (reservation) {
+      set({ statusMessage: `${device.name} cannot move there; "${reservation.name}" is reserved.` });
       return false;
     }
     set({
@@ -349,6 +366,11 @@ export const useRackStore = create<RackState>((set, get) => ({
     }
     if (hasOverlap(layout, layout.devices, candidate)) {
       set({ statusMessage: `${candidate.name} would overlap another component.` });
+      return false;
+    }
+    const reservation = deviceOverlapsReservations(layout, candidate);
+    if (reservation) {
+      set({ statusMessage: `${candidate.name} would overlap reserved space "${reservation.name}".` });
       return false;
     }
     set({
@@ -418,9 +440,49 @@ export const useRackStore = create<RackState>((set, get) => ({
     });
   },
 
+  addReservation: (reservation) => {
+    const layout = get().layout;
+    const nextReservation = normalizeReservation(layout, {
+      ...reservation,
+      id: newId('res')
+    });
+    set({
+      layout: touch({ ...layout, reservations: [...(layout.reservations ?? []), nextReservation] }),
+      selectedDeviceId: null,
+      selectedCableId: null,
+      statusMessage: `${nextReservation.name} reserved at U${nextReservation.positionU}.`
+    });
+  },
+
+  updateReservation: (reservationId, patch) => {
+    const layout = get().layout;
+    const reservations = layout.reservations ?? [];
+    const current = reservations.find((reservation) => reservation.id === reservationId);
+    if (!current) return;
+    const nextReservation = normalizeReservation(layout, { ...current, ...patch, id: reservationId });
+    set({
+      layout: touch({
+        ...layout,
+        reservations: reservations.map((reservation) => (reservation.id === reservationId ? nextReservation : reservation))
+      }),
+      statusMessage: null
+    });
+  },
+
+  removeReservation: (reservationId) => {
+    const layout = get().layout;
+    set({
+      layout: touch({
+        ...layout,
+        reservations: (layout.reservations ?? []).filter((reservation) => reservation.id !== reservationId)
+      }),
+      statusMessage: 'Reservation removed.'
+    });
+  },
+
   updateRack: (patch) => {
     const layout = get().layout;
-    const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'rackType', 'heightU', 'viewSide']);
+    const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'reservations', 'rackType', 'heightU', 'viewSide']);
     const needsRecompute = Object.keys(patch).some((key) => geometricKeys.has(key));
     const next = { ...layout, ...patch };
     if (needsRecompute) {
@@ -460,12 +522,15 @@ export const useRackStore = create<RackState>((set, get) => ({
   setRackHeight: (heightU) => {
     const layout = get().layout;
     const devices = layout.devices.filter((device) => device.positionU + device.sizeU - 1 <= heightU);
+    const reservations = (layout.reservations ?? []).filter((reservation) => reservation.positionU + reservation.sizeU - 1 <= heightU);
     const removed = layout.devices.length - devices.length;
+    const removedReservations = (layout.reservations ?? []).length - reservations.length;
     set({
       layout: touch({
         ...layout,
         heightU,
         devices,
+        reservations,
         cables: layout.cables.filter(
           (cable) =>
             devices.some((device) => device.id === cable.fromDeviceId) &&
@@ -475,7 +540,10 @@ export const useRackStore = create<RackState>((set, get) => ({
       }),
       selectedDeviceId: devices.some((device) => device.id === get().selectedDeviceId) ? get().selectedDeviceId : null,
       selectedCableId: null,
-      statusMessage: removed ? `${removed} component(s) removed because they no longer fit.` : null
+      statusMessage:
+        removed || removedReservations
+          ? `${removed} component(s) and ${removedReservations} reservation(s) removed because they no longer fit.`
+          : null
     });
   },
 
