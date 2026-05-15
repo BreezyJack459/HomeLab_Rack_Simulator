@@ -67,6 +67,7 @@ export interface DeviceTemplate {
 }
 
 export type LifecycleStatus = 'active' | 'planned' | 'decommissioning';
+export type ShutdownPriority = 'critical' | 'graceful' | 'non-critical';
 
 export interface PlacedDevice {
   id: string;
@@ -97,6 +98,7 @@ export interface PlacedDevice {
   label?: string;
   description?: string;
   lifecycleStatus?: LifecycleStatus;
+  shutdownPriority?: ShutdownPriority;
   batteryWh?: number;
   circuit?: 'A' | 'B';
   noiseDb?: number;
@@ -242,6 +244,8 @@ export interface RackLayout {
   reservations?: RackReservation[];
   updatedAt: string;
   rearClearanceMm?: number;
+  frontDoorClearanceMm?: number;
+  rearDoorClearanceMm?: number;
   railMinDepthMm?: number;
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;

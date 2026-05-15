@@ -11,6 +11,23 @@ import { getZeroUEarSide } from './rackMath';
 
 type CableRoutingMode = 'clean' | 'realistic';
 
+const MIN_POINT_DISTANCE = 0.001;
+const MIN_POINT_DISTANCE_SQ = MIN_POINT_DISTANCE * MIN_POINT_DISTANCE;
+
+function distanceSq(a: Vector3, x: number, y: number, z: number): number {
+  const dx = a.x - x;
+  const dy = a.y - y;
+  const dz = a.z - z;
+  return dx * dx + dy * dy + dz * dz;
+}
+
+function pushPoint(points: Vector3[], x: number, y: number, z: number): void {
+  const previous = points[points.length - 1];
+  if (!previous || distanceSq(previous, x, y, z) > MIN_POINT_DISTANCE_SQ) {
+    points.push(new Vector3(x, y, z));
+  }
+}
+
 function devicePosition(
   layout: RackLayout,
   deviceId: string,
@@ -97,40 +114,34 @@ export function buildCablePath3D(
       const laneSpread = ((cableIndex % 6) - 2.5) * 0.012;
       const managerY = managerBox ? managerBox.y + laneSpread : midY + laneSpread;
       const exitZ = baseZ + 0.035 + stagger;
-      points.push(
-        new Vector3(fromPort.x, fromPort.y, fromPort.z),
-        new Vector3(fromPort.x, fromPort.y, exitZ),
-        new Vector3(fromPort.x, managerY, exitZ),
-        new Vector3(fromPort.x, managerY, laneZ),
-        new Vector3(midX, managerY, laneZ),
-        new Vector3(toPort.x, managerY, laneZ),
-        new Vector3(toPort.x, managerY, exitZ),
-        new Vector3(toPort.x, toPort.y, exitZ),
-        new Vector3(toPort.x, toPort.y, toPort.z)
-      );
+      pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+      pushPoint(points, fromPort.x, fromPort.y, exitZ);
+      pushPoint(points, fromPort.x, managerY, exitZ);
+      pushPoint(points, fromPort.x, managerY, laneZ);
+      pushPoint(points, midX, managerY, laneZ);
+      pushPoint(points, toPort.x, managerY, laneZ);
+      pushPoint(points, toPort.x, managerY, exitZ);
+      pushPoint(points, toPort.x, toPort.y, exitZ);
+      pushPoint(points, toPort.x, toPort.y, toPort.z);
     } else if (fromFace === 'rear' && toFace === 'rear') {
       const baseZ = Math.min(fromPort.z, toPort.z);
       const cableZ = baseZ - 0.04 - stagger;
       const arcZ = baseZ - 0.14 - stagger;
-      points.push(
-        new Vector3(fromPort.x, fromPort.y, fromPort.z),
-        new Vector3(fromPort.x, fromPort.y, cableZ),
-        new Vector3(midX, midY, arcZ),
-        new Vector3(toPort.x, toPort.y, cableZ),
-        new Vector3(toPort.x, toPort.y, toPort.z)
-      );
+      pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+      pushPoint(points, fromPort.x, fromPort.y, cableZ);
+      pushPoint(points, midX, midY, arcZ);
+      pushPoint(points, toPort.x, toPort.y, cableZ);
+      pushPoint(points, toPort.x, toPort.y, toPort.z);
     } else {
       const midZ = (fromPort.z + toPort.z) / 2;
       const lateral = ((cableIndex % 5) - 2) * 0.018;
       const fromExitZ = fromFace === 'front' ? fromPort.z + 0.04 : fromPort.z - 0.04;
       const toExitZ = toFace === 'front' ? toPort.z + 0.04 : toPort.z - 0.04;
-      points.push(
-        new Vector3(fromPort.x, fromPort.y, fromPort.z),
-        new Vector3(fromPort.x, fromPort.y, fromExitZ),
-        new Vector3(midX + lateral, midY, midZ),
-        new Vector3(toPort.x, toPort.y, toExitZ),
-        new Vector3(toPort.x, toPort.y, toPort.z)
-      );
+      pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+      pushPoint(points, fromPort.x, fromPort.y, fromExitZ);
+      pushPoint(points, midX + lateral, midY, midZ);
+      pushPoint(points, toPort.x, toPort.y, toExitZ);
+      pushPoint(points, toPort.x, toPort.y, toPort.z);
     }
   } else {
     const isPower = cable.type === 'power';
@@ -166,60 +177,54 @@ export function buildCablePath3D(
       ? toPort.y - Math.max(0.035, to.sizeU * U_HEIGHT * 0.25)
       : toPort.y;
 
-    points.push(new Vector3(fromPort.x, fromPort.y, fromPort.z));
-    if (isPower) points.push(new Vector3(fromPort.x, fromDropY, fromPort.z));
+    pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+    if (isPower) pushPoint(points, fromPort.x, fromDropY, fromPort.z);
     if (fromIsZeroU && !fromIsRearRail0U) {
-      points.push(new Vector3(fromExitX, fromDropY, fromPort.z));
+      pushPoint(points, fromExitX, fromDropY, fromPort.z);
     } else {
-      points.push(new Vector3(fromPort.x, fromDropY, fromExitZ));
+      pushPoint(points, fromPort.x, fromDropY, fromExitZ);
     }
-    if (hasHManager && !fromIsZeroU) points.push(new Vector3(0, fromDropY, fromExitZ));
+    if (hasHManager && !fromIsZeroU) pushPoint(points, 0, fromDropY, fromExitZ);
     if (fromIsZeroU && !fromIsRearRail0U) {
-      points.push(new Vector3(railX + railOffX, fromDropY, fromPort.z));
+      pushPoint(points, railX + railOffX, fromDropY, fromPort.z);
     } else {
-      points.push(new Vector3(railX + railOffX, fromDropY, fromExitZ));
+      pushPoint(points, railX + railOffX, fromDropY, fromExitZ);
     }
 
     const midY = (fromDropY + toDropY) / 2;
     if (fromIsZeroU && !fromIsRearRail0U) {
-      points.push(new Vector3(railX + railOffX, midY, fromPort.z));
+      pushPoint(points, railX + railOffX, midY, fromPort.z);
     } else {
-      points.push(new Vector3(railX + railOffX, midY, fromExitZ));
+      pushPoint(points, railX + railOffX, midY, fromExitZ);
     }
 
     const targetZ = toIsZeroU && !toIsRearRail0U ? toPort.z : toExitZ;
     const sourceZ = fromIsZeroU && !fromIsRearRail0U ? fromPort.z : fromExitZ;
     if (Math.abs(targetZ - sourceZ) > 0.02) {
-      points.push(new Vector3(railX + railOffX, midY, targetZ));
+      pushPoint(points, railX + railOffX, midY, targetZ);
     }
 
     if (toIsZeroU && !toIsRearRail0U) {
-      points.push(new Vector3(railX + railOffX, toDropY, toPort.z));
+      pushPoint(points, railX + railOffX, toDropY, toPort.z);
     } else {
-      points.push(new Vector3(railX + railOffX, toDropY, toExitZ));
+      pushPoint(points, railX + railOffX, toDropY, toExitZ);
     }
-    if (hasHManager && !toIsZeroU) points.push(new Vector3(0, toDropY, toExitZ));
+    if (hasHManager && !toIsZeroU) pushPoint(points, 0, toDropY, toExitZ);
     if (toIsZeroU && !toIsRearRail0U) {
-      points.push(new Vector3(toExitX, toDropY, toPort.z));
-      points.push(new Vector3(toPort.x, toDropY, toPort.z));
+      pushPoint(points, toExitX, toDropY, toPort.z);
+      pushPoint(points, toPort.x, toDropY, toPort.z);
     } else {
-      points.push(new Vector3(toPort.x, toDropY, toExitZ));
-      if (isPower) points.push(new Vector3(toPort.x, toDropY, toPort.z));
+      pushPoint(points, toPort.x, toDropY, toExitZ);
+      if (isPower) pushPoint(points, toPort.x, toDropY, toPort.z);
     }
-    points.push(new Vector3(toPort.x, toPort.y, toPort.z));
+    pushPoint(points, toPort.x, toPort.y, toPort.z);
   }
 
-  const cleaned: Vector3[] = [];
-  for (const p of points) {
-    if (cleaned.length === 0 || p.distanceTo(cleaned[cleaned.length - 1]) > 0.001) {
-      cleaned.push(p);
-    }
-  }
-  if (cleaned.length < 2) return null;
+  if (points.length < 2) return null;
 
   const realistic = cableRoutingMode === 'realistic';
   const sagAmount = realistic ? plan.render.sagMm / 1000 : (plan.render.sagMm / 1000) * 0.35;
-  const withSag = insertGravitySag(cleaned, sagAmount, realistic);
+  const withSag = insertGravitySag(points, sagAmount, realistic);
   const totalLength = withSag.reduce((sum, p, i) => (i > 0 ? sum + p.distanceTo(withSag[i - 1]) : sum), 0);
   const tension = Math.max(0.08, Math.min(0.35, 0.15 + totalLength * 0.02));
 

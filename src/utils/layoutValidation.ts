@@ -49,6 +49,14 @@ function validateDevice(device: unknown, index: number): string[] {
     errors.push(`${prefix}.heatLevel must be a finite number between 1 and 5`);
   }
   if (!isNonEmptyString(device.color)) errors.push(`${prefix}.color missing or invalid`);
+  if (
+    device.shutdownPriority !== undefined &&
+    device.shutdownPriority !== 'critical' &&
+    device.shutdownPriority !== 'graceful' &&
+    device.shutdownPriority !== 'non-critical'
+  ) {
+    errors.push(`${prefix}.shutdownPriority must be "critical", "graceful", or "non-critical"`);
+  }
 
   return errors;
 }
@@ -107,6 +115,8 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
   if (!isPositiveNumber(data.heightU)) errors.push('heightU must be a positive number');
   if (!isPositiveNumber(data.rackDepthMm)) errors.push('rackDepthMm must be a positive number');
   if (data.rearClearanceMm !== undefined && !isNonNegativeNumber(data.rearClearanceMm)) errors.push('rearClearanceMm must be a non-negative number');
+  if (data.frontDoorClearanceMm !== undefined && !isNonNegativeNumber(data.frontDoorClearanceMm)) errors.push('frontDoorClearanceMm must be a non-negative number');
+  if (data.rearDoorClearanceMm !== undefined && !isNonNegativeNumber(data.rearDoorClearanceMm)) errors.push('rearDoorClearanceMm must be a non-negative number');
   if (data.railMinDepthMm !== undefined && !isNonNegativeNumber(data.railMinDepthMm)) errors.push('railMinDepthMm must be a non-negative number');
   if (data.railMaxDepthMm !== undefined && !isNonNegativeNumber(data.railMaxDepthMm)) errors.push('railMaxDepthMm must be a non-negative number');
   if (!isNonNegativeNumber(data.weightLimitKg)) errors.push('weightLimitKg must be a non-negative number');
@@ -143,6 +153,8 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     heightU: Number(data.heightU),
     rackDepthMm: Number(data.rackDepthMm),
     rearClearanceMm: data.rearClearanceMm !== undefined ? Number(data.rearClearanceMm) : undefined,
+    frontDoorClearanceMm: data.frontDoorClearanceMm !== undefined ? Number(data.frontDoorClearanceMm) : undefined,
+    rearDoorClearanceMm: data.rearDoorClearanceMm !== undefined ? Number(data.rearDoorClearanceMm) : undefined,
     railMinDepthMm: data.railMinDepthMm !== undefined ? Number(data.railMinDepthMm) : undefined,
     railMaxDepthMm: data.railMaxDepthMm !== undefined ? Number(data.railMaxDepthMm) : undefined,
     weightLimitKg: Number(data.weightLimitKg),

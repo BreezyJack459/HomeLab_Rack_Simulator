@@ -62,6 +62,18 @@ export function recommendationForIssue(issue: { id: string }): string {
   if (issue.id.startsWith('unused-power-ports-')) {
     return 'Consider adding redundant power cables for high-availability if the device supports dual PSU.';
   }
+  if (issue.id.startsWith('incomplete-port-map-')) {
+    return 'Open the Properties panel and add a more accurate port count or explicit front/rear mapping for this custom device.';
+  }
+  if (issue.id.startsWith('missing-endpoint-labels-')) {
+    return 'Edit the cable and assign both endpoint ports so future label exports and audits stay consistent.';
+  }
+  if (issue.id.startsWith('invalid-port-map-')) {
+    return 'Fix the device port count or move the cable onto a valid port index.';
+  }
+  if (issue.id.startsWith('stale-endpoint-')) {
+    return 'Delete the stale cable route or reconnect it to devices that still exist in the layout.';
+  }
   if (issue.id === 'power-limit') {
     return 'Raise the power budget, reduce device load, or split power across a second feed.';
   }

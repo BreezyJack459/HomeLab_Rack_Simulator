@@ -7,6 +7,8 @@ import { buildPortLayout } from '../../utils/portLayout';
 import { getDeviceWorldBox, ZERO_U_REAR_GAP, ZERO_U_SIDE_GAP } from '../../utils/rackGeometry';
 import { UNIT_BOX_GEOMETRY } from './sharedGeometries';
 
+const MAX_DETAILED_PORT_LABELS = 24;
+
 function lifecycleTint(color: string, status?: string): string {
   if (status !== 'decommissioning') return color;
   const r = parseInt(color.slice(1, 3), 16);
@@ -40,6 +42,8 @@ function DevicePortFace({
   const onPortPick3D = useRackStore((s) => s.onPortPick3D);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const isPairing = pairingStage !== 'idle';
+  const slotCount = groups.reduce((total, group) => total + group.slots.length, 0);
+  const showDetailedLabels = slotCount <= MAX_DETAILED_PORT_LABELS;
 
   if (groups.length === 0) return null;
 
@@ -76,18 +80,32 @@ function DevicePortFace({
                     metalness={0.2}
                   />
                 </mesh>
-                <Text
-                  fontSize={Math.min(0.016, slot.width * 0.4)}
-                  color={isHovered ? '#ffffff' : '#0f172a'}
-                  anchorX="center"
-                  anchorY="middle"
-                  position={[0, 0, 0.003]}
-                >
-                  {`${slot.index + 1}`}
-                </Text>
+                {(showDetailedLabels || isHovered) && (
+                  <Text
+                    fontSize={Math.min(0.016, slot.width * 0.4)}
+                    color={isHovered ? '#ffffff' : '#0f172a'}
+                    anchorX="center"
+                    anchorY="middle"
+                    position={[0, 0, 0.003]}
+                  >
+                    {`${slot.index + 1}`}
+                  </Text>
+                )}
               </group>
             );
           })}
+          {!showDetailedLabels && (
+            <Text
+              fontSize={0.026}
+              color="#cbd5e1"
+              anchorX="center"
+              anchorY="middle"
+              position={[0, -deviceHeight * 0.34, 0.006]}
+              maxWidth={deviceWidth * 0.82}
+            >
+              {`${group.slots.length} ${group.type}`}
+            </Text>
+          )}
         </group>
       ))}
     </group>
@@ -114,6 +132,8 @@ function DeviceZeroUSideFace({
     () => buildPortLayout(device, faceWidth, faceHeight, 'front'),
     [device.category, device.ports, device.portLayouts, device.portFaceOverrides, faceWidth, faceHeight]
   );
+  const slotCount = groups.reduce((total, group) => total + group.slots.length, 0);
+  const showDetailedLabels = slotCount <= MAX_DETAILED_PORT_LABELS;
   if (groups.length === 0) return null;
 
   return (
@@ -132,18 +152,33 @@ function DeviceZeroUSideFace({
                   metalness={0.2}
                 />
               </mesh>
-              <Text
-                fontSize={Math.min(0.016, slot.width * 0.4)}
-                color="#0f172a"
-                anchorX="center"
-                anchorY="middle"
-                position={[0.003, 0, 0]}
-                rotation={[0, textRotY, 0]}
-              >
-                {`${slot.index + 1}`}
-              </Text>
+              {showDetailedLabels && (
+                <Text
+                  fontSize={Math.min(0.016, slot.width * 0.4)}
+                  color="#0f172a"
+                  anchorX="center"
+                  anchorY="middle"
+                  position={[0.003, 0, 0]}
+                  rotation={[0, textRotY, 0]}
+                >
+                  {`${slot.index + 1}`}
+                </Text>
+              )}
             </group>
           ))}
+          {!showDetailedLabels && (
+            <Text
+              fontSize={0.026}
+              color="#cbd5e1"
+              anchorX="center"
+              anchorY="middle"
+              position={[0.006, -faceHeight * 0.34, 0]}
+              rotation={[0, textRotY, 0]}
+              maxWidth={faceWidth * 0.82}
+            >
+              {`${group.slots.length} ${group.type}`}
+            </Text>
+          )}
         </group>
       ))}
     </group>

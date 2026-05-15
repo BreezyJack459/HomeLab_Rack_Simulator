@@ -14,6 +14,8 @@ import {
   RACK_SPECS,
   getDeviceXRange,
   getCenterOfGravityU,
+  getDepthCompatibilityIssues,
+  getDepthSummary,
   rangesOverlap,
   isZeroU
 } from './rackMath';
@@ -83,6 +85,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const rackSpec = RACK_SPECS[layout.rackType];
   const reservations = layout.reservations ?? [];
+  const depthSummary = getDepthSummary(layout);
   const occupiedBySide = {
     front: occupiedUnits(layout.devices.filter((device) => getDeviceMountSide(device) === 'front' && blocksAirflow(device)), layout.heightU),
     rear: occupiedUnits(layout.devices.filter((device) => getDeviceMountSide(device) === 'rear' && blocksAirflow(device)), layout.heightU)
@@ -156,12 +159,12 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       });
     }
 
-    if (device.depthMm > layout.rackDepthMm) {
+    if (device.depthMm > depthSummary.usableDepthMm) {
       issues.push({
         id: `depth-${device.id}`,
         severity: 'warning',
         title: `${device.name} may be too deep`,
-        detail: `${device.depthMm}mm device depth exceeds the configured ${layout.rackDepthMm}mm rack depth.`,
+        detail: `${device.depthMm}mm device depth exceeds the ${depthSummary.usableDepthMm}mm usable depth after rear cable and door clearances.`,
         deviceIds: [device.id]
       });
     }
@@ -685,14 +688,9 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
 
 export function getRackTotals(layout: RackLayout) {
   const devices = layout.devices.filter((d) => !isZeroU(d));
-  const rearClearanceMm = layout.rearClearanceMm ?? 0;
-  const railMinDepthMm = layout.railMinDepthMm ?? 0;
-  const railMaxDepthMm = layout.railMaxDepthMm ?? layout.rackDepthMm;
-  const usableDepth = Math.max(0, layout.rackDepthMm - rearClearanceMm);
+  const depthSummary = getDepthSummary(layout);
   const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);
-  const tooDeep = devices.filter((d) => d.depthMm > usableDepth).length;
-  const tooShallow = devices.filter((d) => d.depthMm < railMinDepthMm).length;
-  const tooDeepForRails = devices.filter((d) => d.depthMm > railMaxDepthMm).length;
+  const depthIssues = getDepthCompatibilityIssues(layout).length;
 
   return {
     weightKg: totalWeight(layout.devices),
@@ -707,8 +705,8 @@ export function getRackTotals(layout: RackLayout) {
       })) as PlacedDevice[],
       layout.heightU
     ).size,
-    usableDepthMm: usableDepth,
+    usableDepthMm: depthSummary.usableDepthMm,
     deepestMm,
-    depthIssues: tooDeep + tooShallow + tooDeepForRails,
+    depthIssues,
   };
 }

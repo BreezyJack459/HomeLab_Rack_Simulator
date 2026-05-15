@@ -1,4 +1,4 @@
-import type { PlacedDevice, RackLayout, ValidationIssue } from '../types/rack';
+import type { PlacedDevice, PortRef, RackLayout } from '../types/rack';
 import { isZeroU } from './rackMath';
 
 export interface DocumentationIssue {
@@ -7,6 +7,7 @@ export interface DocumentationIssue {
   title: string;
   detail: string;
   deviceIds: string[];
+  cableIds?: string[];
 }
 
 function needsPower(device: PlacedDevice): boolean {
@@ -33,8 +34,18 @@ function needsNetwork(device: PlacedDevice): boolean {
   return networkedCategories.has(device.category);
 }
 
+function getPortCapacity(device: PlacedDevice, port: PortRef | undefined): number {
+  if (!port) return 0;
+  return device.ports?.[port.type] ?? 0;
+}
+
+function hasCustomPortMap(device: PlacedDevice): boolean {
+  return Boolean(device.portLayouts?.front?.length || device.portLayouts?.rear?.length || device.portFaceOverrides);
+}
+
 export function getDocumentationIssues(layout: RackLayout): DocumentationIssue[] {
   const issues: DocumentationIssue[] = [];
+  const deviceMap = new Map(layout.devices.map((device) => [device.id, device]));
 
   for (const device of layout.devices) {
     if (isZeroU(device)) continue;
@@ -108,6 +119,77 @@ export function getDocumentationIssues(layout: RackLayout): DocumentationIssue[]
           title: `${device.name} has unused power ports`,
           detail: `${usedPower} of ${powerPorts} power port${powerPorts === 1 ? '' : 's'} connected. Consider redundant power if the device supports dual PSU.`,
           deviceIds: [device.id],
+        });
+      }
+    }
+
+    const totalDeclaredPorts = Object.entries(device.ports ?? {}).reduce((sum, [key, value]) => {
+      if (key === 'layoutColumns') return sum;
+      return sum + (typeof value === 'number' ? value : 0);
+    }, 0);
+
+    if (device.category === 'custom' && totalDeclaredPorts > 0 && !hasCustomPortMap(device)) {
+      issues.push({
+        id: `incomplete-port-map-${device.id}`,
+        severity: 'info',
+        title: `${device.name} uses an inferred port map`,
+        detail: 'Custom gear with declared ports but no explicit front/rear port map is harder to document and audit accurately.',
+        deviceIds: [device.id],
+      });
+    }
+  }
+
+  for (const cable of layout.cables) {
+    const fromDevice = deviceMap.get(cable.fromDeviceId);
+    const toDevice = deviceMap.get(cable.toDeviceId);
+
+    if (!fromDevice || !toDevice) {
+      issues.push({
+        id: `stale-endpoint-${cable.id}`,
+        severity: 'warning',
+        title: `Cable ${cable.id} points to a missing endpoint`,
+        detail: 'This route still references a device that is no longer present in the layout. Reconnect or remove the stale cable record.',
+        deviceIds: [cable.fromDeviceId, cable.toDeviceId].filter((deviceId) => deviceMap.has(deviceId)),
+        cableIds: [cable.id],
+      });
+      continue;
+    }
+
+    if (!cable.fromPort || !cable.toPort) {
+      issues.push({
+        id: `missing-endpoint-labels-${cable.id}`,
+        severity: 'info',
+        title: `${fromDevice.name} ↔ ${toDevice.name} is missing endpoint port labels`,
+        detail: 'Both cable ends should record explicit port numbers so maintenance and label exports stay trustworthy.',
+        deviceIds: [fromDevice.id, toDevice.id],
+        cableIds: [cable.id],
+      });
+    }
+
+    if (cable.fromPort) {
+      const fromCapacity = getPortCapacity(fromDevice, cable.fromPort);
+      if (fromCapacity <= cable.fromPort.index) {
+        issues.push({
+          id: `invalid-port-map-${cable.id}-from`,
+          severity: 'warning',
+          title: `${fromDevice.name} port reference is out of range`,
+          detail: `${cable.fromPort.type} ${cable.fromPort.index + 1} is documented on the cable, but ${fromDevice.name} only declares ${fromCapacity} ${cable.fromPort.type} port${fromCapacity === 1 ? '' : 's'}.`,
+          deviceIds: [fromDevice.id],
+          cableIds: [cable.id],
+        });
+      }
+    }
+
+    if (cable.toPort) {
+      const toCapacity = getPortCapacity(toDevice, cable.toPort);
+      if (toCapacity <= cable.toPort.index) {
+        issues.push({
+          id: `invalid-port-map-${cable.id}-to`,
+          severity: 'warning',
+          title: `${toDevice.name} port reference is out of range`,
+          detail: `${cable.toPort.type} ${cable.toPort.index + 1} is documented on the cable, but ${toDevice.name} only declares ${toCapacity} ${cable.toPort.type} port${toCapacity === 1 ? '' : 's'}.`,
+          deviceIds: [toDevice.id],
+          cableIds: [cable.id],
         });
       }
     }

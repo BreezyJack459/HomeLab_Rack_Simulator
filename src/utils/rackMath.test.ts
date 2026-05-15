@@ -7,7 +7,10 @@ import {
   findFirstFreeSlot,
   formatCableLength,
   getCenterOfGravityU,
+  getDepthCompatibilityIssues,
+  getDepthSummary,
   getDefaultDeviceX,
+  getRequiredRearBendMm,
   getDeviceWidthMm,
   getDeviceXRange,
   hasOverlap,
@@ -238,6 +241,84 @@ describe('formatCableLength', () => {
     expect(formatCableLength(500)).toBe('500mm');
     expect(formatCableLength(1000)).toBe('1m');
     expect(formatCableLength(1500)).toBe('1.5m');
+  });
+});
+
+describe('getDepthSummary', () => {
+  it('reserves front door, rear door, and rear cable clearance from usable depth', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      rackDepthMm: 600,
+      frontDoorClearanceMm: 15,
+      rearDoorClearanceMm: 25,
+      rearClearanceMm: 50,
+      devices: [makeDevice({ depthMm: 420 })],
+    };
+
+    const summary = getDepthSummary(layout);
+
+    expect(summary.usableDepthMm).toBe(510);
+    expect(summary.deepestMm).toBe(420);
+    expect(summary.rearCableClearanceMm).toBe(50);
+  });
+});
+
+describe('getRequiredRearBendMm', () => {
+  it('uses connected cable type when cable bend is stricter than port defaults', () => {
+    const device = makeDevice({ id: 'server', ports: { ethernet: 1 } });
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [device],
+      cables: [
+        {
+          id: 'power-1',
+          fromDeviceId: 'server',
+          toDeviceId: 'ups-1',
+          type: 'power',
+          color: '#111827',
+        },
+      ],
+    };
+
+    expect(getRequiredRearBendMm(layout, device)).toBe(60);
+  });
+});
+
+describe('getDepthCompatibilityIssues', () => {
+  it('flags rail and door-adjusted usable-depth issues', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      rackDepthMm: 600,
+      rearClearanceMm: 40,
+      frontDoorClearanceMm: 20,
+      rearDoorClearanceMm: 20,
+      railMinDepthMm: 250,
+      railMaxDepthMm: 500,
+      devices: [
+        makeDevice({ id: 'too-deep', depthMm: 530, ports: {} }),
+        makeDevice({ id: 'too-shallow', depthMm: 200, ports: {} }),
+      ],
+    };
+
+    const issues = getDepthCompatibilityIssues(layout);
+
+    expect(issues.find((issue) => issue.device.id === 'too-deep')?.reasons).toEqual(['too-deep', 'rail-max']);
+    expect(issues.find((issue) => issue.device.id === 'too-shallow')?.reasons).toEqual(['rail-min']);
+  });
+
+  it('flags rear bend when configured rear clearance is smaller than cable bend need', () => {
+    const device = makeDevice({ id: 'switch', depthMm: 300, ports: { ethernet: 48 } });
+    const layout: RackLayout = {
+      ...baseLayout,
+      rearClearanceMm: 20,
+      devices: [device],
+    };
+
+    const issue = getDepthCompatibilityIssues(layout)[0];
+
+    expect(issue.device.id).toBe('switch');
+    expect(issue.reasons).toContain('rear-bend');
+    expect(issue.requiredRearBendMm).toBe(35);
   });
 });
 

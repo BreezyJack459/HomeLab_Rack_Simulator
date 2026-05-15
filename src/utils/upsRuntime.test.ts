@@ -229,6 +229,161 @@ describe('calculateUpsRuntimes', () => {
     expect(result[0].status).toBe('warning');
   });
 
+  it('groups downstream load by outage priority and builds a shutdown plan', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        {
+          id: 'ups1',
+          category: 'ups',
+          name: 'UPS',
+          positionU: 1,
+          sizeU: 1,
+          depthMm: 360,
+          widthType: '19in',
+          weightKg: 14,
+          powerW: 5,
+          heatLevel: 2,
+          batteryWh: 300,
+          color: '#374151',
+        },
+        {
+          id: 'router1',
+          category: 'router',
+          name: 'Router',
+          positionU: 2,
+          sizeU: 1,
+          depthMm: 220,
+          widthType: '19in',
+          weightKg: 4,
+          powerW: 15,
+          heatLevel: 2,
+          shutdownPriority: 'critical',
+          color: '#334155',
+        },
+        {
+          id: 'nas1',
+          category: 'nas',
+          name: 'NAS',
+          positionU: 3,
+          sizeU: 2,
+          depthMm: 300,
+          widthType: '19in',
+          weightKg: 10,
+          powerW: 120,
+          heatLevel: 3,
+          shutdownPriority: 'graceful',
+          color: '#0f172a',
+        },
+        {
+          id: 'lab1',
+          category: 'mini-pc',
+          name: 'Lab node',
+          positionU: 5,
+          sizeU: 1,
+          depthMm: 180,
+          widthType: '19in',
+          weightKg: 2,
+          powerW: 45,
+          heatLevel: 2,
+          shutdownPriority: 'non-critical',
+          color: '#475569',
+        },
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'ups1',
+          fromPort: { type: 'power', index: 0 },
+          toDeviceId: 'router1',
+          toPort: { type: 'power', index: 0 },
+          type: 'power',
+          color: '#000',
+          nodes: [],
+        },
+        {
+          id: 'c2',
+          fromDeviceId: 'ups1',
+          fromPort: { type: 'power', index: 1 },
+          toDeviceId: 'nas1',
+          toPort: { type: 'power', index: 0 },
+          type: 'power',
+          color: '#000',
+          nodes: [],
+        },
+        {
+          id: 'c3',
+          fromDeviceId: 'ups1',
+          fromPort: { type: 'power', index: 2 },
+          toDeviceId: 'lab1',
+          toPort: { type: 'power', index: 0 },
+          type: 'power',
+          color: '#000',
+          nodes: [],
+        },
+      ],
+    };
+
+    const [result] = calculateUpsRuntimes(layout);
+    expect(result.groups.criticalW).toBe(15);
+    expect(result.groups.gracefulW).toBe(120);
+    expect(result.groups.nonCriticalW).toBe(45);
+    expect(result.shutdownPlan.map((step) => step.device.id)).toEqual(['lab1', 'nas1', 'router1']);
+    expect(result.criticalRuntimeMinutes).toBeGreaterThan(result.runtimeMinutes);
+  });
+
+  it('warns when critical load alone is still too short', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        {
+          id: 'ups1',
+          category: 'ups',
+          name: 'UPS',
+          positionU: 1,
+          sizeU: 1,
+          depthMm: 360,
+          widthType: '19in',
+          weightKg: 14,
+          powerW: 5,
+          heatLevel: 2,
+          batteryWh: 15,
+          color: '#374151',
+        },
+        {
+          id: 'fw1',
+          category: 'firewall',
+          name: 'Firewall',
+          positionU: 2,
+          sizeU: 1,
+          depthMm: 220,
+          widthType: '19in',
+          weightKg: 3,
+          powerW: 90,
+          heatLevel: 2,
+          shutdownPriority: 'critical',
+          color: '#334155',
+        },
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'ups1',
+          fromPort: { type: 'power', index: 0 },
+          toDeviceId: 'fw1',
+          toPort: { type: 'power', index: 0 },
+          type: 'power',
+          color: '#000',
+          nodes: [],
+        },
+      ],
+    };
+
+    const [result] = calculateUpsRuntimes(layout);
+    expect(result.criticalLoadStatus).toBe('critical');
+    expect(result.warnings.some((warning) => warning.includes('under 10 minutes'))).toBe(true);
+  });
+
   it('skips UPS devices without batteryWh', () => {
     const layout: RackLayout = {
       ...baseLayout,

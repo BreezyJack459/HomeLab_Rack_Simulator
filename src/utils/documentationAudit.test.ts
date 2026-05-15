@@ -167,4 +167,80 @@ describe('getDocumentationIssues', () => {
     const issues = getDocumentationIssues(layout);
     expect(issues).toHaveLength(0);
   });
+
+  it('flags cables with missing endpoint port labels', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('srv1', 'server', { ports: { ethernet: 2 } }),
+        makeDevice('sw1', 'switch', { ports: { ethernet: 24 } }),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'sw1',
+          toDeviceId: 'srv1',
+          type: 'ethernet',
+          color: '#3b82f6',
+          nodes: [],
+        },
+      ],
+    };
+    const issues = getDocumentationIssues(layout);
+    expect(issues.some((i) => i.id === 'missing-endpoint-labels-c1')).toBe(true);
+  });
+
+  it('flags out-of-range port references', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('srv1', 'server', { ports: { ethernet: 1 } }),
+        makeDevice('sw1', 'switch', { ports: { ethernet: 24 } }),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'sw1',
+          fromPort: { type: 'ethernet', index: 1 },
+          toDeviceId: 'srv1',
+          toPort: { type: 'ethernet', index: 3 },
+          type: 'ethernet',
+          color: '#3b82f6',
+          nodes: [],
+        },
+      ],
+    };
+    const issues = getDocumentationIssues(layout);
+    expect(issues.some((i) => i.id === 'invalid-port-map-c1-to')).toBe(true);
+  });
+
+  it('flags custom devices that rely on inferred port maps', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [makeDevice('custom1', 'custom', { ports: { ethernet: 4 } })],
+    };
+    const issues = getDocumentationIssues(layout);
+    expect(issues.some((i) => i.id === 'incomplete-port-map-custom1')).toBe(true);
+  });
+
+  it('flags stale cable endpoints that reference missing devices', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [makeDevice('sw1', 'switch', { ports: { ethernet: 24 } })],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'sw1',
+          fromPort: { type: 'ethernet', index: 0 },
+          toDeviceId: 'ghost1',
+          toPort: { type: 'ethernet', index: 0 },
+          type: 'ethernet',
+          color: '#3b82f6',
+          nodes: [],
+        },
+      ],
+    };
+    const issues = getDocumentationIssues(layout);
+    expect(issues.some((i) => i.id === 'stale-endpoint-c1')).toBe(true);
+  });
 });
