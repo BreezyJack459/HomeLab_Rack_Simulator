@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-14. Checked against current source files, `node node_modules/typescript/bin/tsc --noEmit`, and `npm test -- --pool=threads` (14 files / 264 tests passed).
+> Last audited: 2026-05-15. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (14 files / 274 tests passed).
 
 ## Completed ✅
 
@@ -173,7 +173,7 @@
 | 44 | **MEDIUM** | `getDepthSummary()` returns `undefined` for `deepestMm` when devices array is empty — type violation | `src/utils/rackMath.ts:305-329` | ✅ Fixed — reducer seed returns `0` for empty devices |
 | 45 | **MEDIUM** | `templateToDevice` silently drops `description` field — CLAUDE.md invariant 8 violation | `src/store/rackStore.ts:39` | ✅ Fixed |
 | 46 | **MEDIUM** | `DevicePortFace`/`DeviceZeroUSideFace` call `buildPortLayout` without memo inside memo-wrapped components | `src/components/three/DeviceModel.tsx:26,87` | ✅ Fixed in `DeviceModel.tsx`; `CableViewer3D` still has its own local port renderer |
-| 47 | **MEDIUM** | `cablePath3D.ts` creates many temporary `Vector3` objects per cable — GC pressure | `src/utils/cablePath3D.ts` | ⏳ Pending |
+| 47 | **MEDIUM** | `cablePath3D.ts` creates many temporary `Vector3` objects per cable — GC pressure | `src/utils/cablePath3D.ts` | ✅ Fixed — waypoint builder now skips duplicate points before allocating `Vector3` instances |
 | 48 | **MEDIUM** | `StrainRelief` `useMemo` never hits because parent passes new `CatmullRomCurve3` on every invalidation | `src/components/CableViewer3D.tsx:149-166` | ✅ Fixed — removed ineffective memoization and documented cheap recompute |
 | 49 | **MEDIUM** | `RackViewer3D` camera jump on view switch — `SceneSetup` always gets front position even for rear view | `src/components/RackViewer3D.tsx:75` | ✅ Fixed — rear view now uses `REAR_CAMERA_POSITION` |
 | 50 | **LOW** | `ComponentLibrary` dropdown lacks Escape key handler for accessibility | `src/components/ComponentLibrary.tsx:109-166` | ✅ Fixed |
@@ -198,7 +198,7 @@
 > _These are tracked in the session task list. The hourly review loop will re-scan and append new findings._
 
 ## Backlog 📋
-- [ ] Port label rendering scalability (48-port switch = 48 `<Text>` meshes)
+- [x] Port label rendering scalability — dense 3D port faces now render one summary `<Text>` per port group instead of one label mesh per port
 - [x] 3D raycast port picking for cable endpoints — Phase D plus 3D ghost preview tube shipped
 - [x] Rack ear/RU label printing (`PrintableLabels.tsx` with RU numbers, device labels, blank slots; print-friendly CSS)
 - [ ] 3D printed mount / shelf fit-check system for brackets, trays, rails, adapters, and custom holders
@@ -208,11 +208,11 @@
 - [x] Rack capacity dashboard with space, power, port, weight, and cable-density health indicators (`RackHealthDashboard.tsx` with red/yellow/green metrics)
 - [x] Rack reservation / future-slot planning for planned devices and reserved U ranges (`RackReservation`, `ReservationPanel`, 2D reserved overlays, store placement guards, validation issues)
 - [~] Cable/device label protocol generator with both-end cable labels and label-printer export — patch panel port labels (`PP:01 → SW:ETH0`) + length + Brady/Panduit presets done; full both-end cable labels + CSV export still pending
-- [~] Documentation audit mode for missing labels, stale endpoints, incomplete port maps, and power gaps — `documentationAudit.ts` + panel exist; stale schema/port-map audit can go deeper
+- [x] Documentation audit mode for missing labels, stale endpoints, incomplete port maps, and power gaps (`documentationAudit.ts`, `DocumentationAuditPanel`, audit export, stale endpoint + port-map checks)
 - [x] Noise / living-space suitability planner with room suitability badges, loudest device tracking, and dB combination math (`noiseCalc.ts`, `NoiseSummary.tsx`, `noiseDb` on device types)
 - [x] Energy cost + heat-load calculator with monthly kWh, electricity cost, and BTU/h room heat estimate (`energyCalc.ts`, `EnergySummary.tsx`, `electricityRatePerKwh` on `RackLayout`)
-- [~] UPS runtime planner with critical-load grouping and shutdown priority — `upsRuntime.ts`, tests, and `UpsRuntimePanel` exist; critical grouping/shutdown priority still pending
-- [~] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space — `DepthCompatibilityPanel` exists; rail/door/cable-bend depth model should be expanded
+- [x] UPS runtime planner with critical-load grouping and shutdown priority (`upsRuntime.ts`, `UpsRuntimePanel`, outage priority UI, shutdown plan, critical-load warnings)
+- [~] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space — `DepthCompatibilityPanel` now models rail min/max, front/rear door clearance, and rear cable bend needs; combined printed-mount envelope still pending
 - [~] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices — `serviceability.ts` + panel exist; interactive overlay still pending
 - [ ] Live sensor overlay for actual vs planned power, temperature, and fan readings
 - [ ] Full build procurement planner for owned vs needed devices, shelves, rails, screws, cables, and printed parts
@@ -235,11 +235,12 @@ The following items should not be picked as next work unless a regression appear
 **Validation**: `node node_modules/typescript/bin/tsc --noEmit`, focused port-selection tests, and Playwright smoke for cable planning.
 
 ### 2. Finish remaining correctness/performance cleanup
-**Why**: All high/critical review findings in the tracked table are now closed. The only still-open review cleanup is medium-priority 3D path allocation pressure.
+**Status**: Completed on 2026-05-14.
+**Why**: All high/critical review findings in the tracked table are now closed. The remaining medium-priority 3D path allocation cleanup has also been completed.
 **Scope**:
-- Reduce `cablePath3D.ts` temporary `Vector3` allocation pressure.
+- `cablePath3D.ts` now pushes de-duplicated waypoint coordinates through a small helper before allocating `Vector3` objects.
 - Revisit any remaining local/shared geometry helper drift that is unrelated to the deferred 0U PDU visual model.
-**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, then `npm run build` if 3D props change.
+**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and production build / bundle guard.
 
 ### 3. Next product feature after cleanup
 **Recommended**: 3D printed mount / shelf fit-check system.
@@ -283,8 +284,8 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/utils/validation.ts`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
-### 5. Fix Pending Review Findings — 🔄 CLEANUP TAIL ONLY
-**Why**: Review findings from the 2026-05-09 audit are effectively closed for high/critical correctness. The remaining value is a small medium-priority 3D allocation cleanup before large 3D feature work.
+### 5. Fix Pending Review Findings — ✅ IMPLEMENTED
+**Why**: Review findings from the 2026-05-09 audit are now closed, including the final medium-priority 3D allocation cleanup before large 3D feature work.
 **Completed quick wins**:
 - CSS theme variable fallbacks (`src/styles/theme.css`)
 - `getPortTypeOrder()` missing cases (`src/utils/portLayout.ts`)
@@ -292,8 +293,8 @@ The following items should not be picked as next work unless a regression appear
 - `importRackJson()` guard with validation/normalization (`src/utils/exporters.ts`)
 - Immutability fixes in `typeConsumed`, `buildBom`, `findFirstFreeSlot`
 - `sameRailCount()` O(n²) path replaced with rail stats cache
-**Remaining**:
-- `cablePath3D.ts` temporary `Vector3` allocation pressure
+**Final cleanup**:
+- `cablePath3D.ts` temporary `Vector3` allocation pressure reduced by skipping duplicate waypoint allocations up front.
 **Files to touch**: Multiple — see Review Findings table above
 **Effort**: Low-Medium (mostly quick wins)
 
@@ -359,12 +360,12 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/utils/exporters.ts`, `src/components/CablePlanner.tsx`, new `src/utils/labeling.ts`
 **Effort**: Low-Medium
 
-### 13. Documentation Audit Mode — 🔄 PARTIAL
+### 13. Documentation Audit Mode — ✅ IMPLEMENTED
 **Why**: Rack diagrams become unreliable when labels, ports, power, and cable documentation drift. An audit mode can turn the app into a maintenance checklist.
 **What to do**: Flag devices missing labels/asset tags/notes, cables missing endpoint labels or colors, patch panels with only one side connected, powered devices without power paths, and imported layouts with stale schema fields.
-**Status**: `documentationAudit.ts`, tests, and `DocumentationAuditPanel` exist for labels, power gaps, and network gaps.
-**Remaining**: Stale schema, incomplete port maps, endpoint label consistency, and richer audit checklist export.
-**Files to touch**: `src/utils/validation.ts`, `src/components/ValidationPanel.tsx`, `src/utils/exporters.ts`
+**Status**: Shipped on 2026-05-15. `documentationAudit.ts` now flags stale cable endpoints, missing endpoint port labels, out-of-range port references, incomplete custom port maps, and existing label/power/network gaps. `DocumentationAuditPanel` supports issue targeting plus audit export via `exportDocumentationAuditText()`.
+**Validation**: Latest local verification included `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (14 files / 274 tests passed).
+**Files touched**: `src/utils/documentationAudit.ts`, `src/components/DocumentationAuditPanel.tsx`, `src/utils/exporters.ts`, `src/utils/layoutValidation.ts`, `src/utils/validationRecommendations.ts`, `src/utils/documentationAudit.test.ts`
 **Effort**: Low-Medium
 
 ## Feature Proposals (2026-05-09 Homelab Pain Point Coverage) 📋
@@ -377,8 +378,8 @@ The following items should not be picked as next work unless a regression appear
 - Warn when rear cable clearance is below a configurable threshold.
 - Combine device + shelf + printed mount depth into one fit envelope.
 - Flag devices that cannot be serviced because they cannot slide or be removed without conflicts.
-**Status**: `DepthCompatibilityPanel` and depth summary helpers exist.
-**Remaining**: Rail/door/cable-bend depth modeling and combined printed-mount envelope.
+**Status**: `DepthCompatibilityPanel`, depth summary helpers, rail min/max checks, front/rear door clearance, and inferred rear cable bend checks exist.
+**Remaining**: Combined printed-mount envelope and per-device rail/shelf metadata beyond inferred bend needs.
 **Files to touch**: `src/types/rack.ts`, `src/utils/rackMath.ts`, `src/utils/validation.ts`, `src/components/PropertyPanel.tsx`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
@@ -406,7 +407,7 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/types/rack.ts`, `src/data/deviceCatalog.ts`, `src/utils/validation.ts`, new `src/components/NoiseSummary.tsx`
 **Effort**: Medium
 
-### 17. UPS Runtime Planner — 🔄 PARTIAL
+### 17. UPS Runtime Planner — ✅ IMPLEMENTED
 **Why**: Power planning is incomplete without knowing how long the rack survives during an outage and which devices should stay up. Homelab users usually care about router/firewall/NAS shutdown order.
 **What to do**: Model UPS capacity, load groups, critical vs non-critical devices, and estimated runtime. Generate shutdown priority recommendations.
 **MVP scope**:
@@ -414,9 +415,9 @@ The following items should not be picked as next work unless a regression appear
 - Let users mark devices as critical, graceful-shutdown, or non-critical.
 - Estimate runtime from current and planned loads.
 - Warn when critical load exceeds UPS safe capacity.
-**Status**: Runtime estimates exist in `upsRuntime.ts`, tests exist in `upsRuntime.test.ts`, and `UpsRuntimePanel` is wired into the app.
-**Remaining**: Critical/graceful/non-critical grouping, shutdown priority UI, and critical-load-specific warnings.
-**Files to touch**: `src/types/rack.ts`, `src/utils/powerChain.ts`, `src/utils/validation.ts`, `src/components/PropertyPanel.tsx`, `src/components/ValidationPanel.tsx`
+**Status**: Shipped on 2026-05-15. Devices can now be marked as `critical`, `graceful`, or `non-critical`; `upsRuntime.ts` computes grouped loads, critical-only runtime, shutdown order, and capacity warnings; `UpsRuntimePanel` shows those recommendations and summaries.
+**Validation**: Latest local verification included `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (14 files / 274 tests passed).
+**Files touched**: `src/types/rack.ts`, `src/components/PropertyPanel.tsx`, `src/utils/upsRuntime.ts`, `src/components/UpsRuntimePanel.tsx`, `src/utils/upsRuntime.test.ts`, `src/utils/layoutValidation.ts`
 **Effort**: Medium
 
 ### 18. Serviceability / Maintenance Access Mode — 🔄 PARTIAL

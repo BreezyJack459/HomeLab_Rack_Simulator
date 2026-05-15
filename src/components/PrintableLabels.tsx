@@ -91,6 +91,8 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       layout.heightU,
       layout.rackDepthMm,
       layout.rearClearanceMm ?? '',
+      layout.frontDoorClearanceMm ?? '',
+      layout.rearDoorClearanceMm ?? '',
       layout.railMinDepthMm ?? '',
       layout.railMaxDepthMm ?? '',
       deviceSignature,
@@ -100,10 +102,12 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
     layout.cables,
     layout.rackDepthMm,
     layout.devices,
+    layout.frontDoorClearanceMm,
     layout.heightU,
     layout.rackType,
     layout.railMaxDepthMm,
     layout.railMinDepthMm,
+    layout.rearDoorClearanceMm,
     layout.rearClearanceMm
   ]);
 

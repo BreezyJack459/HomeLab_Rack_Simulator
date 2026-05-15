@@ -1,4 +1,4 @@
-import { Battery, BatteryCharging, BatteryWarning, Clock } from 'lucide-react';
+import { Battery, BatteryCharging, BatteryWarning, Clock, ShieldAlert } from 'lucide-react';
 import { useRackStore } from '../store/rackStore';
 import { calculateUpsRuntimes } from '../utils/upsRuntime';
 
@@ -102,6 +102,45 @@ export function UpsRuntimePanel() {
                 </div>
               </div>
 
+              <div className="mt-2 rounded-md border border-white/10 bg-black/10 p-2">
+                <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
+                  <span className="inline-flex items-center gap-1">
+                    <ShieldAlert size={11} />
+                    Critical-only runtime
+                  </span>
+                  <span>
+                    {ups.criticalRuntimeLabel}
+                    {ups.capacityW ? ` (${Math.round(ups.criticalLoadPercent)}% load)` : ''}
+                  </span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]" style={{ color: 'var(--theme-text-secondary)' }}>
+                  <div className="rounded border border-white/10 px-2 py-1">
+                    Critical
+                    <div className="mt-1 text-xs font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
+                      {ups.groups.criticalW}W
+                    </div>
+                  </div>
+                  <div className="rounded border border-white/10 px-2 py-1">
+                    Graceful
+                    <div className="mt-1 text-xs font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
+                      {ups.groups.gracefulW}W
+                    </div>
+                  </div>
+                  <div className="rounded border border-white/10 px-2 py-1">
+                    Non-critical
+                    <div className="mt-1 text-xs font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
+                      {ups.groups.nonCriticalW}W
+                    </div>
+                  </div>
+                  <div className="rounded border border-white/10 px-2 py-1">
+                    Infra overhead
+                    <div className="mt-1 text-xs font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
+                      {ups.groups.infrastructureW}W
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-2 space-y-1">
                 <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
                   <span>Load</span>
@@ -126,6 +165,53 @@ export function UpsRuntimePanel() {
                   </div>
                 )}
               </div>
+
+              {ups.warnings.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {ups.warnings.map((warning) => (
+                    <div
+                      key={warning}
+                      className="rounded border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-100"
+                    >
+                      {warning}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {ups.shutdownPlan.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--theme-text-muted)' }}>
+                    Shutdown order
+                  </div>
+                  <div className="mt-1 space-y-1">
+                    {ups.shutdownPlan.slice(0, 5).map((step, index) => (
+                      <div
+                        key={`${ups.device.id}-${step.device.id}`}
+                        className="flex items-start justify-between gap-3 rounded border border-white/10 px-2 py-1 text-[10px]"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-medium" style={{ color: 'var(--theme-text-primary)' }}>
+                            {index + 1}. {step.device.label || step.device.name}
+                          </div>
+                          <div style={{ color: 'var(--theme-text-muted)' }}>{step.reason}</div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="uppercase" style={{ color: 'var(--theme-text-secondary)' }}>
+                            {step.priority}
+                          </div>
+                          <div style={{ color: 'var(--theme-text-muted)' }}>{step.device.powerW}W</div>
+                        </div>
+                      </div>
+                    ))}
+                    {ups.shutdownPlan.length > 5 && (
+                      <div className="text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
+                        +{ups.shutdownPlan.length - 5} more device{ups.shutdownPlan.length - 5 === 1 ? '' : 's'} in plan
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

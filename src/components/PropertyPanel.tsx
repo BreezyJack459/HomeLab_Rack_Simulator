@@ -1,7 +1,7 @@
 import { ChevronDown, SlidersHorizontal, Trash2, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
-import type { HeatLevel, OutletFacing, PlacedDevice, PortLayout, ViewSide, WidthType, ZeroUMountSide, ZeroUMountType } from '../types/rack';
+import type { HeatLevel, OutletFacing, PlacedDevice, PortLayout, ShutdownPriority, ViewSide, WidthType, ZeroUMountSide, ZeroUMountType } from '../types/rack';
 import { ENABLE_ZERO_U_PDU } from '../utils/featureFlags';
 import { getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap } from '../utils/portLayout';
@@ -35,6 +35,10 @@ function NumberField({
       />
     </label>
   );
+}
+
+function canSetShutdownPriority(device: PlacedDevice): boolean {
+  return device.category !== 'blank' && device.category !== 'cable-management';
 }
 
 export function PropertyPanel() {
@@ -153,6 +157,21 @@ export function PropertyPanel() {
               <option value="decommissioning">Decommissioning</option>
             </select>
           </label>
+
+          {canSetShutdownPriority(device) && (
+            <label className="text-xs text-slate-500 dark:text-slate-400">
+              Outage priority
+              <select
+                className="mt-1 h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                value={device.shutdownPriority ?? 'non-critical'}
+                onChange={(event) => patch({ shutdownPriority: event.target.value as ShutdownPriority })}
+              >
+                <option value="critical">Critical - keep online longest</option>
+                <option value="graceful">Graceful - needs clean shutdown</option>
+                <option value="non-critical">Non-critical - shed first</option>
+              </select>
+            </label>
+          )}
 
           {(device.category === 'ups' || device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u')) && (
             <label className="text-xs text-slate-500 dark:text-slate-400">

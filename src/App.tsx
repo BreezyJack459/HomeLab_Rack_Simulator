@@ -13,26 +13,10 @@ import {
   Upload,
   View
 } from 'lucide-react';
-import { CableMap } from './components/CableMap';
-import { CablePlanner } from './components/CablePlanner';
-const CableTracePanel = lazy(() => import('./components/CableTracePanel').then((m) => ({ default: m.CableTracePanel })));
 import { ComponentLibrary } from './components/ComponentLibrary';
-import { DepthCompatibilityPanel } from './components/DepthCompatibilityPanel';
-import { DocumentationAuditPanel } from './components/DocumentationAuditPanel';
-import { EnergySummary } from './components/EnergySummary';
 import { IssueBar } from './components/IssueBar';
-import { MigrationSummaryPanel } from './components/MigrationSummaryPanel';
-import { NoiseSummary } from './components/NoiseSummary';
-import { PowerChainPanel } from './components/PowerChainPanel';
-import { PropertyPanel } from './components/PropertyPanel';
 import { RackEditor2D } from './components/RackEditor2D';
-const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
-import { RackHealthDashboard } from './components/RackHealthDashboard';
-const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
-import { ServiceabilityPanel } from './components/ServiceabilityPanel';
 import { ThemeToggle } from './components/ThemeToggle';
-import { UpsRuntimePanel } from './components/UpsRuntimePanel';
-import { ValidationPanel } from './components/ValidationPanel';
 import { sampleLayouts } from './data/sampleLayouts';
 import { useRackStore } from './store/rackStore';
 import { RackType } from './types/rack';
@@ -41,6 +25,23 @@ import { exportLayoutJson, exportRackPng, readJsonFile } from './utils/exporters
 import { RACK_HEIGHT_OPTIONS, RACK_SPECS } from './utils/rackMath';
 import { getRackTotals, validateRackLayout } from './utils/validation';
 import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
+
+const CableMap = lazy(() => import('./components/CableMap').then((m) => ({ default: m.CableMap })));
+const CablePlanner = lazy(() => import('./components/CablePlanner').then((m) => ({ default: m.CablePlanner })));
+const CableTracePanel = lazy(() => import('./components/CableTracePanel').then((m) => ({ default: m.CableTracePanel })));
+const DepthCompatibilityPanel = lazy(() => import('./components/DepthCompatibilityPanel').then((m) => ({ default: m.DepthCompatibilityPanel })));
+const DocumentationAuditPanel = lazy(() => import('./components/DocumentationAuditPanel').then((m) => ({ default: m.DocumentationAuditPanel })));
+const EnergySummary = lazy(() => import('./components/EnergySummary').then((m) => ({ default: m.EnergySummary })));
+const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
+const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
+const PowerChainPanel = lazy(() => import('./components/PowerChainPanel').then((m) => ({ default: m.PowerChainPanel })));
+const PropertyPanel = lazy(() => import('./components/PropertyPanel').then((m) => ({ default: m.PropertyPanel })));
+const RackHealthDashboard = lazy(() => import('./components/RackHealthDashboard').then((m) => ({ default: m.RackHealthDashboard })));
+const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
+const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
+const ServiceabilityPanel = lazy(() => import('./components/ServiceabilityPanel').then((m) => ({ default: m.ServiceabilityPanel })));
+const UpsRuntimePanel = lazy(() => import('./components/UpsRuntimePanel').then((m) => ({ default: m.UpsRuntimePanel })));
+const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
 
 const VIEW_BUTTON_ACTIVE_CLASS = 'rv-a';
 const VIEW_BUTTON_INACTIVE_CLASS = 'rv-i';
@@ -350,7 +351,11 @@ function App() {
               <RackViewer3D />
             </Suspense>
           )}
-          {viewMode === 'cables' && <CableMap />}
+          {viewMode === 'cables' && (
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading cable map...</div>}>
+              <CableMap />
+            </Suspense>
+          )}
         </section>
 
         {/* Confirm dialog for destructive actions (New / Load sample) */}
@@ -434,29 +439,27 @@ function App() {
               </div>
             </div>
           </section>
-          <RackHealthDashboard layout={layout} />
-          <EnergySummary layout={layout} onRateChange={(rate) => updateRack({ electricityRatePerKwh: rate })} />
-          <NoiseSummary layout={layout} />
           <Suspense fallback={null}>
+            <RackHealthDashboard layout={layout} />
+            <EnergySummary layout={layout} onRateChange={(rate) => updateRack({ electricityRatePerKwh: rate })} />
+            <NoiseSummary layout={layout} />
             <ReservationPanel />
-          </Suspense>
-          <UpsRuntimePanel />
-          <PropertyPanel />
-          <CablePlanner />
-          <Suspense fallback={null}>
+            <UpsRuntimePanel />
+            <PropertyPanel />
+            <CablePlanner />
             <CableTracePanel />
+            <DepthCompatibilityPanel />
+            <PowerChainPanel />
+            <MigrationSummaryPanel />
+            <ServiceabilityPanel layout={layout} />
+            <DocumentationAuditPanel />
+            <ValidationPanel
+              issues={issues}
+              totals={totals}
+              selectedIssueId={selectedIssueId}
+              onIssueSelect={handleIssueSelect}
+            />
           </Suspense>
-          <DepthCompatibilityPanel />
-          <PowerChainPanel />
-          <MigrationSummaryPanel />
-          <ServiceabilityPanel layout={layout} />
-          <DocumentationAuditPanel />
-          <ValidationPanel
-            issues={issues}
-            totals={totals}
-            selectedIssueId={selectedIssueId}
-            onIssueSelect={handleIssueSelect}
-          />
         </div>
       </aside>
     </div>

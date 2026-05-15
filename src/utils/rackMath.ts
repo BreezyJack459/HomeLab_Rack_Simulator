@@ -1,4 +1,4 @@
-import type { PlacedDevice, RackLayout, RackType, SpatialZone, ViewSide } from '../types/rack';
+import type { CableType, PlacedDevice, RackLayout, RackType, SpatialZone, ViewSide } from '../types/rack';
 
 export const RACK_HEIGHT_OPTIONS = Array.from({ length: 44 }, (_, index) => index + 2);
 
@@ -245,13 +245,82 @@ export function formatCableLength(mm: number): string {
 export interface DepthSummary {
   usableDepthMm: number;
   deepestMm: number;
+  frontDoorClearanceMm: number;
+  rearDoorClearanceMm: number;
+  rearCableClearanceMm: number;
+  maxRequiredRearBendMm: number;
+}
+
+export type DepthCompatibilityReason = 'too-deep' | 'rail-min' | 'rail-max' | 'rear-bend';
+
+export type DepthCompatibilityIssue = {
+  device: PlacedDevice;
+  reasons: DepthCompatibilityReason[];
+  requiredRearBendMm: number;
+};
+
+const CABLE_BEND_ALLOWANCE_MM: Record<CableType, number> = {
+  ethernet: 35,
+  patch: 35,
+  structured: 35,
+  usb: 35,
+  hdmi: 35,
+  atx: 45,
+  coax: 45,
+  fiber: 55,
+  power: 60
+};
+
+function connectedCableBendAllowance(layout: RackLayout, deviceId: string): number {
+  return (layout.cables ?? []).reduce((max, cable) => {
+    if (cable.fromDeviceId !== deviceId && cable.toDeviceId !== deviceId) return max;
+    return Math.max(max, CABLE_BEND_ALLOWANCE_MM[cable.type] ?? 35);
+  }, 0);
+}
+
+function portBendAllowance(device: PlacedDevice): number {
+  const ports = device.ports;
+  if (!ports) return 0;
+  if ((ports.power ?? 0) > 0) return CABLE_BEND_ALLOWANCE_MM.power;
+  if ((ports.fiber ?? 0) > 0) return CABLE_BEND_ALLOWANCE_MM.fiber;
+  if ((ports.atx ?? 0) > 0 || (ports.coax ?? 0) > 0) return CABLE_BEND_ALLOWANCE_MM.coax;
+  if ((ports.ethernet ?? 0) > 0 || (ports.usb ?? 0) > 0 || (ports.hdmi ?? 0) > 0) return CABLE_BEND_ALLOWANCE_MM.ethernet;
+  return 0;
+}
+
+export function getRequiredRearBendMm(layout: RackLayout, device: PlacedDevice): number {
+  if (isZeroU(device) || device.category === 'blank' || device.category === 'cable-management') return 0;
+  return Math.max(connectedCableBendAllowance(layout, device.id), portBendAllowance(device));
 }
 
 export function getDepthSummary(layout: RackLayout): DepthSummary {
   const devices = layout.devices.filter((d) => d.sizeU > 0);
-  const usableDepthMm = Math.max(0, layout.rackDepthMm - (layout.rearClearanceMm ?? 0));
+  const frontDoorClearanceMm = layout.frontDoorClearanceMm ?? 0;
+  const rearDoorClearanceMm = layout.rearDoorClearanceMm ?? 0;
+  const rearCableClearanceMm = layout.rearClearanceMm ?? 0;
+  const usableDepthMm = Math.max(0, layout.rackDepthMm - frontDoorClearanceMm - rearDoorClearanceMm - rearCableClearanceMm);
   const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);
-  return { usableDepthMm, deepestMm };
+  const maxRequiredRearBendMm = devices.reduce((max, device) => Math.max(max, getRequiredRearBendMm(layout, device)), 0);
+  return { usableDepthMm, deepestMm, frontDoorClearanceMm, rearDoorClearanceMm, rearCableClearanceMm, maxRequiredRearBendMm };
+}
+
+export function getDepthCompatibilityIssues(layout: RackLayout): DepthCompatibilityIssue[] {
+  const summary = getDepthSummary(layout);
+  const railMinDepthMm = layout.railMinDepthMm ?? 0;
+  const railMaxDepthMm = layout.railMaxDepthMm ?? layout.rackDepthMm;
+
+  return layout.devices
+    .filter((device) => !isZeroU(device))
+    .map((device) => {
+      const requiredRearBendMm = getRequiredRearBendMm(layout, device);
+      const reasons: DepthCompatibilityReason[] = [];
+      if (device.depthMm > summary.usableDepthMm) reasons.push('too-deep');
+      if (device.depthMm < railMinDepthMm) reasons.push('rail-min');
+      if (device.depthMm > railMaxDepthMm) reasons.push('rail-max');
+      if (requiredRearBendMm > summary.rearCableClearanceMm) reasons.push('rear-bend');
+      return { device, reasons, requiredRearBendMm };
+    })
+    .filter((issue) => issue.reasons.length > 0);
 }
 
 export function getCenterOfGravityU(layout: RackLayout): { cgU: number; totalWeightKg: number } | null {

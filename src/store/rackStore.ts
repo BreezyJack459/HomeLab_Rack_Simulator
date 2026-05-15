@@ -482,7 +482,7 @@ export const useRackStore = create<RackState>((set, get) => ({
 
   updateRack: (patch) => {
     const layout = get().layout;
-    const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'reservations', 'rackType', 'heightU', 'viewSide']);
+    const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'frontDoorClearanceMm', 'rearDoorClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'reservations', 'rackType', 'heightU', 'viewSide']);
     const needsRecompute = Object.keys(patch).some((key) => geometricKeys.has(key));
     const next = { ...layout, ...patch };
     if (needsRecompute) {

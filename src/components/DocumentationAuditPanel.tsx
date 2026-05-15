@@ -1,12 +1,14 @@
-import { AlertTriangle, ChevronDown, FileText, Info, Lightbulb, Tag, Unplug, Wifi } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Download, FileText, Info, Lightbulb, Tag, Unplug, Wifi } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
+import { exportDocumentationAuditText } from '../utils/exporters';
 import { getDocumentationIssues } from '../utils/documentationAudit';
 import { recommendationForIssue } from '../utils/validationRecommendations';
 
 export function DocumentationAuditPanel() {
   const layout = useRackStore((state) => state.layout);
   const selectDevice = useRackStore((state) => state.selectDevice);
+  const selectCable = useRackStore((state) => state.selectCable);
   const issues = useMemo(() => getDocumentationIssues(layout), [layout]);
   const [isOpen, setIsOpen] = useState(true);
 
@@ -18,6 +20,8 @@ export function DocumentationAuditPanel() {
     if (id.startsWith('no-power-')) return <Unplug size={13} className="shrink-0 text-red-400" />;
     if (id.startsWith('no-network-')) return <Wifi size={13} className="shrink-0 text-amber-400" />;
     if (id.startsWith('unused-power-')) return <Info size={13} className="shrink-0 text-sky-400" />;
+    if (id.startsWith('missing-endpoint-labels-')) return <FileText size={13} className="shrink-0 text-cyan-400" />;
+    if (id.startsWith('incomplete-port-map-')) return <Info size={13} className="shrink-0 text-violet-400" />;
     return <FileText size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />;
   };
 
@@ -29,17 +33,33 @@ export function DocumentationAuditPanel() {
         borderColor: 'var(--theme-border)',
       }}
     >
-      <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
-        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] transition"
-        style={{ color: 'var(--theme-text-muted)' }}
-      >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] transition"
+          style={{ color: 'var(--theme-text-muted)' }}
+        >
+          <div className="flex items-center gap-2">
+            <FileText size={15} />
+            Documentation Audit
+          </div>
+          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+        </button>
         <div className="flex items-center gap-2">
-          <FileText size={15} />
-          Documentation Audit
-        </div>
-        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportDocumentationAuditText(layout)}
+            className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] uppercase tracking-[0.16em]"
+            style={{
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-text-secondary)',
+              backgroundColor: 'var(--theme-bg-primary)',
+            }}
+          >
+            <Download size={11} />
+            Export
+          </button>
           {issues.length > 0 && (
             <span
               className="rounded px-2 py-1 text-xs"
@@ -51,9 +71,8 @@ export function DocumentationAuditPanel() {
               {issues.length} issue{issues.length === 1 ? '' : 's'}
             </span>
           )}
-          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
         </div>
-      </button>
+      </div>
 
       <div
         className="grid transition-[grid-template-rows] duration-200 ease-out"
@@ -89,7 +108,13 @@ export function DocumentationAuditPanel() {
                         : 'var(--theme-border)',
                   }}
                   onClick={() => {
-                    if (issue.deviceIds[0]) selectDevice(issue.deviceIds[0]);
+                    if (issue.deviceIds[0]) {
+                      selectDevice(issue.deviceIds[0]);
+                      return;
+                    }
+                    if (issue.cableIds?.[0]) {
+                      selectCable(issue.cableIds[0]);
+                    }
                   }}
                 >
                   {issue.severity === 'warning' ? (
