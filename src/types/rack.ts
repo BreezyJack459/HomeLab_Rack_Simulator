@@ -546,6 +546,18 @@ export interface RackLayout {
   evidenceRecords?: EvidenceRecord[];
   services?: RackService[];
   portReservations?: PortReservation[];
+  patchPanelDocs?: PatchPanelPortDoc[];
+}
+
+export interface PatchPanelPortDoc {
+  portIndex: number;
+  cableId?: string;
+  destinationRoom?: string;
+  wallPlate?: string;
+  wireCode?: 'T568A' | 'T568B';
+  punchDownDate?: string;
+  testedSpeed?: string;
+  notes?: string;
 }
 
 export interface PortReservation {
