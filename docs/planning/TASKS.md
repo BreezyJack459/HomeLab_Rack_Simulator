@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (34 files / 605 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (35 files / 617 tests passed).
 
 ## Completed ✅
 
@@ -229,6 +229,7 @@
 - [x] Asset Tag & Serial Number Registry — per-device asset fields (asset tag, serial number, purchase date, vendor, price, warranty, invoice ref), completeness summary, expired/expiring-soon warranty alerts, missing-field detection, CSV and Markdown export (`assetRegistry.ts`, `AssetRegistryPanel.tsx`, 15 unit tests)
 - [x] Maintenance Log / Service History — per-device chronological maintenance entries (cleaning, firmware, repair, inspection, replacement, other), overdue detection by type with configurable intervals, total labor tracking, CSV and Markdown export (`maintenanceLog.ts`, `MaintenanceLogPanel.tsx`, 12 unit tests)
 - [x] IP Address & VLAN Assignment Table — per-device network interfaces with name, MAC, static IP, DHCP reservation, VLAN ID, subnet, gateway, DNS. Duplicate IP/MAC detection, invalid IP/MAC/VLAN validation, conflict alerts, CSV and Markdown export (`ipAssignment.ts`, `IpAssignmentPanel.tsx`, 15 unit tests)
+- [x] Power Bill Reconciliation — monthly actual kWh/cost entry tracking, estimated vs actual consumption comparison, variance percentage with trending indicator, anomaly detection (30% threshold from moving average), CSV and Markdown export (`powerBill.ts`, `PowerBillPanel.tsx`, 12 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
@@ -1003,9 +1004,11 @@ The following items should not be picked as next work unless a regression appear
 **What to do**: Per-device backup schedule: last backup date, destination (local NAS / cloud / tape), backup size, last restore test date, restore test result (pass/fail), RPO achieved. Alert when restore hasn't been tested in 90 days.
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
-### 54. Power Bill Reconciliation
+### 54. Power Bill Reconciliation — ✅ IMPLEMENTED (2026-05-17)
 **Why**: The app estimates kWh. Your utility bill shows actual kWh. The gap teaches you something.
 **What to do**: Monthly input: actual bill amount, actual kWh consumed. App compares with estimated rack consumption. Show variance chart: "You estimated 250W but reality is 310W. Check for phantom loads or missing devices."
+**Status**: Shipped with monthly bill entry tracking (kWh + cost), estimated vs actual comparison, variance percentage with trending indicator, anomaly detection (30% threshold from 3-month moving average), and CSV/Markdown export.
+**Files touched**: `src/types/rack.ts`, `src/utils/powerBill.ts`, `src/utils/powerBill.test.ts`, `src/components/PowerBillPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴🌕
 
 ### 55. Rack Cleaning Schedule
