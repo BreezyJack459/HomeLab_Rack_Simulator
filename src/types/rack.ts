@@ -349,6 +349,7 @@ export interface RackLayoutSnapshot {
   electricityRatePerKwh?: number;
   powerBillHistory?: PowerBillEntry[];
   spareParts?: SparePart[];
+  cleaningSchedule?: CleaningSchedule;
 }
 
 export interface RackGoldenBaseline {
@@ -447,6 +448,14 @@ export interface SparePart {
   compatibleDeviceIds?: string[];
 }
 
+export type CleaningEnvironment = 'bedroom' | 'office' | 'closet' | 'garage' | 'basement';
+
+export interface CleaningSchedule {
+  environment: CleaningEnvironment;
+  lastCleanedAt?: string; // ISO date
+  notes?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -483,6 +492,7 @@ export interface RackLayout {
   electricityRatePerKwh?: number;
   powerBillHistory?: PowerBillEntry[];
   spareParts?: SparePart[];
+  cleaningSchedule?: CleaningSchedule;
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
