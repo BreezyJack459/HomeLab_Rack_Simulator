@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (58 files / 914 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (59 files / 928 tests passed).
 
 ## Completed ✅
 
@@ -230,7 +230,7 @@
 - [x] Maintenance Log / Service History — per-device chronological maintenance entries (cleaning, firmware, repair, inspection, replacement, other), overdue detection by type with configurable intervals, total labor tracking, CSV and Markdown export (`maintenanceLog.ts`, `MaintenanceLogPanel.tsx`, 12 unit tests)
 - [x] IP Address & VLAN Assignment Table — per-device network interfaces with name, MAC, static IP, DHCP reservation, VLAN ID, subnet, gateway, DNS. Duplicate IP/MAC detection, invalid IP/MAC/VLAN validation, conflict alerts, CSV and Markdown export (`ipAssignment.ts`, `IpAssignmentPanel.tsx`, 15 unit tests)
 - [x] Power Bill Reconciliation — monthly actual kWh/cost entry tracking, estimated vs actual consumption comparison, variance percentage with trending indicator, anomaly detection (30% threshold from moving average), CSV and Markdown export (`powerBill.ts`, `PowerBillPanel.tsx`, 12 unit tests)
-- [ ] Multi-rack room layout
+- [x] Multi-rack room layout (`RoomRack`, `roomRacks.ts`, `RoomRackMapPanel`, 14 unit tests)
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
 
