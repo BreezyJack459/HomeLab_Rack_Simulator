@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (38 files / 660 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (39 files / 672 tests passed).
 
 ## Completed ✅
 
@@ -1021,9 +1021,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/cleaningSchedule.ts`, `src/utils/cleaningSchedule.test.ts`, `src/components/CleaningSchedulePanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
-### 56. Cable Length Audit
+### 56. Cable Length Audit — ✅ IMPLEMENTED (2026-05-17)
 **Why**: You bought 20 cables of various lengths. You used some. You lost some. You don't know what you actually have.
 **What to do**: Physical inventory mode: walk the rack with a tape measure or cable tester, input actual length of each installed cable. Compare against planned length. Flag discrepancies. Generate "excess cable inventory" list.
+**Status**: Shipped with `CableLengthAuditEntry` type on `RackLayout`, per-cable planned vs actual length comparison with 10% tolerance, exact/close/mismatch/missing status classification, excess cable inventory grouping by rounded length, summary stats (total/audited/OK/mismatch/not-audited), all/audited/issues filter, inline actual-length input per cable, CSV and Markdown export.
+**Files touched**: `src/types/rack.ts`, `src/utils/cableLengthAudit.ts`, `src/utils/cableLengthAudit.test.ts`, `src/components/CableLengthAuditPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium | **Boredom**: 😴😴😴😴😴
 
 ---
