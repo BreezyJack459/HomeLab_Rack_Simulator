@@ -225,6 +225,7 @@
 - [x] Rack change calendar (`changeEvents`, `changeCalendar.ts`, `RackChangeCalendar`, overdue/conflict warnings, ICS/TXT export)
 - [x] Validation Explain Mode — expandable explanations for every validation issue type: what it means, why it matters, real-world symptom, fix difficulty, risk if ignored, and when to ignore (`validationExplanations.ts`, `ValidationPanel.tsx` UI with badges, 56 unit tests)
 - [x] Rack Debt Tracker — debt register for layout compromises with severity, status tracking (open/planned/fixed/accepted/ignored), scope (device/cable/zone/layout), debt score, health indicator, top-5 fix list, validation-issue-to-debt conversion, and full CRUD UI (`rackDebt.ts`, `RackDebtPanel.tsx`, store integration, 19 unit tests)
+- [x] Backup Verification Log — per-device backup tracking with destination, last backup date, size, restore test date/result, RPO target, 90-day overdue alert, pass rate dashboard, health indicators, and Markdown export (`backupTracking.ts`, `BackupVerificationPanel.tsx`, 20 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools

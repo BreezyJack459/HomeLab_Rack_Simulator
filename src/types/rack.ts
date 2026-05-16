@@ -116,6 +116,18 @@ export interface PlacedDevice {
   bootDependsOn?: string[];
   bootDelaySeconds?: number;
   portAliases?: Record<string, string>;
+  backups?: BackupRecord[];
+}
+
+export interface BackupRecord {
+  id: string;
+  destination: string;
+  lastBackupDate?: string;
+  backupSizeGb?: number;
+  lastRestoreTestDate?: string;
+  lastRestoreTestResult?: 'pass' | 'fail' | 'skipped';
+  rpoHours?: number;
+  notes?: string;
 }
 
 export type PortType = 'ethernet' | 'fiber' | 'usb' | 'hdmi' | 'power' | 'atx' | 'coax';
