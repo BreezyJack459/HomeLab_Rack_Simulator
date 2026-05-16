@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (41 files / 700 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (42 files / 711 tests passed).
 
 ## Completed ✅
 
@@ -642,9 +642,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Strongly pairs with Planned / Active / Decommissioning Mode (#8) and Rack Dependency Graph (#28).
 
-### 31. Emergency Troubleshooting Runbook Generator
+### 31. Emergency Troubleshooting Runbook Generator — ✅ IMPLEMENTED (2026-05-17)
 **Why**: When "the internet is down," the user should not have to mentally reconstruct the topology while standing beside the rack. The app already knows enough to generate a first-pass runbook.
 **What to do**: Generate guided troubleshooting flows for common incidents: internet down, NAS unreachable, Wi-Fi down, UPS beeping, no management access, and "everything is slow."
+**Status**: Shipped with 6 contextual runbooks (internet down, NAS unreachable, Wi-Fi down, UPS beeping, no management access, slow performance) that reference actual device names, cable connections, and power feeds from the layout. Each runbook includes risk-level badges (safe/caution/stop), check-type labels (visual/physical/network/power), expandable step cards, category filtering, summary stats, and Markdown export.
 **MVP scope**:
 - Create runbook templates that reference actual device names, cable endpoints, power feeds, and labels.
 - Sort checks by likely root cause and ease of inspection.
@@ -653,7 +654,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Record runbook outcomes and use them to tune future suggestions.
 - Generate printable emergency cards with QR links to the live layout.
-**Files to touch**: new `src/utils/runbookGenerator.ts`, new `src/components/RunbookPanel.tsx`, `src/utils/dependencyGraph.ts`, `src/utils/exporters.ts`
+**Files touched**: new `src/utils/runbookGenerator.ts`, new `src/utils/runbookGenerator.test.ts`, new `src/components/RunbookPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 **Dependencies**: Benefits from Cable Trace / Path Explorer (#7), QR label workflows, and Blast Radius Map (#28).
 
