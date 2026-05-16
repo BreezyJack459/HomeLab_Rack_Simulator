@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (47 files / 791 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (48 files / 807 tests passed).
 
 ## Completed ✅
 
@@ -773,9 +773,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Builds on Rack Dependency Graph (#28), Power Chain (#9), UPS Runtime Planner (#17), and Service Map Overlay (#47).
 
-### 40. Port Reservation System
+### 40. Port Reservation System — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Space reservations are useful, but serious planning also needs reserved switch ports, patch-panel ports, PDU outlets, and uplinks. Without reservations, future growth gets accidentally consumed by today's quick fixes.
 **What to do**: Let users reserve individual ports/outlets or port ranges for future services, uplinks, devices, or maintenance access.
+**Status**: Shipped with `PortReservation` type on `RackLayout`, `portReservations.ts` utility with reservation lookup, validation (missing device, cable conflict, expiry), summary stats, and CSV/Markdown export. `PortReservationPanel` with full CRUD, device/port-type/port-index selection, inline editing, conflict warnings, and export buttons. 20+ unit tests.
 **MVP scope**:
 - Add reservation records for switch ports, patch-panel ports, PDU outlets, and device interfaces.
 - Show reserved ports in CablePlanner and prevent accidental use unless overridden.
@@ -784,7 +785,8 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Capacity forecast that treats reserved ports as unavailable.
 - Reservation templates for core uplinks, spare PoE, management ports, and out-of-band access.
-**Files to touch**: `src/types/rack.ts`, `src/components/CablePlanner.tsx`, `src/utils/validation.ts`, new `src/utils/reservations.ts`, new `src/components/ReservationPanel.tsx`
+- CablePlanner integration: highlight reserved ports during cable creation.
+**Files touched**: `src/types/rack.ts`, new `src/utils/portReservations.ts`, new `src/utils/portReservations.test.ts`, new `src/components/PortReservationPanel.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Complements Rack Reservation / Future Slot Planning (#11), Rack Health Dashboard (#10), and Capacity Forecasting (#44).
 
