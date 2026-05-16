@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (33 files / 590 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (34 files / 605 tests passed).
 
 ## Completed ✅
 
@@ -228,6 +228,7 @@
 - [x] Backup Verification Log — per-device backup tracking with destination, last backup date, size, restore test date/result, RPO target, 90-day overdue alert, pass rate dashboard, health indicators, and Markdown export (`backupTracking.ts`, `BackupVerificationPanel.tsx`, 20 unit tests)
 - [x] Asset Tag & Serial Number Registry — per-device asset fields (asset tag, serial number, purchase date, vendor, price, warranty, invoice ref), completeness summary, expired/expiring-soon warranty alerts, missing-field detection, CSV and Markdown export (`assetRegistry.ts`, `AssetRegistryPanel.tsx`, 15 unit tests)
 - [x] Maintenance Log / Service History — per-device chronological maintenance entries (cleaning, firmware, repair, inspection, replacement, other), overdue detection by type with configurable intervals, total labor tracking, CSV and Markdown export (`maintenanceLog.ts`, `MaintenanceLogPanel.tsx`, 12 unit tests)
+- [x] IP Address & VLAN Assignment Table — per-device network interfaces with name, MAC, static IP, DHCP reservation, VLAN ID, subnet, gateway, DNS. Duplicate IP/MAC detection, invalid IP/MAC/VLAN validation, conflict alerts, CSV and Markdown export (`ipAssignment.ts`, `IpAssignmentPanel.tsx`, 15 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
@@ -980,9 +981,11 @@ The following items should not be picked as next work unless a regression appear
 **What to do**: Per patch-panel port, document: cable ID, destination room/wall plate, wire color code (T568A/B), punch-down date, tested speed. Visual patch panel faceplate view with click-to-edit labels.
 **Effort**: Medium | **Boredom**: 😴😴😴😴😴
 
-### 50. IP Address & VLAN Assignment Table
+### 50. IP Address & VLAN Assignment Table — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Static IP management is a spreadsheet that always gets out of sync. The rack knows which devices exist. It should know their IPs too.
 **What to do**: Per-device interface table: interface name, MAC address, static IP, DHCP reservation, VLAN ID, subnet, gateway, DNS. Detect conflicts. Export as DHCP reservation config (dnsmasq/OPNsense/UniFi format).
+**Status**: Shipped with per-device network interfaces, duplicate IP/MAC detection, invalid IP/MAC/VLAN validation, conflict alerts, and CSV/Markdown export.
+**Files touched**: `src/types/rack.ts`, `src/utils/ipAssignment.ts`, `src/utils/ipAssignment.test.ts`, `src/components/IpAssignmentPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium | **Boredom**: 😴😴😴🌕🌕
 
 ### 51. Encrypted Credential Vault
