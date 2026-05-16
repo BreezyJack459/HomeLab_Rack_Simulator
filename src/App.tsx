@@ -49,6 +49,7 @@ const MaintenanceLogPanel = lazy(() => import('./components/MaintenanceLogPanel'
 const IpAssignmentPanel = lazy(() => import('./components/IpAssignmentPanel').then((m) => ({ default: m.IpAssignmentPanel })));
 const PowerBillPanel = lazy(() => import('./components/PowerBillPanel').then((m) => ({ default: m.PowerBillPanel })));
 const SparePartsPanel = lazy(() => import('./components/SparePartsPanel').then((m) => ({ default: m.SparePartsPanel })));
+const CleaningSchedulePanel = lazy(() => import('./components/CleaningSchedulePanel').then((m) => ({ default: m.CleaningSchedulePanel })));
 const ScenarioPlannerPanel = lazy(() => import('./components/ScenarioPlannerPanel').then((m) => ({ default: m.ScenarioPlannerPanel })));
 const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').then((m) => ({ default: m.RoomPlacementPanel })));
 const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
@@ -625,6 +626,7 @@ function App() {
             <IpAssignmentPanel />
             <PowerBillPanel />
             <SparePartsPanel />
+            <CleaningSchedulePanel />
             <ScenarioPlannerPanel />
             <RoomPlacementPanel />
             <PolicyRulesPanel />

@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (36 files / 627 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (37 files / 646 tests passed).
 
 ## Completed ✅
 
@@ -1013,9 +1013,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/powerBill.ts`, `src/utils/powerBill.test.ts`, `src/components/PowerBillPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴🌕
 
-### 55. Rack Cleaning Schedule
+### 55. Rack Cleaning Schedule — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Dust is the silent killer. Fans clog. Heatsinks suffocate. But cleaning is out of sight, out of mind.
 **What to do**: Auto-generate cleaning schedule based on environment (bedroom = 90 days, garage = 45 days, basement = 60 days). Track last cleaning date. Reminder notification. Post-cleaning checklist: front filter, rear filter, fan blades, floor under rack.
+**Status**: Shipped with `CleaningSchedule` type on `RackLayout`, environment-based interval mapping (bedroom/office=90d, closet/basement=60d, garage=45d), overdue detection, days-until/days-since helpers, next-due calculation, 19 unit tests, `CleaningSchedulePanel` with environment selector, date picker, overdue/due-soon alerts, color-coded status, and Markdown export with cleaning checklist.
+**Files touched**: `src/types/rack.ts`, `src/utils/cleaningSchedule.ts`, `src/utils/cleaningSchedule.test.ts`, `src/components/CleaningSchedulePanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
 ### 56. Cable Length Audit
