@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (53 files / 869 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (54 files / 879 tests passed).
 
 ## Completed ✅
 
@@ -854,9 +854,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Builds on Rack Health Dashboard (#10), Port Reservation System (#40), and Live Sensor Overlay (#19).
 
-### 45. Configuration Drift Detector
+### 45. Configuration Drift Detector — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Planned layouts drift from the real rack when cables move, firmware changes, ports are repurposed, or power readings differ from estimates. Drift detection keeps documentation trustworthy.
 **What to do**: Compare planned layout data against imported or manually observed actual state.
+**Status**: Shipped with `driftDetector.ts` utility comparing current layout against golden baseline snapshot. Detects added/removed/changed devices (position, size, name, depth, power, weight, category), added/removed/changed cables (endpoint, type, color), and property drift (rack depth, power budget, weight limit). Classifies drift as harmless/review/critical. `DriftPanel` with change count summary, severity breakdown, expandable issue list, and Markdown export. 9 unit tests.
 **MVP scope**:
 - Import observed state from CSV/JSON or manual audit sessions.
 - Detect moved devices, cable endpoint mismatches, unexpected port usage, firmware drift, power draw variance, missing sensors, and changed labels.
@@ -865,7 +866,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Integrate with Rack Reality Reconciliation (#130 in BRAINSTORM.md) as a guided mobile audit workflow.
 - Track drift over time by rack zone and device category.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/driftDetector.ts`, new `src/components/DriftPanel.tsx`, `src/utils/exporters.ts`
+**Files touched**: new `src/utils/driftDetector.ts`, new `src/utils/driftDetector.test.ts`, new `src/components/DriftPanel.tsx`, `src/App.tsx`
 **Effort**: Medium-High
 **Dependencies**: Builds on Live Sensor Overlay (#19), Documentation Audit (#13), Photo Overlay (#37), and Golden Layout Baseline (#43).
 
@@ -1043,9 +1044,18 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/firmwareTracker.ts`, `src/utils/firmwareTracker.test.ts`, `src/components/FirmwareTrackerPanel.tsx`, `src/App.tsx`
 **Effort**: Medium | **Boredom**: 😴😴😴🌕🌕
 
-### 53. Backup Verification Log
+### 53. Backup Verification Log — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Backups that aren't tested are Schrödinger's backups. They simultaneously exist and don't exist.
 **What to do**: Per-device backup schedule: last backup date, destination (local NAS / cloud / tape), backup size, last restore test date, restore test result (pass/fail), RPO achieved. Alert when restore hasn't been tested in 90 days.
+**Status**: Shipped with `BackupRecord` type on `PlacedDevice`, `backupTracking.ts` utility with stale backup detection, restore overdue alerting (90 days), per-device backup health scoring (good/warning/critical/unknown), summary stats, and Markdown export. `BackupVerificationPanel` with full CRUD for backup records, per-device backup sections, health badges, overdue/stale warnings, and inline editing. 10 unit tests.
+**MVP scope**:
+- Per-device backup schedule: last backup date, destination, backup size, last restore test date, restore test result, RPO hours.
+- Alert when restore hasn't been tested in 90 days.
+- Mark backup health per device.
+**Later scope**:
+- Integration with NAS APIs for automatic backup status sync.
+- Backup destination reachability testing.
+**Files touched**: `src/types/rack.ts`, new `src/utils/backupTracking.ts`, new `src/utils/backupTracking.test.ts`, new `src/components/BackupVerificationPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
 ### 54. Power Bill Reconciliation — ✅ IMPLEMENTED (2026-05-17)
