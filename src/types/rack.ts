@@ -93,6 +93,18 @@ export interface MaintenanceLogEntry {
   notes?: string;
 }
 
+export interface NetworkInterface {
+  id: string;
+  name: string;
+  macAddress?: string;
+  staticIp?: string;
+  dhcpReservation?: boolean;
+  vlanId?: number;
+  subnet?: string;
+  gateway?: string;
+  dns?: string;
+}
+
 export interface PlacedDevice {
   id: string;
   templateId?: string;
@@ -138,6 +150,7 @@ export interface PlacedDevice {
   warrantyEndDate?: string;
   invoiceRef?: string;
   maintenanceLog?: MaintenanceLogEntry[];
+  networkInterfaces?: NetworkInterface[];
 }
 
 export interface BackupRecord {
