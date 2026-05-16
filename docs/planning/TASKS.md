@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (43 files / 720 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (45 files / 751 tests passed).
 
 ## Completed ✅
 
@@ -627,18 +627,16 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Reuses existing validation and rack health metrics.
 
-### 30. Rack Change Risk Score + Rollback Plan Generator
+### 30. Rack Change Risk Score + Rollback Plan Generator — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Adding a cable or moving a switch can be trivial or can take the whole house offline. Users need an at-a-glance risk score and a rollback plan before applying layout changes.
 **What to do**: Compare current layout vs planned layout and calculate change risk based on affected critical devices, number of cable changes, power-path changes, dependency impact, and serviceability difficulty.
+**Status**: Shipped with layout diff engine, risk scoring, rollback plan generator, and change review panel. Auto-compares current layout against golden baseline. Risk factors include critical device removal/move, network core downstream impact, power cable changes, rack dimension changes, and heavy-device serviceability issues. Rollback plans include ordered steps, pre/post checklists, and estimated downtime.
 **MVP scope**:
 - Diff two layouts and classify changes: added, removed, moved, rewired, repowered, renamed.
 - Score risk from low/medium/high/critical with reasons.
 - Generate rollback steps: restore device position, reconnect previous cable endpoints, return power feed, validate affected services.
 - Attach expected downtime and "must test before/after" checklist.
-**Later scope**:
-- Link to Change Request / Approval Workflow (#48).
-- Store completed change records with actual downtime and lessons learned.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/layoutDiff.ts`, new `src/utils/changeRisk.ts`, new `src/components/ChangeReviewPanel.tsx`, `src/store/rackStore.ts`
+**Files touched**: new `src/utils/layoutDiff.ts`, new `src/utils/layoutDiff.test.ts`, new `src/utils/changeRisk.ts`, new `src/utils/changeRisk.test.ts`, new `src/components/ChangeReviewPanel.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Strongly pairs with Planned / Active / Decommissioning Mode (#8) and Rack Dependency Graph (#28).
 
@@ -658,47 +656,41 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Benefits from Cable Trace / Path Explorer (#7), QR label workflows, and Blast Radius Map (#28).
 
-### 32. Rack Debt Tracker
+### 32. Rack Debt Tracker — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Homelabs are full of "temporary" compromises: unlabeled cables, single-PSU critical devices, unsupported firmware, a tower on a shelf, no cable slack, and notes that say "fix later." If the app tracks the debt, the user can pay it down intentionally.
 **What to do**: Add a debt register for layout compromises, with severity, owner, due date, reason, and recommended fix.
+**Status**: Shipped with full CRUD debt items, validation-to-debt conversion, debt score calculation, severity-based color coding, status tracking (open/planned/fixed/accepted/ignored), top-5 fix list, and entity scope support (device/cable/zone/layout).
 **MVP scope**:
 - Convert selected validation warnings into debt items.
 - Let users manually add debt items linked to devices, cables, rack zones, or the whole layout.
 - Track status: accepted, planned, fixed, intentionally ignored.
 - Show a debt score and "top 5 things to fix next."
-**Later scope**:
-- Auto-create debt from policy violations and documentation gaps.
-- Generate monthly maintenance plan from debt items.
-**Files to touch**: `src/types/rack.ts`, `src/utils/validation.ts`, new `src/utils/rackDebt.ts`, new `src/components/RackDebtPanel.tsx`
+**Files touched**: `src/types/rack.ts`, `src/utils/rackDebt.ts`, `src/utils/rackDebt.test.ts`, `src/components/RackDebtPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 **Dependencies**: Builds on Documentation Audit Mode (#13), Policy Rules Engine (#29), and Validation Explain Mode (#34).
 
-### 33. Command Palette + Universal Rack Search
+### 33. Command Palette + Universal Rack Search — ✅ IMPLEMENTED (2026-05-17)
 **Why**: As layouts grow, clicking through panels becomes slower than searching. Commercial inventory tools emphasize searchable databases; a homelab planner should let users find any device, port, cable, VLAN, IP, serial number, label, warning, or note instantly.
 **What to do**: Add a `Cmd+K` / `Ctrl+K` command palette with search and quick actions.
+**Status**: Shipped with searchable command palette supporting devices, cables, ports, validation issues, and quick actions. Integrated with `App.tsx` via `Cmd+K` / `Ctrl+K` hotkey.
 **MVP scope**:
 - Search devices, cables, ports, labels, notes, validation issues, and rack settings.
 - Jump to a result and select/highlight it in the current view.
 - Quick actions: add device, export JSON, open validation panel, open cable planner, toggle theme.
 - Rank exact label/asset/IP matches above fuzzy name matches.
-**Later scope**:
-- Natural-language commands can reuse the same action registry.
-- Global search across Multi-Rack Workspace (#27).
-**Files to touch**: new `src/components/CommandPalette.tsx`, new `src/utils/searchIndex.ts`, `src/App.tsx`, `src/store/rackStore.ts`
+**Files touched**: `src/components/CommandPalette.tsx`, `src/components/CommandPalette.test.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Independent, but becomes more valuable after asset tags, labels, VLANs, and multi-rack support.
 
-### 34. Validation Explain Mode
+### 34. Validation Explain Mode — ✅ IMPLEMENTED (2026-05-17)
 **Why**: A warning is useful only if the user understands why it matters. Beginner homelab users need explanations, tradeoffs, and safe fixes, not just red text.
 **What to do**: Add expandable explanations for validation and policy issues.
+**Status**: Shipped with comprehensive validation explanation library covering 30+ issue types. Each explanation includes meaning, why-it-matters, real-world symptom, fix difficulty, risk-if-ignored, and when-acceptable-to-ignore. Integrated into `ValidationPanel` with expandable cards and severity badges.
 **MVP scope**:
 - For each warning type, provide: what it means, why it matters, likely real-world symptom, suggested fix, and when it might be acceptable to ignore.
 - Link warnings to affected devices/cables and relevant runbook steps.
 - Include "fix difficulty" and "risk if ignored" labels.
-**Later scope**:
-- Beginner/advanced explanation modes.
-- Auto-generate a "learning report" after a validation scan.
-**Files to touch**: `src/utils/validation.ts`, new `src/utils/validationExplanations.ts`, `src/components/ValidationPanel.tsx`
+**Files touched**: `src/utils/validationExplanations.ts`, `src/components/ValidationPanel.tsx`
 **Effort**: Low-Medium
 **Dependencies**: Pairs with Policy Rules Engine (#29) and Rack Debt Tracker (#32).
 

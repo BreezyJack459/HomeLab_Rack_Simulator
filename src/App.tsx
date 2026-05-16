@@ -66,6 +66,7 @@ const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => 
 const PowerChainPanel = lazy(() => import('./components/PowerChainPanel').then((m) => ({ default: m.PowerChainPanel })));
 const PropertyPanel = lazy(() => import('./components/PropertyPanel').then((m) => ({ default: m.PropertyPanel })));
 const RackChangeCalendar = lazy(() => import('./components/RackChangeCalendar').then((m) => ({ default: m.RackChangeCalendar })));
+const ChangeReviewPanel = lazy(() => import('./components/ChangeReviewPanel').then((m) => ({ default: m.ChangeReviewPanel })));
 const RackHealthDashboard = lazy(() => import('./components/RackHealthDashboard').then((m) => ({ default: m.RackHealthDashboard })));
 const CapacityForecastPanel = lazy(() => import('./components/CapacityForecastPanel').then((m) => ({ default: m.CapacityForecastPanel })));
 const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
@@ -653,6 +654,7 @@ function App() {
             <ReadinessChecklist />
             <CommissioningChecklist />
             <RackChangeCalendar />
+            <ChangeReviewPanel />
             <DepthCompatibilityPanel />
             <PowerChainPanel />
             <MigrationSummaryPanel />
