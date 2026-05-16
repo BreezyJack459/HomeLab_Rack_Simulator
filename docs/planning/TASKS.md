@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (48 files / 807 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (49 files / 820 tests passed).
 
 ## Completed ✅
 
@@ -982,9 +982,19 @@ The following items should not be picked as next work unless a regression appear
 **What to do**: Before moving/deleting/adding a device, submit a change request with risk level, expected downtime, rollback plan. Another user (or your future self) approves. Changes are logged with who approved what and when.
 **Effort**: Medium | **Boredom**: 😴😴😴😴😴
 
-### 49. Patch Panel Punch-Down Documentation
+### 49. Patch Panel Punch-Down Documentation — ✅ IMPLEMENTED (2026-05-17)
 **Why**: The most tedious documentation in networking. Which wire color goes to which keystone? Which port maps to which room?
 **What to do**: Per patch-panel port, document: cable ID, destination room/wall plate, wire color code (T568A/B), punch-down date, tested speed. Visual patch panel faceplate view with click-to-edit labels.
+**Status**: Shipped with `PatchPanelPortDoc` type on `PlacedDevice`, `patchPanelDocs.ts` utility with per-port lookup, summary stats, validation (missing docs for cabled ports, orphan docs), and CSV/Markdown export. `PatchPanelDocPanel` with per-patch-panel sections, port status badges (empty/landed/patched/dark-patch), inline editing for room/wall-plate/wire-code/date/speed/notes, and export buttons. 20+ unit tests.
+**MVP scope**:
+- Per patch-panel port: destination room, wall plate, wire color code (T568A/B), punch-down date, tested speed, notes.
+- Show port connection state from existing cable data.
+- Validate that cabled ports have documentation.
+- Export per-panel documentation as CSV and Markdown.
+**Later scope**:
+- Visual patch panel faceplate grid view with click-to-edit.
+- Integration with cable trace to show end-to-end path from room to switch.
+**Files touched**: `src/types/rack.ts`, new `src/utils/patchPanelDocs.ts`, new `src/utils/patchPanelDocs.test.ts`, new `src/components/PatchPanelDocPanel.tsx`, `src/App.tsx`
 **Effort**: Medium | **Boredom**: 😴😴😴😴😴
 
 ### 50. IP Address & VLAN Assignment Table — ✅ IMPLEMENTED (2026-05-17)
