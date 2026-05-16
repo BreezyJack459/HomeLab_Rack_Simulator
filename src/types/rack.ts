@@ -456,6 +456,13 @@ export interface CleaningSchedule {
   notes?: string;
 }
 
+export interface CableLengthAuditEntry {
+  cableId: string;
+  actualLengthMm: number;
+  measuredAt?: string; // ISO date
+  notes?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -493,6 +500,7 @@ export interface RackLayout {
   powerBillHistory?: PowerBillEntry[];
   spareParts?: SparePart[];
   cleaningSchedule?: CleaningSchedule;
+  cableLengthAudits?: CableLengthAuditEntry[];
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
