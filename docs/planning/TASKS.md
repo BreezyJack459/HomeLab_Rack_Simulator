@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (32 files / 578 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (33 files / 590 tests passed).
 
 ## Completed ✅
 
@@ -227,6 +227,7 @@
 - [x] Rack Debt Tracker — debt register for layout compromises with severity, status tracking (open/planned/fixed/accepted/ignored), scope (device/cable/zone/layout), debt score, health indicator, top-5 fix list, validation-issue-to-debt conversion, and full CRUD UI (`rackDebt.ts`, `RackDebtPanel.tsx`, store integration, 19 unit tests)
 - [x] Backup Verification Log — per-device backup tracking with destination, last backup date, size, restore test date/result, RPO target, 90-day overdue alert, pass rate dashboard, health indicators, and Markdown export (`backupTracking.ts`, `BackupVerificationPanel.tsx`, 20 unit tests)
 - [x] Asset Tag & Serial Number Registry — per-device asset fields (asset tag, serial number, purchase date, vendor, price, warranty, invoice ref), completeness summary, expired/expiring-soon warranty alerts, missing-field detection, CSV and Markdown export (`assetRegistry.ts`, `AssetRegistryPanel.tsx`, 15 unit tests)
+- [x] Maintenance Log / Service History — per-device chronological maintenance entries (cleaning, firmware, repair, inspection, replacement, other), overdue detection by type with configurable intervals, total labor tracking, CSV and Markdown export (`maintenanceLog.ts`, `MaintenanceLogPanel.tsx`, 12 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
@@ -957,9 +958,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/assetRegistry.ts`, `src/utils/assetRegistry.test.ts`, `src/components/AssetRegistryPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴🌕
 
-### 46. Maintenance Log / Service History
+### 46. Maintenance Log / Service History — ✅ IMPLEMENTED (2026-05-17)
 **Why**: "When did I last dust this rack?" "Did I already replace that PSU fan?" "What firmware version was stable?"
 **What to do**: Simple chronological log per device and per rack. Entries: date, type (cleaning / firmware / repair / inspection / replacement), description, parts used, labor time. Filter by device or date range.
+**Status**: Shipped with 6 maintenance log types, per-device entry CRUD, overdue detection by type with configurable intervals (cleaning 90d, firmware 180d, others 365d), total labor tracking, CSV/Markdown export.
+**Files touched**: `src/types/rack.ts`, `src/utils/maintenanceLog.ts`, `src/utils/maintenanceLog.test.ts`, `src/components/MaintenanceLogPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
 ### 47. Spare Parts Inventory

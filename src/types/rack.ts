@@ -80,6 +80,19 @@ export type ChecklistStatus = 'pending' | 'passed' | 'failed' | 'skipped';
 export type ChangeRiskLevel = 'low' | 'medium' | 'high';
 export type ChangeEventStatus = 'planned' | 'in-progress' | 'completed' | 'cancelled';
 
+export type MaintenanceLogType = 'cleaning' | 'firmware' | 'repair' | 'inspection' | 'replacement' | 'other';
+
+export interface MaintenanceLogEntry {
+  id: string;
+  date: string;
+  type: MaintenanceLogType;
+  description: string;
+  partsUsed?: string;
+  laborMinutes?: number;
+  technician?: string;
+  notes?: string;
+}
+
 export interface PlacedDevice {
   id: string;
   templateId?: string;
@@ -124,6 +137,7 @@ export interface PlacedDevice {
   purchasePrice?: number;
   warrantyEndDate?: string;
   invoiceRef?: string;
+  maintenanceLog?: MaintenanceLogEntry[];
 }
 
 export interface BackupRecord {
