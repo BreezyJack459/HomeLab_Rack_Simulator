@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (54 files / 879 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (55 files / 887 tests passed).
 
 ## Completed ✅
 
@@ -489,14 +489,15 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: None — reuses existing `cables` and `devices` data entirely.
 
-### 22. Port Speed / Media Type Overlay
+### 22. Port Speed / Media Type Overlay — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Users often accidentally plan 10GbE connections over Cat5e or forget to account for SFP+ DAC compatibility. Visible port speed and cable media type prevents procurement mistakes.
 **What to do**: Add optional `portSpeed` and `mediaType` metadata to ports/cables, then overlay speed badges in 2D/3D views and warn on mismatches.
+**Status**: Shipped with `portSpeed.ts` utility collecting device port speed/media from `portLayouts`, cable speed/media entries, speed mismatch detection (port-to-port and cable-to-port), and summary statistics. `PortSpeedPanel` with port/cable counts, speed/media distribution charts, mismatch warnings, and Markdown export. Cable speed/media mismatch validation already exists in `validation.ts`. 6 unit tests.
 **MVP scope**:
 - Add `portSpeed` (`1G` | `2.5G` | `10G` | `25G` | `40G` | `100G`) and `mediaType` (`rj45` | `sfp+` | `qsfp+` | `dac` | `fiber`) to `PortLayout` / `CableRoute`.
 - Render speed badges on 3D port faces and 2D port strips.
 - Warning when a cable connects mismatched speeds or incompatible media (e.g., SFP+ to RJ45 without adapter).
-**Files to touch**: `src/types/rack.ts`, `src/data/deviceCatalog.ts`, `src/utils/validation.ts`, `src/components/three/DeviceModel.tsx`, `src/components/RackEditor2D.tsx`
+**Files touched**: new `src/utils/portSpeed.ts`, new `src/utils/portSpeed.test.ts`, new `src/components/PortSpeedPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 
 ### 23. Boot Dependency Planner
@@ -694,10 +695,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Pairs with Policy Rules Engine (#29) and Rack Debt Tracker (#32).
 
-### 35. Rack Readiness / Build-Day Checklist
+### 35. Rack Readiness / Build-Day Checklist — ✅ IMPLEMENTED (2026-05-16)
 **Why**: A finished plan is not the same as a build-ready rack. Users still need tools, labels, screws, cables, backups, shutdown order, rollback steps, and physical access.
 **What to do**: Generate a build-day checklist from the current layout and planned changes.
-**Status**: Shipped on 2026-05-16. The app now generates a persisted readiness checklist with build-kit, cabling, change-window, risk, and closeout sections derived from BOM/procurement, migration, UPS runtime, serviceability, and documentation data, plus Markdown export.
+**Status**: Shipped with persisted readiness checklist with build-kit, cabling, change-window, risk, and closeout sections derived from BOM/procurement, migration, UPS runtime, serviceability, and documentation data, plus Markdown export. `ReadinessChecklist` component with pass/fail/skipped tracking and notes.
 **MVP scope**:
 - Checklist sections: tools, labels, cable inventory, screws/cage nuts, shelves/rails, backup config, shutdown order, install order, smoke tests, cleanup.
 - Pull required cables and hardware from BOM/procurement data.
@@ -807,10 +808,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Builds on Cable BOM (#1), Serviceability Mode (#18), and Rack Depth / Clearance Checks (#14).
 
-### 42. Rack Commissioning Checklist
+### 42. Rack Commissioning Checklist — ✅ IMPLEMENTED (2026-05-16)
 **Why**: After building or changing a rack, users need to prove it is actually ready: labels installed, UPS tested, backup restored, firmware logged, and basic network paths verified.
 **What to do**: Generate a commissioning checklist for new builds and major changes.
-**Status**: Shipped on 2026-05-16. The app now includes a persisted commissioning checklist with pass/fail/skipped tracking, device-aware validation prompts, and Markdown report export with sign-off fields.
+**Status**: Shipped with persisted commissioning checklist with pass/fail/skipped tracking, device-aware validation prompts, and Markdown report export with sign-off fields. `CommissioningChecklist` component with shared checklist UI.
 **MVP scope**:
 - Checklist sections: physical install, labels, power, network, backup, monitoring, documentation, photos, rollback verification.
 - Include device-specific checks based on category: UPS runtime test, NAS restore test, switch config backup, firewall failover check.
@@ -839,9 +840,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Complements Layout Diff (#30), Rack Health Dashboard (#10), and Rack Debt Tracker (#32).
 
-### 44. Rack Health Budget Forecast
+### 44. Rack Health Budget Forecast — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Dashboards show current headroom, but users need to know when they will run out of U-space, ports, power, UPS runtime, cooling, storage, or noise tolerance.
 **What to do**: Forecast capacity exhaustion from current usage, planned devices, historical additions, and reservations.
+**Status**: Shipped with `CapacityForecastPanel` showing capacity forecasts for U-space, switch ports, PDU outlets, power budget, UPS runtime, thermal load, noise, and cable tray density. Includes "next bottleneck" detection and mitigation recommendations.
 **MVP scope**:
 - Forecast categories: U-space, switch ports, PDU outlets, power budget, UPS runtime, thermal load, noise, and cable tray density.
 - Show "next bottleneck" and estimated time/number of devices until exhaustion.
@@ -850,7 +852,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Scenario-based forecasts: summer mode, all-new-used build, 10GbE expansion, storage-heavy growth.
 - Trend import from layout history and sensor data.
-**Files to touch**: new `src/utils/capacityForecast.ts`, new `src/components/CapacityForecastPanel.tsx`, `src/utils/rackMath.ts`, `src/utils/validation.ts`
+**Files touched**: new `src/utils/capacityForecast.ts`, new `src/components/CapacityForecastPanel.tsx`, `src/utils/rackMath.ts`, `src/utils/validation.ts`
 **Effort**: Medium
 **Dependencies**: Builds on Rack Health Dashboard (#10), Port Reservation System (#40), and Live Sensor Overlay (#19).
 
