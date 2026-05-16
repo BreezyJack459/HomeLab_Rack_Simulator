@@ -547,6 +547,14 @@ export interface RackLayout {
   services?: RackService[];
   portReservations?: PortReservation[];
   patchPanelDocs?: PatchPanelPortDoc[];
+  credentials?: DeviceCredential[];
+}
+
+export interface DeviceCredential {
+  id: string;
+  label: string;
+  value: string; // encrypted
+  type: 'password' | 'url' | 'text' | 'ssh-key' | 'snmp';
 }
 
 export interface PatchPanelPortDoc {
