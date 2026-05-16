@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RackLayout } from '../types/rack';
-import { getMigrationSummary } from './migrationCalc';
+import { getFilteredLayoutByLifecycle, getMigrationSummary } from './migrationCalc';
 
 const baseLayout: RackLayout = {
   id: 'test',
@@ -102,5 +102,39 @@ describe('getMigrationSummary', () => {
     expect(summary.plannedCables).toHaveLength(1);
     expect(summary.activeCables).toHaveLength(1);
     expect(summary.decommissioningCables).toHaveLength(0);
+  });
+
+  it('filters layout to pending changes only', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        {
+          id: 'a', category: 'switch', name: 'Active Switch', positionU: 1, sizeU: 1,
+          depthMm: 200, widthType: '19in', weightKg: 3, powerW: 20, heatLevel: 2, color: '#333',
+        },
+        {
+          id: 'b', category: 'switch', name: 'Planned Switch', positionU: 2, sizeU: 1,
+          depthMm: 200, widthType: '19in', weightKg: 3, powerW: 20, heatLevel: 2, color: '#333',
+          lifecycleStatus: 'planned',
+        },
+        {
+          id: 'c', category: 'server', name: 'Old Server', positionU: 3, sizeU: 1,
+          depthMm: 400, widthType: '19in', weightKg: 8, powerW: 200, heatLevel: 3, color: '#555',
+          lifecycleStatus: 'decommissioning',
+        },
+      ],
+      cables: [
+        {
+          id: 'c1', fromDeviceId: 'b', toDeviceId: 'c', type: 'ethernet', color: '#0ea5e9', lifecycleStatus: 'planned',
+        },
+        {
+          id: 'c2', fromDeviceId: 'a', toDeviceId: 'b', type: 'power', color: '#fb923c',
+        },
+      ],
+    };
+
+    const filtered = getFilteredLayoutByLifecycle(layout, 'changes');
+    expect(filtered.devices.map((device) => device.id)).toEqual(['b', 'c']);
+    expect(filtered.cables.map((cable) => cable.id)).toEqual(['c1']);
   });
 });

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 async function clearLayout(page: any) {
   // Click New to clear any existing layout
-  await page.getByRole('button', { name: 'New' }).click();
+  await page.getByRole('button', { name: 'New', exact: true }).click();
 
   // Handle confirmation dialog if it appears (layout had devices)
   const confirmButton = page.getByRole('button', { name: 'Confirm' });

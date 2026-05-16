@@ -27,6 +27,7 @@ const DEFAULT_NOISE_DB = {
   sbc: 28,
   'poe-injector': 25,
   'ip-kvm': 30,
+  'printed-mount': 0,
   custom: 35,
 } as const;
 

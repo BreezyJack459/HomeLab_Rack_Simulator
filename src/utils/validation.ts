@@ -22,6 +22,8 @@ import {
 import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW } from './powerChain';
 import { getServiceabilityIssues } from './serviceability';
 import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
+import { validatePrintedMountFit } from './printedMount';
+import { getPortMetadata } from './portLayout';
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
@@ -58,6 +60,16 @@ function routingWarningTitle(code: string): string {
   }
 }
 
+function areMediaCompatible(a: string, b: string): boolean {
+  if (a === b) return true;
+  // SFP family can interop with fiber/DAC via transceivers
+  const sfpFamily = ['sfp', 'sfp+', 'qsfp+', 'dac', 'fiber'];
+  if (sfpFamily.includes(a) && sfpFamily.includes(b)) return true;
+  // RJ45 is only compatible with itself (SFP+ to RJ45 needs special adapter)
+  if (a === 'rj45' || b === 'rj45') return false;
+  return true;
+}
+
 function recommendCableLength(pathLengthMm: number): string {
   const STANDARD_LENGTHS_MM = [500, 1000, 2000, 3000, 5000];
   const match = STANDARD_LENGTHS_MM.find((l) => l >= pathLengthMm * 1.15);
@@ -68,12 +80,12 @@ function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationI
   if (!cable.lengthMm || cable.lengthMm <= 0) return null;
   const plan = calculateCablePlan(cable, layout);
   if (!plan) return null;
-  if (cable.lengthMm < plan.baseLengthMm) {
+  if (cable.lengthMm < plan.estimatedLengthMm) {
     return {
       id: `cable-short-${cable.id}`,
       severity: 'warning',
       title: `Cable ${cable.id} may be too short`,
-      detail: `Routed path requires ~${Math.ceil(plan.baseLengthMm / 100) * 100}mm. Declared: ${cable.lengthMm}mm. Recommended: ${recommendCableLength(plan.baseLengthMm)}.`,
+      detail: `Routed path is ~${Math.ceil(plan.baseLengthMm / 100) * 100}mm plus ${plan.slackMm}mm slack. Declared: ${cable.lengthMm}mm. Recommended stocked length: ${recommendCableLength(plan.estimatedLengthMm)}.`,
       deviceIds: [cable.fromDeviceId, cable.toDeviceId],
       cableIds: [cable.id]
     };
@@ -225,6 +237,8 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
         });
       }
     }
+
+    issues.push(...validatePrintedMountFit(device, layout));
   });
 
   const weight = totalWeight(layout.devices);
@@ -631,6 +645,52 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
           severity: 'info',
           title: 'Network cable bypasses patch panel',
           detail: `${from.name} → ${to.name}: network cables should route via patch panel for structured cabling.`,
+          deviceIds: [from.id, to.id],
+          cableIds: [cable.id]
+        });
+      }
+    }
+
+    // Port speed / media type mismatch checks
+    const fromMeta = cable.fromPort
+      ? getPortMetadata(from, cable.fromPort.side ?? getDeviceMountSide(from) as 'front' | 'rear', cable.fromPort.type, cable.fromPort.index)
+      : undefined;
+    const toMeta = cable.toPort
+      ? getPortMetadata(to, cable.toPort.side ?? getDeviceMountSide(to) as 'front' | 'rear', cable.toPort.type, cable.toPort.index)
+      : undefined;
+
+    if (fromMeta?.speed && toMeta?.speed && fromMeta.speed !== toMeta.speed) {
+      issues.push({
+        id: `speed-mismatch-${cable.id}`,
+        severity: 'warning',
+        title: 'Port speed mismatch',
+        detail: `${from.name} (${fromMeta.speed}) ↔ ${to.name} (${toMeta.speed}): connected ports have different speed ratings.`,
+        deviceIds: [from.id, to.id],
+        cableIds: [cable.id]
+      });
+    }
+
+    if (fromMeta?.mediaType && toMeta?.mediaType && !areMediaCompatible(fromMeta.mediaType, toMeta.mediaType)) {
+      issues.push({
+        id: `media-incompatible-${cable.id}`,
+        severity: 'warning',
+        title: 'Incompatible media types',
+        detail: `${from.name} (${fromMeta.mediaType}) ↔ ${to.name} (${toMeta.mediaType}): these media types require an adapter or transceiver to connect.`,
+        deviceIds: [from.id, to.id],
+        cableIds: [cable.id]
+      });
+    }
+
+    // Cable type vs port media mismatch
+    const cableMedia = cable.mediaType ?? fromMeta?.mediaType ?? toMeta?.mediaType;
+    if (cableMedia && fromMeta?.mediaType && toMeta?.mediaType) {
+      if ((cable.type === 'fiber' && cableMedia !== 'fiber' && cableMedia !== 'sfp' && cableMedia !== 'sfp+' && cableMedia !== 'qsfp+') ||
+          (cable.type === 'ethernet' && cableMedia !== 'rj45' && cableMedia !== 'sfp' && cableMedia !== 'sfp+' && cableMedia !== 'dac')) {
+        issues.push({
+          id: `cable-media-mismatch-${cable.id}`,
+          severity: 'warning',
+          title: 'Cable type may not match port media',
+          detail: `${from.name} ↔ ${to.name}: ${cable.type} cable with ${cableMedia} port. Verify transceiver compatibility.`,
           deviceIds: [from.id, to.id],
           cableIds: [cable.id]
         });

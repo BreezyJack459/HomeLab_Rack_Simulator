@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { DeviceCategory, RackLayout } from '../types/rack';
 import {
+  getDeviceMaintenanceChecklist,
   getCableStrainRisks,
   getFrontRearCollisions,
   getHeavyOverLightIssues,
+  getServiceabilityHighlightedDeviceIds,
   getServiceabilityIssues,
 } from './serviceability';
 
@@ -240,5 +242,35 @@ describe('getServiceabilityIssues', () => {
     const issue = issues.find((i) => i.id.startsWith('heavy-over-light-'));
     expect(issue).toBeDefined();
     expect(issue!.severity).toBe('info');
+  });
+
+  it('collects highlighted device ids without duplicates', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      rackDepthMm: 500,
+      devices: [
+        makeDevice('front1', 'server', { mountSide: 'front', positionU: 1, depthMm: 350, sizeU: 2, weightKg: 15 }),
+        makeDevice('rear1', 'server', { mountSide: 'rear', positionU: 1, depthMm: 200 }),
+        makeDevice('light1', 'switch', { positionU: 3, weightKg: 2 }),
+      ],
+    };
+
+    const ids = getServiceabilityHighlightedDeviceIds(layout);
+    expect(ids.sort()).toEqual(['front1', 'light1', 'rear1']);
+  });
+
+  it('builds a per-device maintenance checklist', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      rackDepthMm: 500,
+      devices: [
+        makeDevice('front1', 'server', { mountSide: 'front', positionU: 1, depthMm: 350 }),
+        makeDevice('rear1', 'server', { mountSide: 'rear', positionU: 1, depthMm: 200 }),
+      ],
+    };
+
+    const checklist = getDeviceMaintenanceChecklist(layout, 'front1');
+    expect(checklist.some((item) => item.severity === 'critical')).toBe(true);
+    expect(checklist.some((item) => item.title === 'Service slack')).toBe(true);
   });
 });

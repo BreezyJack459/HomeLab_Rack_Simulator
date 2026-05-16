@@ -7,6 +7,8 @@ export interface PortSlot {
   y: number;
   width: number;
   height: number;
+  speed?: import('../types/rack').PortSpeed;
+  mediaType?: import('../types/rack').MediaType;
 }
 
 export interface PortGroup {
@@ -81,6 +83,32 @@ function getDefaultPortFaceMap(category: string): Record<string, 'front' | 'rear
 /** Which face does each port type live on, by device category.
  *  User overrides take precedence over category defaults.
  */
+/** Look up the speed and mediaType for a specific port on a device face.
+ *  Returns undefined if the device has no portLayouts config for that face.
+ */
+export function getPortMetadata(
+  device: PlacedDevice,
+  face: 'front' | 'rear',
+  portType: string,
+  portIndex: number
+): { speed?: import('../types/rack').PortSpeed; mediaType?: import('../types/rack').MediaType } | undefined {
+  const faceLayout = device.portLayouts?.[face];
+  if (!faceLayout) return undefined;
+  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
+  if ((faceMap[portType] ?? 'rear') !== face) return undefined;
+
+  let accumulated = 0;
+  for (const config of faceLayout) {
+    if (config.type !== portType) continue;
+    const count = config.count ?? (device.ports?.[portType] ?? 0);
+    if (portIndex >= accumulated && portIndex < accumulated + count) {
+      return { speed: config.speed, mediaType: config.mediaType };
+    }
+    accumulated += count;
+  }
+  return undefined;
+}
+
 export function getPortFaceMap(category: string, overrides?: Record<string, 'front' | 'rear'>): Record<string, 'front' | 'rear'> {
   const defaults = getDefaultPortFaceMap(category);
   if (!overrides) return defaults;
@@ -140,7 +168,9 @@ export function buildPortLayout(
         config.xRatio,
         groupIndex,
         startIndex,
-        config.columns
+        config.columns,
+        config.speed,
+        config.mediaType
       );
       group.key = `${config.type}-${sourceIndex}`;
       return group;
@@ -204,7 +234,9 @@ function layoutPortGroup(
   xRatio?: number,
   groupIndex?: number,
   startIndex?: number,
-  explicitColumns?: number
+  explicitColumns?: number,
+  speed?: import('../types/rack').PortSpeed,
+  mediaType?: import('../types/rack').MediaType
 ): PortGroup {
   const meta = PORT_META[type] ?? PORT_META.ethernet;
   const aspect = PORT_ASPECT[type] ?? 1.14;
@@ -309,6 +341,8 @@ function layoutPortGroup(
       y: startY - row * rowH,
       width: finalPortW * 0.9,
       height: finalPortH * 0.9,
+      speed,
+      mediaType,
     });
   }
 

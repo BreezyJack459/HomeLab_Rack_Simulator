@@ -141,6 +141,10 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     });
   }
 
+  if (data.procurementItems !== undefined && !Array.isArray(data.procurementItems)) {
+    errors.push('procurementItems must be an array when present');
+  }
+
   if (errors.length > 0) {
     return { valid: false, errors };
   }
@@ -164,6 +168,7 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     devices: Array.isArray(data.devices) ? data.devices : [],
     cables: Array.isArray(data.cables) ? data.cables : [],
     reservations: Array.isArray(data.reservations) ? data.reservations : [],
+    procurementItems: Array.isArray(data.procurementItems) ? data.procurementItems : [],
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString(),
   };
 

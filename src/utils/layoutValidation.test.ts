@@ -53,11 +53,22 @@ describe('validateImportedLayout', () => {
 
   describe('field validation', () => {
     it('accepts a fully valid layout', () => {
-      const layout = buildValidLayout();
+      const layout = buildValidLayout({
+        procurementItems: [
+          {
+            id: 'proc-1',
+            label: 'Cage nuts',
+            category: 'rack-hardware',
+            quantity: 8,
+            status: 'ordered'
+          }
+        ]
+      });
       const result = validateImportedLayout(layout);
       expect(result.valid).toBe(true);
       if (result.valid) {
         expect(result.layout.id).toBe('layout-1');
+        expect(result.layout.procurementItems).toHaveLength(1);
       }
     });
 
@@ -86,6 +97,11 @@ describe('validateImportedLayout', () => {
 
     it('rejects non-array cables', () => {
       const result = validateImportedLayout(buildValidLayout({ cables: null as never }));
+      expect(result.valid).toBe(false);
+    });
+
+    it('rejects non-array procurementItems', () => {
+      const result = validateImportedLayout(buildValidLayout({ procurementItems: {} as never }));
       expect(result.valid).toBe(false);
     });
 
