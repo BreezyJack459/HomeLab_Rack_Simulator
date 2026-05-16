@@ -223,6 +223,7 @@
 - [x] Rack commissioning checklist (`commissioning.ts`, `CommissioningChecklist`, pass/fail tracking, commissioning report export)
 - [x] Golden layout baseline for before/after planning comparisons (`goldenBaseline`, `baseline.ts`, `GoldenBaselinePanel`, Markdown export, baseline-copy restore)
 - [x] Rack change calendar (`changeEvents`, `changeCalendar.ts`, `RackChangeCalendar`, overdue/conflict warnings, ICS/TXT export)
+- [x] Validation Explain Mode — expandable explanations for every validation issue type: what it means, why it matters, real-world symptom, fix difficulty, risk if ignored, and when to ignore (`validationExplanations.ts`, `ValidationPanel.tsx` UI with badges, 56 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
