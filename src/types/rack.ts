@@ -347,6 +347,7 @@ export interface RackLayoutSnapshot {
   railMinDepthMm?: number;
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
+  powerBillHistory?: PowerBillEntry[];
 }
 
 export interface RackGoldenBaseline {
@@ -426,6 +427,14 @@ export interface InterRackCable {
   notes?: string;
 }
 
+export interface PowerBillEntry {
+  id: string;
+  month: string; // YYYY-MM
+  actualKwh: number;
+  actualCost?: number;
+  notes?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -460,6 +469,7 @@ export interface RackLayout {
   railMinDepthMm?: number;
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
+  powerBillHistory?: PowerBillEntry[];
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
