@@ -79,6 +79,7 @@ export type ProcurementStatus = 'owned' | 'need-to-buy' | 'ordered' | 'printed' 
 export type ChecklistStatus = 'pending' | 'passed' | 'failed' | 'skipped';
 export type ChangeRiskLevel = 'low' | 'medium' | 'high';
 export type ChangeEventStatus = 'planned' | 'in-progress' | 'completed' | 'cancelled';
+export type ChangeRequestStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export type MaintenanceLogType = 'cleaning' | 'firmware' | 'repair' | 'inspection' | 'replacement' | 'other';
 
@@ -379,6 +380,21 @@ export interface RackChangeEvent {
   requiresCommissioning?: boolean;
 }
 
+export interface ChangeRequest {
+  id: string;
+  title: string;
+  description?: string;
+  riskLevel: ChangeRiskLevel;
+  expectedDowntimeMin?: number;
+  rollbackPlan?: string;
+  status: ChangeRequestStatus;
+  createdAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  affectedDeviceIds?: string[];
+  affectedCableIds?: string[];
+}
+
 export type RackPolicyType =
   | 'ups-bottom-zone'
   | 'heavy-device-bottom-zone'
@@ -530,6 +546,7 @@ export interface RackLayout {
   commissioningChecks?: ChecklistRecord[];
   goldenBaseline?: RackGoldenBaseline;
   changeEvents?: RackChangeEvent[];
+  changeRequests?: ChangeRequest[];
   policies?: RackPolicy[];
   debtItems?: RackDebtItem[];
   updatedAt: string;
