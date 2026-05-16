@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { sampleLayouts } from '../data/sampleLayouts';
-import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackReservation, RackType, ViewMode, ViewSide } from '../types/rack';
+import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable, PortRef } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { shouldHideDevice, withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { calculateCableNodes } from '../utils/routing';
@@ -19,8 +19,10 @@ import {
   RACK_SPECS
 } from '../utils/rackMath';
 import { deviceOverlapsReservations, normalizeReservation } from '../utils/reservations';
+import { getPortFaceMap, buildPortLayout } from '../utils/portLayout';
 
-const STORAGE_KEY = 'homelab-rack-simulator-layout';
+const STORAGE_KEY = 'homelab-rack-simulator-workspace';
+const LEGACY_STORAGE_KEY = 'homelab-rack-simulator-layout';
 
 function newId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -78,7 +80,21 @@ function createBlankLayout(rackType: RackType = '19in', heightU = 12): RackLayou
     devices: [],
     cables: [],
     reservations: [],
+    procurementItems: [],
+    readinessChecks: [],
+    commissioningChecks: [],
+    changeEvents: [],
     updatedAt: new Date().toISOString()
+  };
+}
+
+export function createDefaultWorkspace(): Workspace {
+  return {
+    id: `workspace-${Date.now()}`,
+    name: 'My Lab',
+    racks: [createBlankLayout()],
+    interRackCables: [],
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -98,13 +114,7 @@ function withCableNodes(layout: RackLayout, changedDeviceIds?: Set<string>): Rac
 }
 
 function touch(layout: RackLayout, changedDeviceIds?: Set<string>): RackLayout {
-  const updated = { ...withCableNodes(layout, changedDeviceIds), updatedAt: new Date().toISOString() };
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // Ignore storage quota errors
-  }
-  return updated;
+  return { ...withCableNodes(layout, changedDeviceIds), updatedAt: new Date().toISOString() };
 }
 
 function normalizeLayout(layout: RackLayout): RackLayout {
@@ -114,6 +124,11 @@ function normalizeLayout(layout: RackLayout): RackLayout {
     ...visibleLayout,
     cables: visibleLayout.cables ?? [],
     reservations: visibleLayout.reservations ?? [],
+    procurementItems: visibleLayout.procurementItems ?? [],
+    readinessChecks: visibleLayout.readinessChecks ?? [],
+    commissioningChecks: visibleLayout.commissioningChecks ?? [],
+    changeEvents: visibleLayout.changeEvents ?? [],
+    policies: visibleLayout.policies ?? [],
     updatedAt: new Date().toISOString()
   };
   const normalized = {
@@ -142,14 +157,52 @@ function normalizeLayout(layout: RackLayout): RackLayout {
   return withCableNodes(normalized);
 }
 
+export function normalizeWorkspace(workspace: Workspace): Workspace {
+  return {
+    ...workspace,
+    racks: (workspace.racks ?? []).map((rack) => normalizeLayout(rack)),
+    interRackCables: (workspace.interRackCables ?? []).map((cable) => ({
+      ...cable,
+      type: cable.type ?? 'cat6a',
+      lengthM: cable.lengthM ?? undefined,
+      label: cable.label ?? undefined,
+      color: cable.color ?? undefined,
+      notes: cable.notes ?? undefined,
+    })),
+    updatedAt: workspace.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 function removeCablesForDevice(layout: RackLayout, deviceId: string) {
   return layout.cables.filter((cable) => cable.fromDeviceId !== deviceId && cable.toDeviceId !== deviceId);
 }
 
+function syncWorkspace(state: RackState): Workspace {
+  let changed = false;
+  const racks = state.workspace.racks.map((r) => {
+    if (r.id === state.currentRackId && r !== state.layout) {
+      changed = true;
+      return state.layout;
+    }
+    return r;
+  });
+  if (!changed) {
+    return state.workspace;
+  }
+  return {
+    ...state.workspace,
+    racks,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 interface RackState {
+  workspace: Workspace;
+  currentRackId: string;
   layout: RackLayout;
   selectedDeviceId: string | null;
   selectedCableId: string | null;
+  selectedInterRackCableId: string | null;
   viewMode: ViewMode;
   editorZoom: number;
   editorPan: { x: number; y: number };
@@ -165,12 +218,17 @@ interface RackState {
   removeDevice: (deviceId: string) => void;
   selectDevice: (deviceId: string | null) => void;
   selectCable: (cableId: string | null) => void;
+  selectInterRackCable: (cableId: string | null) => void;
   addCable: (route: Omit<CableRoute, 'id'>) => void;
+  updateCable: (cableId: string, patch: Partial<CableRoute>) => void;
   removeCable: (cableId: string) => void;
   addReservation: (reservation: Omit<RackReservation, 'id'>) => void;
   updateReservation: (reservationId: string, patch: Partial<RackReservation>) => void;
   removeReservation: (reservationId: string) => void;
   updateRack: (patch: Partial<RackLayout>) => void;
+  addPolicy: (policy: Omit<RackPolicy, 'id'>) => void;
+  updatePolicy: (policyId: string, patch: Partial<RackPolicy>) => void;
+  removePolicy: (policyId: string) => void;
   setRackType: (rackType: RackType) => void;
   setRackHeight: (heightU: number) => void;
   setViewSide: (viewSide: ViewSide) => void;
@@ -198,15 +256,64 @@ interface RackState {
   setPairingSource: (source: PairingSource | null) => void;
   onPortPick3D: ((hit: PortHit3D) => void) | null;
   registerPortPick3D: (handler: ((hit: PortHit3D) => void) | null) => void;
+  // ── Workspace actions ──
+  createRack: (name: string, rackType?: RackType, heightU?: number) => void;
+  deleteRack: (rackId: string) => void;
+  duplicateRack: (rackId: string, newName: string) => void;
+  switchRack: (rackId: string) => void;
+  renameRack: (rackId: string, name: string) => void;
+  renameWorkspace: (name: string) => void;
+  addInterRackCable: (cable: Omit<InterRackCable, 'id'>) => void;
+  removeInterRackCable: (cableId: string) => void;
+  updateInterRackCable: (cableId: string, patch: Partial<InterRackCable>) => void;
+  saveWorkspace: () => void;
+  loadWorkspace: () => boolean;
+  setWorkspace: (workspace: Workspace) => boolean;
 }
 
 const MAX_HISTORY = 50;
 const initialLayout = normalizeLayout(sampleLayouts[1]);
 
+const initialWorkspace: Workspace = {
+  id: `workspace-${Date.now()}`,
+  name: 'My Lab',
+  racks: [initialLayout],
+  interRackCables: [],
+  updatedAt: new Date().toISOString(),
+};
+
+function validateInterRackCablePort(
+  device: PlacedDevice,
+  portRef: PortRef
+): { valid: boolean; error?: string } {
+  const count = device.ports?.[portRef.type];
+  if (typeof count !== 'number' || count <= 0) {
+    return { valid: false, error: `Device "${device.name}" has no ${portRef.type} ports.` };
+  }
+  if (portRef.index < 0 || portRef.index >= count) {
+    return { valid: false, error: `Port index ${portRef.index} out of range for ${device.name} ${portRef.type} ports (0–${count - 1}).` };
+  }
+  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
+  const face = portRef.side ?? faceMap[portRef.type] ?? 'rear';
+  const widthMm = getDeviceWidthMm(device);
+  const heightMm = device.sizeU * 44.45;
+  const layout = buildPortLayout(device, widthMm, heightMm, face);
+  const found = layout.some((group) =>
+    group.slots.some((slot) => slot.type === portRef.type && slot.index === portRef.index)
+  );
+  if (!found) {
+    return { valid: false, error: `Device "${device.name}" does not have ${portRef.type} port at index ${portRef.index} on ${face} face.` };
+  }
+  return { valid: true };
+}
+
 export const useRackStore = create<RackState>((set, get) => ({
+  workspace: initialWorkspace,
+  currentRackId: initialLayout.id,
   layout: initialLayout,
   selectedDeviceId: initialLayout.devices[0]?.id ?? null,
   selectedCableId: null,
+  selectedInterRackCableId: null,
   viewMode: '2d',
   editorZoom: 1,
   editorPan: { x: 0, y: 0 },
@@ -285,7 +392,6 @@ export const useRackStore = create<RackState>((set, get) => ({
       set({ statusMessage: `${template.name} does not fit inside this rack height.` });
       return false;
     }
-    // Placement mutations are centralized here so 2D and 3D views can share one reliable layout model.
     set({
       layout: touch({ ...layout, devices: [...layout.devices, device] }),
       selectedDeviceId: device.id,
@@ -359,7 +465,6 @@ export const useRackStore = create<RackState>((set, get) => ({
           : Number(patch.xMm ?? device.xMm ?? getDefaultDeviceX(layout, deviceWithPatch))
       )
     };
-    // Resizing can move the effective top edge, so bounds and overlap are checked after clamping.
     if (!isDeviceWithinRack(layout, candidate)) {
       set({ statusMessage: `${candidate.name} does not fit inside the rack.` });
       return false;
@@ -396,7 +501,7 @@ export const useRackStore = create<RackState>((set, get) => ({
           devices: layout.devices.filter((device) => device.id !== deviceId),
           cables: removeCablesForDevice(layout, deviceId)
         },
-        new Set() // remaining cables unchanged; removed ones already filtered out
+        new Set()
       ),
       selectedDeviceId: get().selectedDeviceId === deviceId ? null : get().selectedDeviceId,
       selectedCableId: null,
@@ -406,6 +511,7 @@ export const useRackStore = create<RackState>((set, get) => ({
 
   selectDevice: (deviceId) => set({ selectedDeviceId: deviceId, selectedCableId: null }),
   selectCable: (cableId) => set({ selectedCableId: cableId, selectedDeviceId: null }),
+  selectInterRackCable: (cableId) => set({ selectedInterRackCableId: cableId }),
 
   addCable: (route) => {
     const layout = get().layout;
@@ -424,15 +530,26 @@ export const useRackStore = create<RackState>((set, get) => ({
     });
   },
 
+  updateCable: (cableId, patch) => {
+    const layout = get().layout;
+    const current = layout.cables.find((cable) => cable.id === cableId);
+    if (!current) return;
+    const nextCable = { ...current, ...patch, id: cableId };
+    const changedIds = new Set([nextCable.fromDeviceId, nextCable.toDeviceId]);
+    set({
+      layout: touch({
+        ...layout,
+        cables: layout.cables.map((cable) => (cable.id === cableId ? nextCable : cable)),
+      }, changedIds),
+      selectedCableId: cableId,
+      statusMessage: 'Cable route updated.'
+    });
+  },
+
   removeCable: (cableId) => {
     const layout = get().layout;
     const next = { ...layout, cables: layout.cables.filter((cable) => cable.id !== cableId) };
     const updated = { ...next, updatedAt: new Date().toISOString() };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore storage quota errors
-    }
     set({
       layout: updated,
       selectedCableId: null,
@@ -480,6 +597,43 @@ export const useRackStore = create<RackState>((set, get) => ({
     });
   },
 
+  addPolicy: (policy) => {
+    const layout = get().layout;
+    const newPolicy: RackPolicy = { ...(policy as RackPolicy), id: `policy-${Date.now()}` };
+    set({
+      layout: {
+        ...layout,
+        policies: [...(layout.policies ?? []), newPolicy],
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: 'Policy added.',
+    });
+  },
+
+  updatePolicy: (policyId, patch) => {
+    const layout = get().layout;
+    set({
+      layout: {
+        ...layout,
+        policies: (layout.policies ?? []).map((p) => (p.id === policyId ? { ...p, ...patch } : p)),
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: null,
+    });
+  },
+
+  removePolicy: (policyId) => {
+    const layout = get().layout;
+    set({
+      layout: {
+        ...layout,
+        policies: (layout.policies ?? []).filter((p) => p.id !== policyId),
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: 'Policy removed.',
+    });
+  },
+
   updateRack: (patch) => {
     const layout = get().layout;
     const geometricKeys = new Set(['rackDepthMm', 'rearClearanceMm', 'frontDoorClearanceMm', 'rearDoorClearanceMm', 'railMinDepthMm', 'railMaxDepthMm', 'devices', 'cables', 'reservations', 'rackType', 'heightU', 'viewSide']);
@@ -489,11 +643,6 @@ export const useRackStore = create<RackState>((set, get) => ({
       set({ layout: touch(next), statusMessage: null });
     } else {
       const updated = { ...next, updatedAt: new Date().toISOString() };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch {
-        // Ignore storage quota errors
-      }
       set({ layout: updated, statusMessage: null });
     }
   },
@@ -596,26 +745,49 @@ export const useRackStore = create<RackState>((set, get) => ({
   },
 
   saveLocal: () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(get().layout));
-    set({ statusMessage: 'Layout saved locally.' });
+    const state = get();
+    const workspace = syncWorkspace(state);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
+      set({ workspace, statusMessage: 'Workspace saved locally.' });
+    } catch {
+      set({ statusMessage: 'Failed to save workspace.' });
+    }
   },
 
   loadLocal: () => {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const rawWorkspace = localStorage.getItem(STORAGE_KEY);
+    if (rawWorkspace) {
+      try {
+        return get().loadWorkspace();
+      } catch {
+        // fall through to legacy
+      }
+    }
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) {
       set({ statusMessage: 'No saved local layout found.' });
       return false;
     }
     try {
-      const layout = normalizeLayout(JSON.parse(raw));
+      const legacyLayout = normalizeLayout(JSON.parse(raw));
+      const workspace = createDefaultWorkspace();
+      workspace.racks = [legacyLayout];
+      workspace.name = 'My Lab';
+      const layout = legacyLayout;
       set({
+        workspace,
+        currentRackId: layout.id,
         layout,
         selectedDeviceId: layout.devices[0]?.id ?? null,
         selectedCableId: null,
-        statusMessage: 'Local layout loaded.',
+        statusMessage: 'Legacy layout migrated to workspace.',
         ...historyFor(layout),
-        skipNextHistory: true
+        skipNextHistory: true,
       });
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
+      } catch {}
       return true;
     } catch {
       set({ statusMessage: 'Saved layout could not be read.' });
@@ -633,24 +805,320 @@ export const useRackStore = create<RackState>((set, get) => ({
   setPairingStage: (stage) => set({ pairingStage: stage }),
   setPairingSource: (source) => set({ pairingSource: source }),
   onPortPick3D: null,
-  registerPortPick3D: (handler) => set({ onPortPick3D: handler })
-}));
+  registerPortPick3D: (handler) => set({ onPortPick3D: handler }),
 
-// Track layout changes for undo/redo
-useRackStore.subscribe((state, prevState) => {
-  try {
-    if (state.skipNextHistory) {
-      useRackStore.setState({ skipNextHistory: false });
+  // ── Workspace actions ──
+  createRack: (name, rackType = '19in', heightU = 12) => {
+    const { workspace, layout, currentRackId } = get();
+    const syncedRacks = workspace.racks.map((r) => (r.id === currentRackId ? layout : r));
+    const newLayout = { ...createBlankLayout(rackType, heightU), id: `rack-${Date.now()}`, name };
+    const updatedWorkspace = { ...workspace, racks: [...syncedRacks, newLayout] };
+    set({
+      workspace: updatedWorkspace,
+      currentRackId: newLayout.id,
+      layout: newLayout,
+      history: [],
+      historyIndex: -1,
+      selectedDeviceId: null,
+      selectedCableId: null,
+      statusMessage: `Rack "${name}" created.`,
+      skipNextHistory: true,
+    });
+  },
+
+  deleteRack: (rackId) => {
+    const { workspace, layout, currentRackId } = get();
+    const syncedRacks = workspace.racks.map((r) => (r.id === currentRackId ? layout : r));
+    const remainingRacks = syncedRacks.filter((r) => r.id !== rackId);
+    if (remainingRacks.length === 0) {
+      const defaultRack = createBlankLayout();
+      const updatedWorkspace = { ...workspace, racks: [defaultRack] };
+      set({
+        workspace: updatedWorkspace,
+        currentRackId: defaultRack.id,
+        layout: defaultRack,
+        history: [],
+        historyIndex: -1,
+        selectedDeviceId: null,
+        selectedCableId: null,
+        statusMessage: 'Last rack deleted. Created default rack.',
+        skipNextHistory: true,
+      });
+    } else {
+      const isCurrent = rackId === currentRackId;
+      const nextCurrentId = isCurrent ? remainingRacks[0].id : currentRackId;
+      const nextLayout = remainingRacks.find((r) => r.id === nextCurrentId)!;
+      set({
+        workspace: { ...workspace, racks: remainingRacks },
+        currentRackId: nextCurrentId,
+        layout: nextLayout,
+        history: isCurrent ? [] : get().history,
+        historyIndex: isCurrent ? -1 : get().historyIndex,
+        selectedDeviceId: null,
+        selectedCableId: null,
+        statusMessage: 'Rack deleted.',
+        skipNextHistory: true,
+      });
+    }
+  },
+
+  duplicateRack: (rackId, newName) => {
+    const { workspace, layout, currentRackId } = get();
+    const syncedRacks = workspace.racks.map((r) => (r.id === currentRackId ? layout : r));
+    const sourceRack = syncedRacks.find((r) => r.id === rackId);
+    if (!sourceRack) return;
+    const idMap = new Map<string, string>();
+    const clonedDevices = (sourceRack.devices ?? []).map((device) => {
+      const newDeviceId = newId('dev');
+      idMap.set(device.id, newDeviceId);
+      return { ...device, id: newDeviceId };
+    });
+    const clonedCables = (sourceRack.cables ?? []).map((cable) => ({
+      ...cable,
+      id: newId('cable'),
+      fromDeviceId: idMap.get(cable.fromDeviceId) ?? cable.fromDeviceId,
+      toDeviceId: idMap.get(cable.toDeviceId) ?? cable.toDeviceId,
+    }));
+    const newRack: RackLayout = {
+      ...sourceRack,
+      id: `rack-${Date.now()}`,
+      name: newName,
+      devices: clonedDevices,
+      cables: clonedCables,
+      updatedAt: new Date().toISOString(),
+    };
+    const updatedWorkspace = { ...workspace, racks: [...syncedRacks, newRack] };
+    set({
+      workspace: updatedWorkspace,
+      currentRackId: newRack.id,
+      layout: newRack,
+      history: [],
+      historyIndex: -1,
+      selectedDeviceId: null,
+      selectedCableId: null,
+      statusMessage: `Rack "${newName}" duplicated.`,
+      skipNextHistory: true,
+    });
+  },
+
+  switchRack: (rackId) => {
+    const { workspace, layout, currentRackId } = get();
+    const updatedRacks = workspace.racks.map((r) => (r.id === currentRackId ? layout : r));
+    const newWorkspace = { ...workspace, racks: updatedRacks };
+    const newLayout = updatedRacks.find((r) => r.id === rackId);
+    if (!newLayout) return;
+    set({
+      workspace: newWorkspace,
+      currentRackId: rackId,
+      layout: newLayout,
+      history: [],
+      historyIndex: -1,
+      selectedDeviceId: null,
+      selectedCableId: null,
+    });
+  },
+
+  renameRack: (rackId, name) => {
+    const { workspace, layout } = get();
+    const updatedRacks = workspace.racks.map((r) => (r.id === rackId ? { ...r, name } : r));
+    const updatedWorkspace = { ...workspace, racks: updatedRacks };
+    const updatedLayout = layout.id === rackId ? { ...layout, name } : layout;
+    set({
+      workspace: updatedWorkspace,
+      layout: updatedLayout,
+      statusMessage: 'Rack renamed.',
+    });
+  },
+
+  renameWorkspace: (name) => {
+    set({ workspace: { ...get().workspace, name }, statusMessage: 'Workspace renamed.' });
+  },
+
+  addInterRackCable: (cable) => {
+    const { workspace } = get();
+    const fromRack = workspace.racks.find((r) => r.id === cable.fromRackId);
+    const toRack = workspace.racks.find((r) => r.id === cable.toRackId);
+    if (!fromRack) {
+      set({ statusMessage: `Source rack not found.` });
       return;
     }
-    if (state.layout !== prevState.layout) {
+    if (!toRack) {
+      set({ statusMessage: `Target rack not found.` });
+      return;
+    }
+    const fromDevice = fromRack.devices.find((d) => d.id === cable.fromDeviceId);
+    const toDevice = toRack.devices.find((d) => d.id === cable.toDeviceId);
+    if (!fromDevice) {
+      set({ statusMessage: `Source device not found in rack "${fromRack.name}".` });
+      return;
+    }
+    if (!toDevice) {
+      set({ statusMessage: `Target device not found in rack "${toRack.name}".` });
+      return;
+    }
+    const fromValidation = validateInterRackCablePort(fromDevice, cable.fromPort);
+    if (!fromValidation.valid) {
+      set({ statusMessage: fromValidation.error! });
+      return;
+    }
+    const toValidation = validateInterRackCablePort(toDevice, cable.toPort);
+    if (!toValidation.valid) {
+      set({ statusMessage: toValidation.error! });
+      return;
+    }
+    const newCable: InterRackCable = { ...cable, id: newId('irc') };
+    set({
+      workspace: { ...workspace, interRackCables: [...workspace.interRackCables, newCable] },
+      statusMessage: 'Inter-rack cable added.',
+    });
+  },
+
+  removeInterRackCable: (cableId) => {
+    const { workspace } = get();
+    set({
+      workspace: { ...workspace, interRackCables: workspace.interRackCables.filter((c) => c.id !== cableId) },
+      statusMessage: 'Inter-rack cable removed.',
+    });
+  },
+
+  updateInterRackCable: (cableId, patch) => {
+    const { workspace } = get();
+    const current = workspace.interRackCables.find((c) => c.id === cableId);
+    if (!current) return;
+    const nextCable = { ...current, ...patch };
+    const fromRack = workspace.racks.find((r) => r.id === nextCable.fromRackId);
+    const toRack = workspace.racks.find((r) => r.id === nextCable.toRackId);
+    if (!fromRack) {
+      set({ statusMessage: `Source rack not found.` });
+      return;
+    }
+    if (!toRack) {
+      set({ statusMessage: `Target rack not found.` });
+      return;
+    }
+    const fromDevice = fromRack.devices.find((d) => d.id === nextCable.fromDeviceId);
+    const toDevice = toRack.devices.find((d) => d.id === nextCable.toDeviceId);
+    if (!fromDevice) {
+      set({ statusMessage: `Source device not found in rack "${fromRack.name}".` });
+      return;
+    }
+    if (!toDevice) {
+      set({ statusMessage: `Target device not found in rack "${toRack.name}".` });
+      return;
+    }
+    const fromValidation = validateInterRackCablePort(fromDevice, nextCable.fromPort);
+    if (!fromValidation.valid) {
+      set({ statusMessage: fromValidation.error! });
+      return;
+    }
+    const toValidation = validateInterRackCablePort(toDevice, nextCable.toPort);
+    if (!toValidation.valid) {
+      set({ statusMessage: toValidation.error! });
+      return;
+    }
+    set({
+      workspace: {
+        ...workspace,
+        interRackCables: workspace.interRackCables.map((c) => (c.id === cableId ? nextCable : c)),
+      },
+      statusMessage: 'Inter-rack cable updated.',
+    });
+  },
+
+  saveWorkspace: () => {
+    const state = get();
+    const workspace = syncWorkspace(state);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
+      set({ workspace, statusMessage: 'Workspace saved locally.' });
+    } catch {
+      set({ statusMessage: 'Failed to save workspace.' });
+    }
+  },
+
+  loadWorkspace: () => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      const workspace = normalizeWorkspace(parsed);
+      const currentRackId = workspace.racks[0]?.id;
+      if (!currentRackId) return false;
+      const layout = workspace.racks.find((r) => r.id === currentRackId) ?? workspace.racks[0];
+      set({
+        workspace,
+        currentRackId,
+        layout,
+        selectedDeviceId: layout.devices[0]?.id ?? null,
+        selectedCableId: null,
+        statusMessage: 'Workspace loaded.',
+        ...historyFor(layout),
+        skipNextHistory: true,
+      });
+      return true;
+    } catch {
+      set({ statusMessage: 'Saved workspace could not be read.' });
+      return false;
+    }
+  },
+
+  setWorkspace: (workspace) => {
+    const normalized = normalizeWorkspace(workspace);
+    const currentRackId = normalized.racks[0]?.id;
+    if (!currentRackId) return false;
+    const layout = normalized.racks.find((r) => r.id === currentRackId) ?? normalized.racks[0];
+    set({
+      workspace: normalized,
+      currentRackId,
+      layout,
+      selectedDeviceId: layout.devices[0]?.id ?? null,
+      selectedCableId: null,
+      statusMessage: `${normalized.name} loaded.`,
+      ...historyFor(layout),
+      skipNextHistory: true,
+    });
+    return true;
+  },
+}));
+
+// Track layout changes for undo/redo and sync workspace
+useRackStore.subscribe((state, prevState) => {
+  try {
+    const updates: Partial<RackState> = {};
+    if (!state.skipNextHistory && state.layout !== prevState.layout) {
       const history = state.history.slice(0, state.historyIndex + 1);
       history.push(cloneLayout(state.layout));
       const trimmedHistory = history.length > MAX_HISTORY ? history.slice(1) : history;
       const historyIndex = trimmedHistory.length - 1;
-      useRackStore.setState({ history: trimmedHistory, historyIndex });
+      updates.history = trimmedHistory;
+      updates.historyIndex = historyIndex;
+    }
+    if (state.skipNextHistory) {
+      updates.skipNextHistory = false;
+    }
+    const syncedWorkspace = syncWorkspace({ ...state, ...updates });
+    if (syncedWorkspace !== state.workspace) {
+      updates.workspace = syncedWorkspace;
+    }
+    if (Object.keys(updates).length > 0) {
+      useRackStore.setState(updates);
+    }
+    if (state.layout !== prevState.layout || state.workspace !== prevState.workspace || state.currentRackId !== prevState.currentRackId) {
+      const workspaceToSave = updates.workspace ?? state.workspace;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaceToSave));
+      } catch {
+        // Ignore storage quota errors
+      }
     }
   } catch (error) {
     console.error('[rackStore] Failed to record history', error);
   }
 });
+
+// Initialize: try workspace first, fallback to legacy layout migration
+if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+  if (!useRackStore.getState().loadWorkspace()) {
+    useRackStore.getState().loadLocal();
+  }
+}
