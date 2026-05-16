@@ -57,6 +57,7 @@ const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').
 const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
 const PortfolioExportPanel = lazy(() => import('./components/PortfolioExportPanel').then((m) => ({ default: m.PortfolioExportPanel })));
 const LabelDebtPanel = lazy(() => import('./components/LabelDebtPanel').then((m) => ({ default: m.LabelDebtPanel })));
+const RunbookPanel = lazy(() => import('./components/RunbookPanel').then((m) => ({ default: m.RunbookPanel })));
 const RackDebtPanel = lazy(() => import('./components/RackDebtPanel').then((m) => ({ default: m.RackDebtPanel })));
 const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
@@ -645,6 +646,7 @@ function App() {
             <CableLengthAuditPanel />
             <PortfolioExportPanel />
             <LabelDebtPanel />
+            <RunbookPanel />
             <BuildPlanner />
             <ReadinessChecklist />
             <CommissioningChecklist />
