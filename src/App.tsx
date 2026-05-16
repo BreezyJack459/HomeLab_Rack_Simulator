@@ -62,6 +62,7 @@ const LabelDebtPanel = lazy(() => import('./components/LabelDebtPanel').then((m)
 const RunbookPanel = lazy(() => import('./components/RunbookPanel').then((m) => ({ default: m.RunbookPanel })));
 const EvidenceLockerPanel = lazy(() => import('./components/EvidenceLockerPanel').then((m) => ({ default: m.EvidenceLockerPanel })));
 const RackDebtPanel = lazy(() => import('./components/RackDebtPanel').then((m) => ({ default: m.RackDebtPanel })));
+const RackPhotoPanel = lazy(() => import('./components/RackPhotoPanel').then((m) => ({ default: m.RackPhotoPanel })));
 const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
 const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
@@ -649,6 +650,7 @@ function App() {
             <RoomPlacementPanel />
             <PolicyRulesPanel />
             <RackDebtPanel />
+            <RackPhotoPanel />
             <ReservationPanel />
             <UpsRuntimePanel />
             <BootSequencePanel />
