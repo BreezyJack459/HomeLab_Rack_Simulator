@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-15. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (14 files / 274 tests passed).
+> Last audited: 2026-05-16. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (28 files / 468 tests passed).
 
 ## Completed ✅
 
@@ -115,6 +115,9 @@
   - [x] Type-check pass completed on 2026-05-14: `node node_modules/typescript/bin/tsc --noEmit`
   - [x] 3D ghost preview tube completed on 2026-05-14.
 
+### Phase 8: Operational Planning (2026-05-16)
+- [x] **Rack Scenario Planner (#39)** — 8 preset what-if scenarios (power outage, ISP down, switch reboot, NAS failure, weak UPS battery, summer heatwave, AP offline, management network down) with impacted devices, survivors, failed assumptions, and prioritized recommendations. Lazy-loaded panel (`src/components/ScenarioPlannerPanel.tsx`), pure analysis utility (`src/utils/scenarioPlanner.ts`), 28 unit tests, scenario report text export. Reuses `analyzeBlastRadius`, `calculateUpsRuntimes`, `isPowerSource`, and `buildTopologyGraph`.
+
 ## Paused / Known Problems ⏸️
 - [ ] **0U PDU 3D visual model needs redesign before continuing.**
   Current issue: the data model now supports `sizeU = 0`, rear-rail/side-rail mount type, and cabling to a 0U PDU, but the 3D presentation is still not good enough. A realistic rear-post 0U PDU should be a narrow vertical strip mounted near the rear vertical accessory channel, while inspection mode may need an exploded offset so it can be seen clearly. The current attempts either overlap with rack/cables or make the PDU/bracket look incorrectly large. Do not treat the current 0U PDU 3D view as final.
@@ -201,9 +204,9 @@
 - [x] Port label rendering scalability — dense 3D port faces now render one summary `<Text>` per port group instead of one label mesh per port
 - [x] 3D raycast port picking for cable endpoints — Phase D plus 3D ghost preview tube shipped
 - [x] Rack ear/RU label printing (`PrintableLabels.tsx` with RU numbers, device labels, blank slots; print-friendly CSS)
-- [ ] 3D printed mount / shelf fit-check system for brackets, trays, rails, adapters, and custom holders
+- [x] 3D printed mount / shelf fit-check system for brackets, trays, rails, adapters, and custom holders
 - [~] Cable trace / path explorer across device ports, patch panels, and pass-through links — `cableTrace.ts`, tests, and `CableTracePanel` exist; richer click-to-port UX still pending
-- [~] Planned / active / decommissioning mode for devices, cables, and rack changes — lifecycle fields, device status UI, and `migrationCalc.ts` exist; filtered views/change-summary UX still pending
+- [~] Planned / active / decommissioning mode for devices, cables, and rack changes — device + cable lifecycle editing, filtered 2D/3D/cable views, and migration-plan export shipped; moved-device diffing still pending
 - [~] Power chain / redundant feed planner for circuits, PDUs, outlets, and A/B power checks — `powerChain.ts` + `PowerChainPanel` exist; outlet-level modeling still pending
 - [x] Rack capacity dashboard with space, power, port, weight, and cable-density health indicators (`RackHealthDashboard.tsx` with red/yellow/green metrics)
 - [x] Rack reservation / future-slot planning for planned devices and reserved U ranges (`RackReservation`, `ReservationPanel`, 2D reserved overlays, store placement guards, validation issues)
@@ -213,9 +216,13 @@
 - [x] Energy cost + heat-load calculator with monthly kWh, electricity cost, and BTU/h room heat estimate (`energyCalc.ts`, `EnergySummary.tsx`, `electricityRatePerKwh` on `RackLayout`)
 - [x] UPS runtime planner with critical-load grouping and shutdown priority (`upsRuntime.ts`, `UpsRuntimePanel`, outage priority UI, shutdown plan, critical-load warnings)
 - [~] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space — `DepthCompatibilityPanel` now models rail min/max, front/rear door clearance, and rear cable bend needs; combined printed-mount envelope still pending
-- [~] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices — `serviceability.ts` + panel exist; interactive overlay still pending
+- [~] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices — overlay highlights and selected-device maintenance checklist shipped; deeper pull-out path simulation still pending
 - [ ] Live sensor overlay for actual vs planned power, temperature, and fan readings
-- [ ] Full build procurement planner for owned vs needed devices, shelves, rails, screws, cables, and printed parts
+- [x] Full build procurement planner for owned vs needed devices, shelves, rails, screws, cables, and printed parts (`BuildPlanner`, `procurement.ts`, persisted `procurementItems`, CSV/TXT export, generated hardware/accessory checklist)
+- [x] Rack readiness / build-day checklist (`readinessChecklist.ts`, `ReadinessChecklist`, persisted checklist state, Markdown export)
+- [x] Rack commissioning checklist (`commissioning.ts`, `CommissioningChecklist`, pass/fail tracking, commissioning report export)
+- [x] Golden layout baseline for before/after planning comparisons (`goldenBaseline`, `baseline.ts`, `GoldenBaselinePanel`, Markdown export, baseline-copy restore)
+- [x] Rack change calendar (`changeEvents`, `changeCalendar.ts`, `RackChangeCalendar`, overdue/conflict warnings, ICS/TXT export)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
@@ -326,9 +333,9 @@ The following items should not be picked as next work unless a regression appear
 ### 8. Planned / Active / Decommissioning Mode — 🔄 PARTIAL
 **Why**: Rack planning is often about migration: what exists now, what is planned, and what should be removed. Real DCIM systems track lifecycle/status so users can compare current and future states.
 **What to do**: Add `status` to devices and cables, then support filtered views and a change summary: additions, removals, moved devices, and new cable runs.
-**Status**: `LifecycleStatus` exists on devices/cables, device lifecycle can be edited in `PropertyPanel`, and `migrationCalc.ts` summarizes planned/active/decommissioning devices and cables.
-**Remaining**: Cable lifecycle editing, filtered layout views, and user-facing migration/change-summary export.
-**Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/PropertyPanel.tsx`, `src/components/CablePlanner.tsx`, `src/utils/exporters.ts`
+**Status**: Device lifecycle editing in `PropertyPanel`, cable lifecycle editing in `CablePlanner`, lifecycle-filtered 2D/3D/cable views in `App.tsx`, and Markdown migration-plan export are now shipped. `migrationCalc.ts` also exposes filtered-layout helpers for the view mode.
+**Remaining**: Richer moved-device diffing / change detection beyond lifecycle buckets.
+**Files to touch**: `src/types/rack.ts`, `src/utils/migrationCalc.ts`, `src/store/rackStore.ts`, `src/components/CablePlanner.tsx`, `src/App.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 
 ### 9. Power Chain / Redundant Feed Planner — 🔄 PARTIAL
@@ -428,9 +435,9 @@ The following items should not be picked as next work unless a regression appear
 - Warn when cable length/slack is too short for pull-out service.
 - Highlight devices that require removing another device or shelf first.
 - Add a maintenance checklist for risky devices.
-**Status**: `serviceability.ts`, `serviceability.test.ts`, and `ServiceabilityPanel` exist for cable strain, front/rear collision, and heavy-over-light checks.
-**Remaining**: Interactive access overlay and selected-device maintenance checklist.
-**Files to touch**: `src/utils/validation.ts`, `src/utils/routing.ts`, `src/components/RackEditor2D.tsx`, `src/components/CableMap.tsx`
+**Status**: `serviceability.ts` now also exposes highlighted-device and per-device maintenance-checklist helpers; `ServiceabilityPanel` can drive an interactive overlay and show a selected-device checklist; `RackEditor2D.tsx` renders overlay highlights for risky hardware.
+**Remaining**: More physical pull-out path simulation beyond the current issue-driven overlay.
+**Files to touch**: `src/utils/serviceability.ts`, `src/components/ServiceabilityPanel.tsx`, `src/components/RackEditor2D.tsx`, `src/App.tsx`
 **Effort**: Medium
 
 ### 19. Live Sensor Overlay
@@ -457,7 +464,7 @@ The following items should not be picked as next work unless a regression appear
 
 ## Feature Proposals (Beyond Listed — 2026-05-10) 📋
 
-### 21. Network Topology Auto-Generator ⭐ New Dimension, High Value
+### 21. Network Topology Auto-Generator ⭐ New Dimension, High Value — ✅ IMPLEMENTED
 **Why**: The app currently covers only the physical layer (rack U positions, cable routes). Homelab users equally care about the logical layer: which switch is the core, how the router connects to the firewall, whether the NAS is isolated in a VLAN, and if there are single points of failure. Auto-generating a network topology from existing cable data lets users verify their network design without drawing it twice.
 **What to do**: Add a new `topology` view mode that renders a logical network graph from `RackLayout.cables` and `DeviceCategory` roles.
 **MVP scope**:
@@ -689,6 +696,7 @@ The following items should not be picked as next work unless a regression appear
 ### 35. Rack Readiness / Build-Day Checklist
 **Why**: A finished plan is not the same as a build-ready rack. Users still need tools, labels, screws, cables, backups, shutdown order, rollback steps, and physical access.
 **What to do**: Generate a build-day checklist from the current layout and planned changes.
+**Status**: Shipped on 2026-05-16. The app now generates a persisted readiness checklist with build-kit, cabling, change-window, risk, and closeout sections derived from BOM/procurement, migration, UPS runtime, serviceability, and documentation data, plus Markdown export.
 **MVP scope**:
 - Checklist sections: tools, labels, cable inventory, screws/cage nuts, shelves/rails, backup config, shutdown order, install order, smoke tests, cleanup.
 - Pull required cables and hardware from BOM/procurement data.
@@ -746,9 +754,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Benefits from Network Topology (#21), Documentation Audit Mode (#13), and Asset Registry (#45).
 
-### 39. Rack Scenario Planner
+### 39. Rack Scenario Planner — ✅ IMPLEMENTED (2026-05-16)
 **Why**: Users need to know how their rack behaves under specific real-world events, not just whether the current static layout is valid. Scenario planning turns validation into operational rehearsal.
 **What to do**: Add predefined scenarios that run dependency, power, thermal, and serviceability checks against simulated conditions.
+**Status**: Shipped with 8 preset scenarios (power outage, ISP down, switch reboot, NAS failure, UPS battery weak, summer heatwave, AP offline, management network unavailable), impacted-device/survivor breakdown, failed-assumption tracking, prioritized recommendations, overall readiness score, and a Markdown scenario-report export. Lazy-loaded panel keeps the initial bundle under the 250 KB budget.
 **MVP scope**:
 - Scenario presets: power outage, ISP down, switch reboot, NAS disk failure, UPS battery weak, summer heatwave, AP offline, management network unavailable.
 - For each scenario, show impacted devices/services, surviving paths, failed assumptions, and recommended next action.
@@ -757,7 +766,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - User-authored custom scenarios.
 - Scenario comparison across planned layouts.
-**Files to touch**: new `src/utils/scenarioPlanner.ts`, new `src/components/ScenarioPlanner.tsx`, `src/utils/dependencyGraph.ts`, `src/utils/validation.ts`
+**Files touched**: `src/utils/scenarioPlanner.ts`, `src/utils/scenarioPlanner.test.ts`, `src/components/ScenarioPlannerPanel.tsx`, `src/utils/exporters.ts`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Builds on Rack Dependency Graph (#28), Power Chain (#9), UPS Runtime Planner (#17), and Service Map Overlay (#47).
 
@@ -779,6 +788,7 @@ The following items should not be picked as next work unless a regression appear
 ### 41. Cable Slack Budget Calculator
 **Why**: A cable can be long enough to connect two ports but still too short for service loops, pull-out rails, rear-door clearance, or safe bend radius. Length alone is not enough.
 **What to do**: Extend cable planning from estimated path length to required slack budget.
+**Status**: Shipped on 2026-05-16. Cable details now show routed path vs slack budget, BOM exports include slack/service-loop/bend-radius notes, and validation warns against manual lengths that cover only the geometric path but not the service slack.
 **MVP scope**:
 - Calculate minimum recommended slack by cable type and device serviceability requirements.
 - Warn when a device cannot be pulled forward or serviced without disconnecting cables.
@@ -794,6 +804,7 @@ The following items should not be picked as next work unless a regression appear
 ### 42. Rack Commissioning Checklist
 **Why**: After building or changing a rack, users need to prove it is actually ready: labels installed, UPS tested, backup restored, firmware logged, and basic network paths verified.
 **What to do**: Generate a commissioning checklist for new builds and major changes.
+**Status**: Shipped on 2026-05-16. The app now includes a persisted commissioning checklist with pass/fail/skipped tracking, device-aware validation prompts, and Markdown report export with sign-off fields.
 **MVP scope**:
 - Checklist sections: physical install, labels, power, network, backup, monitoring, documentation, photos, rollback verification.
 - Include device-specific checks based on category: UPS runtime test, NAS restore test, switch config backup, firewall failover check.
@@ -806,9 +817,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Builds on Readiness Checklist (#35), Documentation Audit (#13), Backup Verification Log (#53), and Change Workflow (#48).
 
-### 43. Golden Layout Baseline
+### 43. Golden Layout Baseline — ✅ IMPLEMENTED (2026-05-16)
 **Why**: Users often have a known-good state before experimenting. A baseline makes it easy to see whether a new plan improves or degrades power, ports, noise, heat, validation score, or risk.
 **What to do**: Let users mark a layout snapshot as the golden baseline and compare future states against it.
+**Status**: Shipped with persisted `goldenBaseline` snapshots, summary metrics, regression/improvement comparison rows, Markdown export, and baseline-copy restore for new planning branches.
 **MVP scope**:
 - Save baseline snapshot metadata and summary metrics.
 - Compare current vs baseline: power, heat, noise, free U, free ports, validation issues, cable count, risk score, documentation score.
@@ -817,7 +829,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Multiple named baselines: stable, low-power, travel mode, upgrade plan.
 - Baseline-aware change risk and rollback planning.
-**Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, new `src/utils/baselineCompare.ts`, new `src/components/BaselinePanel.tsx`
+**Files touched**: `src/types/rack.ts`, `src/store/rackStore.ts`, new `src/utils/baseline.ts`, new `src/components/GoldenBaselinePanel.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 **Dependencies**: Complements Layout Diff (#30), Rack Health Dashboard (#10), and Rack Debt Tracker (#32).
 
@@ -881,9 +893,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Builds on Hypervisor Config Sync (#38 in BRAINSTORM.md), Blast Radius Map (#28), and Backup Verification Log (#53).
 
-### 48. Rack Change Calendar
+### 48. Rack Change Calendar — ✅ IMPLEMENTED (2026-05-16)
 **Why**: Rack changes happen over time: UPS battery replacement, firmware windows, cable cleanup days, NAS migration, and planned downtime. A calendar view makes maintenance less chaotic.
 **What to do**: Add scheduled change events linked to devices, cables, services, or rack-wide tasks.
+**Status**: Shipped with persisted change events, linked current device/cable selection, readiness/commissioning blockers, overdue/conflict warnings, and ICS/TXT export.
 **MVP scope**:
 - Create events with date/time, affected items, risk level, expected downtime, owner, and rollback notes.
 - Show upcoming changes and overdue maintenance.
@@ -892,7 +905,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Conflict detection: two risky changes scheduled too close together, or maintenance during backup windows.
 - Reminder integrations.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/changeCalendar.ts`, new `src/components/ChangeCalendar.tsx`, `src/utils/exporters.ts`
+**Files touched**: `src/types/rack.ts`, new `src/utils/changeCalendar.ts`, new `src/components/RackChangeCalendar.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 **Dependencies**: Complements Scheduled Layout Changes (#84 in BRAINSTORM.md), Change Risk Score (#30), and Commissioning Checklist (#42).
 
