@@ -1,13 +1,17 @@
 export type RackType = '10in' | '19in';
 export type WidthType = RackType | 'shelf' | 'custom';
 export type ViewSide = 'front' | 'rear';
-export type ViewMode = '2d' | '3d' | 'cables';
+export type ViewMode = '2d' | '3d' | 'cables' | 'topology';
 export type SpatialZone = 'front' | 'rear' | 'side-left' | 'side-right' | 'rear-left' | 'rear-right';
 export type HeatLevel = 1 | 2 | 3 | 4 | 5;
 export type ZeroUMountType = 'side-rail' | 'rear-rail';
 export type ZeroUMountSide = 'left' | 'right';
 export type OutletFacing = 'inward' | 'outward' | 'forward';
 export type CableType = 'ethernet' | 'power' | 'fiber' | 'usb' | 'hdmi' | 'atx' | 'coax' | 'structured' | 'patch';
+
+export type PortSpeed = '100M' | '1G' | '2.5G' | '5G' | '10G' | '25G' | '40G' | '100G';
+
+export type MediaType = 'rj45' | 'sfp' | 'sfp+' | 'qsfp+' | 'dac' | 'fiber' | 'usb2' | 'usb3';
 
 export type DeviceCategory =
   | 'patch-panel'
@@ -28,6 +32,7 @@ export type DeviceCategory =
   | 'blank'
   | 'sbc'
   | 'ip-kvm'
+  | 'printed-mount'
   | 'custom';
 
 export interface PortLayout {
@@ -67,7 +72,13 @@ export interface DeviceTemplate {
 }
 
 export type LifecycleStatus = 'active' | 'planned' | 'decommissioning';
+export type LifecycleViewFilter = 'all' | 'active' | 'planned' | 'decommissioning' | 'changes';
 export type ShutdownPriority = 'critical' | 'graceful' | 'non-critical';
+export type ProcurementItemCategory = 'device' | 'cable' | 'rack-hardware' | 'rack-accessory' | 'power' | 'label' | 'printed-part';
+export type ProcurementStatus = 'owned' | 'need-to-buy' | 'ordered' | 'printed' | 'installed';
+export type ChecklistStatus = 'pending' | 'passed' | 'failed' | 'skipped';
+export type ChangeRiskLevel = 'low' | 'medium' | 'high';
+export type ChangeEventStatus = 'planned' | 'in-progress' | 'completed' | 'cancelled';
 
 export interface PlacedDevice {
   id: string;
@@ -102,6 +113,9 @@ export interface PlacedDevice {
   batteryWh?: number;
   circuit?: 'A' | 'B';
   noiseDb?: number;
+  bootDependsOn?: string[];
+  bootDelaySeconds?: number;
+  portAliases?: Record<string, string>;
 }
 
 export type PortType = 'ethernet' | 'fiber' | 'usb' | 'hdmi' | 'power' | 'atx' | 'coax';
@@ -111,6 +125,8 @@ export interface PortTypeConfig {
   count?: number;
   columns?: number;
   xRatio?: number; // 0 = left edge, 0.5 = center, 1 = right edge
+  speed?: PortSpeed;
+  mediaType?: MediaType;
 }
 
 export interface PortRef {
@@ -213,6 +229,8 @@ export interface CableRoute {
   lengthMm?: number;
   length?: string; // Human-readable length e.g. '1m', '2m'
   bundleId?: string; // Groups cables into a visual bundle
+  speed?: PortSpeed;
+  mediaType?: MediaType;
 }
 
 export type RackReservationPurpose = 'future-device' | 'shelf' | 'patch-panel' | 'ups' | 'printed-mount' | 'clearance' | 'other';
@@ -230,6 +248,127 @@ export interface RackReservation {
   notes?: string;
 }
 
+export interface ProcurementItem {
+  id: string;
+  label: string;
+  category: ProcurementItemCategory;
+  quantity: number;
+  unit?: string;
+  status: ProcurementStatus;
+  notes?: string;
+  sourceKind?: 'device' | 'cable' | 'reservation' | 'generated' | 'manual';
+  sourceIds?: string[];
+}
+
+export interface ChecklistRecord {
+  id: string;
+  status: ChecklistStatus;
+  notes?: string;
+  checkedAt?: string;
+}
+
+export interface LayoutBaselineMetrics {
+  deviceCount: number;
+  cableCount: number;
+  occupiedU: number;
+  freeU: number;
+  reservedU: number;
+  powerW: number;
+  heatScore: number;
+  noiseDb: number;
+  freeNetworkPorts: number;
+  freePowerPorts: number;
+  validationIssues: number;
+  documentationIssues: number;
+  riskScore: number;
+  documentationScore: number;
+}
+
+export interface RackLayoutSnapshot {
+  name: string;
+  rackType: RackType;
+  heightU: number;
+  rackDepthMm: number;
+  weightLimitKg: number;
+  powerBudgetW: number;
+  viewSide: ViewSide;
+  devices: PlacedDevice[];
+  cables: CableRoute[];
+  reservations?: RackReservation[];
+  rearClearanceMm?: number;
+  frontDoorClearanceMm?: number;
+  rearDoorClearanceMm?: number;
+  railMinDepthMm?: number;
+  railMaxDepthMm?: number;
+  electricityRatePerKwh?: number;
+}
+
+export interface RackGoldenBaseline {
+  name: string;
+  capturedAt: string;
+  snapshot: RackLayoutSnapshot;
+  metrics: LayoutBaselineMetrics;
+}
+
+export interface RackChangeEvent {
+  id: string;
+  title: string;
+  scheduledFor: string;
+  riskLevel: ChangeRiskLevel;
+  expectedDowntimeMin?: number;
+  owner?: string;
+  notes?: string;
+  rollbackNotes?: string;
+  status: ChangeEventStatus;
+  affectedDeviceIds?: string[];
+  affectedCableIds?: string[];
+  requiresReadiness?: boolean;
+  requiresCommissioning?: boolean;
+}
+
+export type RackPolicyType =
+  | 'ups-bottom-zone'
+  | 'heavy-device-bottom-zone'
+  | 'free-u-percent'
+  | 'switch-port-free-percent'
+  | 'dual-psu-circuit-split'
+  | 'heat-separation'
+  | 'power-budget-headroom'
+  | 'no-endpoint-switch-direct';
+
+export interface RackPolicy {
+  id: string;
+  type: RackPolicyType;
+  enabled: boolean;
+  severity: 'warning' | 'critical';
+  params: Record<string, number | string>;
+}
+
+export type InterRackCableType = 'fiber' | 'sfp+' | 'cat6a' | 'dac';
+
+export interface InterRackCable {
+  id: string;
+  fromRackId: string;
+  fromDeviceId: string;
+  fromPort: PortRef;
+  toRackId: string;
+  toDeviceId: string;
+  toPort: PortRef;
+  type: InterRackCableType;
+  lengthM?: number;
+  label?: string;
+  color?: string;
+  notes?: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  racks: RackLayout[];
+  interRackCables: InterRackCable[];
+  updatedAt: string;
+}
+
 export interface RackLayout {
   id: string;
   name: string;
@@ -242,6 +381,12 @@ export interface RackLayout {
   devices: PlacedDevice[];
   cables: CableRoute[];
   reservations?: RackReservation[];
+  procurementItems?: ProcurementItem[];
+  readinessChecks?: ChecklistRecord[];
+  commissioningChecks?: ChecklistRecord[];
+  goldenBaseline?: RackGoldenBaseline;
+  changeEvents?: RackChangeEvent[];
+  policies?: RackPolicy[];
   updatedAt: string;
   rearClearanceMm?: number;
   frontDoorClearanceMm?: number;

@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/index.css';
+import { useRackStore } from './store/rackStore';
+
+// Expose store for E2E testing
+(window as unknown as Record<string, unknown>).__rackStore = useRackStore;
 
 interface ErrorBoundaryState {
   error: Error | null;
