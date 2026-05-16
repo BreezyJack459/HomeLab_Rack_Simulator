@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (50 files / 836 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (51 files / 846 tests passed).
 
 ## Completed ✅
 
@@ -977,9 +977,22 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/spareParts.ts`, `src/utils/spareParts.test.ts`, `src/components/SparePartsPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium | **Boredom**: 😴😴😴😴🌕
 
-### 48. Change Request / Approval Workflow
+### 48. Change Request / Approval Workflow — ✅ IMPLEMENTED (2026-05-17)
 **Why**: If you share the lab with family, roommates, or a team, "I'm going to take the network down for 3 hours" needs communication.
 **What to do**: Before moving/deleting/adding a device, submit a change request with risk level, expected downtime, rollback plan. Another user (or your future self) approves. Changes are logged with who approved what and when.
+**Status**: Shipped with `ChangeRequest` type on `RackLayout`, `changeRequests.ts` utility with summary stats, validation (missing device/cable references, high-risk without rollback), and CSV/Markdown export. `ChangeRequestPanel` with full CRUD, status filtering (pending/approved/rejected/completed), inline editing, approve/reject/complete actions, affected device/cable display, and export buttons. 16 unit tests.
+**MVP scope**:
+- Submit change requests with title, description, risk level, expected downtime, rollback plan.
+- Approve, reject, or complete requests with timestamp and approver tracking.
+- Filter requests by status.
+- Validate that affected devices and cables still exist.
+- Warn when high-risk requests lack rollback plans.
+- Export change request log as CSV and Markdown.
+**Later scope**:
+- Integration with Rack Change Calendar (#48) for scheduled changes.
+- Email/notification integration for approvals.
+- Require approval before certain high-risk operations.
+**Files touched**: `src/types/rack.ts`, new `src/utils/changeRequests.ts`, new `src/utils/changeRequests.test.ts`, new `src/components/ChangeRequestPanel.tsx`, `src/App.tsx`
 **Effort**: Medium | **Boredom**: 😴😴😴😴😴
 
 ### 49. Patch Panel Punch-Down Documentation — ✅ IMPLEMENTED (2026-05-17)
