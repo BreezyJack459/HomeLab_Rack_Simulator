@@ -323,8 +323,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 4, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.42 },
-        { type: 'fiber', columns: 4, xRatio: 0.88 },
+        { type: 'ethernet', columns: 12, xRatio: 0.42, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 4, xRatio: 0.88, speed: '10G', mediaType: 'sfp+' },
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 },
@@ -346,8 +346,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, fiber: 4, power: 2, layoutColumns: 5 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 1, xRatio: 0.15 },
-        { type: 'fiber', columns: 4, xRatio: 0.72 },
+        { type: 'ethernet', columns: 1, xRatio: 0.15, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 4, xRatio: 0.72, speed: '10G', mediaType: 'sfp+' },
       ],
       rear: [
         { type: 'power', columns: 2, xRatio: 0.5 },
@@ -390,8 +390,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.38 },
-        { type: 'fiber', columns: 2, xRatio: 0.9 }
+        { type: 'ethernet', columns: 12, xRatio: 0.38, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 2, xRatio: 0.9, speed: '10G', mediaType: 'sfp+' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
@@ -413,8 +413,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 8, fiber: 2, power: 1, layoutColumns: 8 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 8, xRatio: 0.42 },
-        { type: 'fiber', columns: 2, xRatio: 0.88 },
+        { type: 'ethernet', columns: 8, xRatio: 0.42, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 2, xRatio: 0.88, speed: '10G', mediaType: 'sfp+' },
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 },
@@ -456,10 +456,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 9, fiber: 2, power: 1, layoutColumns: 11 },
     portLayouts: {
       front: [
-        { type: 'ethernet', count: 1, columns: 1, xRatio: 0.12 },
-        { type: 'ethernet', count: 8, columns: 8, xRatio: 0.48 },
-        { type: 'fiber', count: 1, columns: 1, xRatio: 0.82 },
-        { type: 'fiber', count: 1, columns: 1, xRatio: 0.92 }
+        { type: 'ethernet', count: 1, columns: 1, xRatio: 0.12, speed: '1G', mediaType: 'rj45' },
+        { type: 'ethernet', count: 8, columns: 8, xRatio: 0.48, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.82, speed: '10G', mediaType: 'sfp+' },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.92, speed: '10G', mediaType: 'sfp+' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
@@ -481,7 +481,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 5, power: 1, layoutColumns: 6 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 5, xRatio: 0.42 },
+        { type: 'ethernet', columns: 5, xRatio: 0.42, speed: '2.5G', mediaType: 'rj45' },
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 },
@@ -503,8 +503,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 8, fiber: 1, power: 1, layoutColumns: 9 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 8, xRatio: 0.42 },
-        { type: 'fiber', columns: 1, xRatio: 0.88 },
+        { type: 'ethernet', columns: 8, xRatio: 0.42, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 1, xRatio: 0.88, speed: '10G', mediaType: 'sfp+' },
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 },
@@ -1327,8 +1327,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, usb: 2, hdmi: 1, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'fiber', columns: 2, xRatio: 0.7 },
+        { type: 'ethernet', columns: 2, xRatio: 0.3, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 2, xRatio: 0.7, speed: '10G', mediaType: 'sfp+' },
         { type: 'usb', columns: 2, xRatio: 0.5 },
         { type: 'hdmi', columns: 1, xRatio: 0.7 },
         { type: 'power', columns: 2, xRatio: 0.5 },
@@ -1370,8 +1370,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, usb: 4, hdmi: 1, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'fiber', columns: 2, xRatio: 0.7 },
+        { type: 'ethernet', columns: 2, xRatio: 0.3, speed: '1G', mediaType: 'rj45' },
+        { type: 'fiber', columns: 2, xRatio: 0.7, speed: '25G', mediaType: 'sfp+' },
         { type: 'usb', columns: 4, xRatio: 0.5 },
         { type: 'hdmi', columns: 1, xRatio: 0.7 },
         { type: 'power', columns: 2, xRatio: 0.5 },
@@ -2066,6 +2066,86 @@ export const deviceCatalog: DeviceTemplate[] = [
     },
     color: '#111827',
     description: 'UniFi SmartPower Redundant Power System, 6x USP-RPS DC output ports, 1U rackmount.'
+  },
+  {
+    id: 'printed-bracket-l',
+    category: 'printed-mount',
+    name: '3D-printed L-bracket',
+    defaultU: 1,
+    depthMm: 80,
+    widthType: '19in',
+    weightKg: 0.15,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'Parametric L-bracket for non-rackmount gear. Check clearance before printing.'
+  },
+  {
+    id: 'printed-tray-mini',
+    category: 'printed-mount',
+    name: '3D-printed mini tray',
+    defaultU: 1,
+    depthMm: 150,
+    widthType: '10in',
+    weightKg: 0.25,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'Small shelf tray for SBCs, NUCs, or modems in a 10-inch rack.'
+  },
+  {
+    id: 'printed-tray-19in',
+    category: 'printed-mount',
+    name: '3D-printed 19-inch tray',
+    defaultU: 1,
+    depthMm: 200,
+    widthType: '19in',
+    weightKg: 0.4,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'Full-width printed tray for lightweight devices. Verify layer orientation for strength.'
+  },
+  {
+    id: 'printed-din-rail-clip',
+    category: 'printed-mount',
+    name: '3D-printed DIN rail clip',
+    defaultU: 1,
+    depthMm: 40,
+    widthType: 'custom',
+    customWidthMm: 80,
+    weightKg: 0.08,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'DIN-rail adapter clip for industrial IoT or relay modules.'
+  },
+  {
+    id: 'printed-vertical-strip',
+    category: 'printed-mount',
+    name: '3D-printed vertical adapter strip',
+    defaultU: 2,
+    depthMm: 30,
+    widthType: 'custom',
+    customWidthMm: 40,
+    weightKg: 0.12,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'Vertical strip for side-post or rear-post mounting small accessories.'
+  },
+  {
+    id: 'printed-rail-pair',
+    category: 'printed-mount',
+    name: '3D-printed rail pair',
+    defaultU: 1,
+    depthMm: 180,
+    widthType: '19in',
+    weightKg: 0.3,
+    powerW: 0,
+    heatLevel: 1,
+    color: '#f59e0b',
+    description: 'Sliding rail pair for shallow mini-PC or NUC mounts. Check weight rating.'
   },
   {
     id: 'custom-device',

@@ -6,7 +6,7 @@
 import type { CableType, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
 import { DEFAULT_CABLE_COLORS } from './cableColors';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
-import { getPortFaceMap } from './portLayout';
+import { getPortFaceMap, getPortMetadata } from './portLayout';
 import { getPatchPanelJacks, patchPanelJackStatusLabel } from './patchPanel';
 
 export type PortFace = 'front' | 'rear';
@@ -164,6 +164,8 @@ export interface PortChoice extends PortOption {
   deviceName: string;
   type: PortType;
   cableTypes: CableType[];
+  speed?: import('../types/rack').PortSpeed;
+  mediaType?: import('../types/rack').MediaType;
 }
 
 const ALL_CABLE_TYPES: CableType[] = ['structured', 'patch', 'ethernet', 'power', 'fiber', 'usb', 'hdmi', 'atx', 'coax'];
@@ -181,12 +183,15 @@ export function portChoicesForDevice(device: PlacedDevice, layout: RackLayout): 
         existing.disabled = existing.disabled && option.disabled;
         return;
       }
+      const meta = option.side ? getPortMetadata(device, option.side, type, option.index) : undefined;
       choices.set(key, {
         ...option,
         deviceId: device.id,
         deviceName: device.name,
         type,
-        cableTypes: [cableType]
+        cableTypes: [cableType],
+        speed: meta?.speed,
+        mediaType: meta?.mediaType,
       });
     });
   });

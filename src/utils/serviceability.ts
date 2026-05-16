@@ -33,6 +33,13 @@ export interface HeavyOverLightIssue {
   gapU: number;
 }
 
+export interface DeviceMaintenanceChecklistItem {
+  id: string;
+  severity: 'critical' | 'warning' | 'info' | 'ok';
+  title: string;
+  detail: string;
+}
+
 export function getCableStrainRisks(layout: RackLayout): CableStrainRisk[] {
   const risks: CableStrainRisk[] = [];
 
@@ -166,4 +173,91 @@ export function getServiceabilityIssues(layout: RackLayout): ValidationIssue[] {
   }
 
   return issues;
+}
+
+export function getServiceabilityHighlightedDeviceIds(layout: RackLayout): string[] {
+  return Array.from(
+    new Set([
+      ...getCableStrainRisks(layout).map((risk) => risk.deviceId),
+      ...getFrontRearCollisions(layout).flatMap((collision) => [collision.frontDeviceId, collision.rearDeviceId]),
+      ...getHeavyOverLightIssues(layout).flatMap((issue) => [issue.upperDeviceId, issue.lowerDeviceId]),
+    ])
+  );
+}
+
+export function getDeviceMaintenanceChecklist(layout: RackLayout, deviceId: string): DeviceMaintenanceChecklistItem[] {
+  const device = layout.devices.find((candidate) => candidate.id === deviceId);
+  if (!device) return [];
+
+  const items: DeviceMaintenanceChecklistItem[] = [];
+  const strainRisks = getCableStrainRisks(layout).filter((risk) => risk.deviceId === deviceId);
+  const collisions = getFrontRearCollisions(layout).filter(
+    (collision) => collision.frontDeviceId === deviceId || collision.rearDeviceId === deviceId
+  );
+  const heavyIssues = getHeavyOverLightIssues(layout).filter(
+    (issue) => issue.upperDeviceId === deviceId || issue.lowerDeviceId === deviceId
+  );
+
+  if (collisions.length === 0) {
+    items.push({
+      id: `${deviceId}-depth-clear`,
+      severity: 'ok',
+      title: 'Depth clearance',
+      detail: 'No front/rear depth collision detected for this device.',
+    });
+  } else {
+    for (const collision of collisions) {
+      const counterpart =
+        collision.frontDeviceId === deviceId ? collision.rearDeviceName : collision.frontDeviceName;
+      items.push({
+        id: `collision-${collision.frontDeviceId}-${collision.rearDeviceId}`,
+        severity: 'critical',
+        title: 'Resolve front/rear collision',
+        detail: `Conflicts with ${counterpart}. Combined depth is ${collision.combinedDepthMm}mm in a ${collision.rackDepthMm}mm rack.`,
+      });
+    }
+  }
+
+  if (strainRisks.length === 0) {
+    items.push({
+      id: `${deviceId}-strain-clear`,
+      severity: 'ok',
+      title: 'Service slack',
+      detail: 'Attached cables appear long enough for pull-out service.',
+    });
+  } else {
+    for (const risk of strainRisks) {
+      items.push({
+        id: `strain-${risk.cableId}-${risk.deviceId}`,
+        severity: 'warning',
+        title: 'Lengthen service cable',
+        detail: `Cable is ${risk.cableLengthMm}mm but ${risk.requiredLengthMm}mm is recommended for maintenance travel.`,
+      });
+    }
+  }
+
+  if (heavyIssues.length === 0) {
+    items.push({
+      id: `${deviceId}-access-clear`,
+      severity: 'ok',
+      title: 'Access path',
+      detail: 'No nearby heavy-over-light access hazard detected.',
+    });
+  } else {
+    for (const issue of heavyIssues) {
+      const counterpart = issue.upperDeviceId === deviceId ? issue.lowerDeviceName : issue.upperDeviceName;
+      const action =
+        issue.upperDeviceId === deviceId
+          ? `Document a safe removal/support plan before servicing ${counterpart}.`
+          : `Plan to support or remove ${counterpart} before servicing this device.`;
+      items.push({
+        id: `heavy-${issue.upperDeviceId}-${issue.lowerDeviceId}`,
+        severity: 'info',
+        title: 'Heavy device access hazard',
+        detail: `${action} Current gap: ${issue.gapU}U.`,
+      });
+    }
+  }
+
+  return items;
 }

@@ -170,6 +170,34 @@ export function estimateCableLength(
   return standardCableLength(verticalMm + horizontalMm + CABLE_SLACK_MM);
 }
 
+export interface CableSlackBudget {
+  pathLengthMm: number;
+  requiredLengthMm: number;
+  recommendedLengthMm: number;
+  slackMm: number;
+  serviceLoopMm: number;
+  bendRadiusMm: number;
+  providedLengthMm: number | null;
+  missingMm: number;
+}
+
+export function getCableSlackBudget(layout: RackLayout, cable: CableRoute): CableSlackBudget | null {
+  const plan = calculateCablePlan(cable, layout);
+  if (!plan) return null;
+  const providedLengthMm = cable.lengthMm && cable.lengthMm > 0 ? cable.lengthMm : null;
+  const requiredLengthMm = plan.estimatedLengthMm;
+  return {
+    pathLengthMm: plan.baseLengthMm,
+    requiredLengthMm,
+    recommendedLengthMm: plan.standardLengthMm,
+    slackMm: plan.slackMm,
+    serviceLoopMm: plan.render.serviceLoopMm,
+    bendRadiusMm: plan.render.bendRadiusMm,
+    providedLengthMm,
+    missingMm: providedLengthMm && providedLengthMm < requiredLengthMm ? requiredLengthMm - providedLengthMm : 0
+  };
+}
+
 function classifyDiscipline(cable: CableRoute, from: PlacedDevice, to: PlacedDevice): CableRoutingDiscipline {
   if (cable.type === 'power') return 'power';
   if (cable.type === 'structured') return 'structured';

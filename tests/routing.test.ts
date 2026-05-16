@@ -149,3 +149,60 @@ test('validation surfaces route-plan warnings alongside existing wiring rules', 
   expect(issueIds.has('patch-jack-dark-test-patch-0')).toBe(true);
   expect(issueIds.has('patch-jack-unpatched-test-patch-1')).toBe(true);
 });
+
+test('manual cable lengths must cover routed path plus slack budget', () => {
+  const shortLayout: RackLayout = {
+    ...testBench,
+    devices: [
+      {
+        id: 'short-switch',
+        category: 'switch',
+        name: 'Short Switch',
+        positionU: 2,
+        sizeU: 1,
+        depthMm: 200,
+        widthType: '19in',
+        weightKg: 3,
+        powerW: 30,
+        heatLevel: 2,
+        color: '#0ea5e9',
+        ports: { ethernet: 24 },
+        mountSide: 'front'
+      },
+      {
+        id: 'short-patch',
+        category: 'patch-panel',
+        name: 'Short Patch',
+        positionU: 8,
+        sizeU: 1,
+        depthMm: 120,
+        widthType: '19in',
+        weightKg: 2,
+        powerW: 0,
+        heatLevel: 1,
+        color: '#334155',
+        ports: { ethernet: 24 },
+        mountSide: 'front'
+      }
+    ],
+    cables: [
+      {
+        id: 'short-cable',
+        fromDeviceId: 'short-switch',
+        fromPort: { type: 'ethernet', index: 0, side: 'front' },
+        toDeviceId: 'short-patch',
+        toPort: { type: 'ethernet', index: 0, side: 'front' },
+        type: 'patch',
+        color: '#0ea5e9',
+        lengthMm: 200
+      }
+    ]
+  };
+
+  const issues = validateRackLayout(shortLayout);
+  const shortCable = issues.find((issue) => issue.id === 'cable-short-short-cable');
+
+  expect(shortCable).toBeTruthy();
+  expect(shortCable?.detail).toContain('plus');
+  expect(shortCable?.detail).toContain('slack');
+});
