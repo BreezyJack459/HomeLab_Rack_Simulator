@@ -246,8 +246,13 @@ function connectionX(
   return baseX;
 }
 
-export function CableMap() {
-  const layout = useRackStore((state) => state.layout);
+interface CableMapProps {
+  layout?: RackLayout;
+}
+
+export function CableMap({ layout: layoutOverride }: CableMapProps) {
+  const storeLayout = useRackStore((state) => state.layout);
+  const layout = layoutOverride ?? storeLayout;
   const selectedCableId = useRackStore((state) => state.selectedCableId);
   const selectCable = useRackStore((state) => state.selectCable);
   const selectDevice = useRackStore((state) => state.selectDevice);

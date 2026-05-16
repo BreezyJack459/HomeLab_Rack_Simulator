@@ -89,6 +89,8 @@ export function PropertyPanel() {
   }, [device, layout.cables, layout.devices]);
 
   const [isOpen, setIsOpen] = useState(true);
+  const [selectedAliasKey, setSelectedAliasKey] = useState('');
+  const [aliasInput, setAliasInput] = useState('');
 
   return (
     <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
@@ -171,6 +173,44 @@ export function PropertyPanel() {
                 <option value="non-critical">Non-critical - shed first</option>
               </select>
             </label>
+          )}
+
+          {canSetShutdownPriority(device) && (
+            <>
+              <label className="text-xs text-slate-500 dark:text-slate-400">
+                Boot depends on
+                <select
+                  multiple
+                  className="mt-1 min-h-[4.5rem] w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  value={device.bootDependsOn ?? []}
+                  onChange={(event) => {
+                    const options = Array.from(event.target.selectedOptions).map((o) => o.value);
+                    patch({ bootDependsOn: options.length > 0 ? options : undefined });
+                  }}
+                >
+                  {layout.devices
+                    .filter(
+                      (d) =>
+                        d.id !== device.id &&
+                        d.category !== 'blank' &&
+                        d.category !== 'cable-management'
+                    )
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} (U{d.positionU})
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <NumberField
+                label="Boot delay (seconds)"
+                value={device.bootDelaySeconds ?? 0}
+                min={0}
+                step={1}
+                onChange={(value) => patch({ bootDelaySeconds: value > 0 ? value : undefined })}
+              />
+            </>
           )}
 
           {(device.category === 'ups' || device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u')) && (
@@ -389,6 +429,104 @@ export function PropertyPanel() {
                       );
                     })}
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* Port Aliases */}
+            {(() => {
+              const prefixMap: Record<string, string> = {
+                ethernet: 'eth',
+                fiber: 'fiber',
+                usb: 'usb',
+                hdmi: 'hdmi',
+                power: 'power',
+                atx: 'atx',
+                coax: 'coax'
+              };
+              const portKeys: string[] = [];
+              if (device.ports) {
+                for (const [type, count] of Object.entries(device.ports)) {
+                  if (type === 'layoutColumns') continue;
+                  const prefix = prefixMap[type] ?? type;
+                  for (let i = 0; i < (count ?? 0); i++) {
+                    portKeys.push(`${prefix}${i}`);
+                  }
+                }
+              }
+              if (portKeys.length === 0) {
+                return (
+                  <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Port Aliases</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">No ports available for aliasing</div>
+                  </div>
+                );
+              }
+              const aliases = device.portAliases ?? {};
+              const unusedKeys = portKeys.filter((key) => !aliases[key]);
+              return (
+                <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Port Aliases</div>
+                  {Object.keys(aliases).length > 0 && (
+                    <div className="mb-2 space-y-1">
+                      {Object.entries(aliases).map(([key, alias]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{key}</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500">→</span>
+                          <span className="flex-1 text-xs text-slate-700 dark:text-slate-200">{alias}</span>
+                          <button
+                            type="button"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
+                            onClick={() => {
+                              const next = { ...aliases };
+                              delete next[key];
+                              patch({ portAliases: Object.keys(next).length > 0 ? next : undefined });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {unusedKeys.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="h-7 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                        value={selectedAliasKey}
+                        onChange={(event) => setSelectedAliasKey(event.target.value)}
+                      >
+                        <option value="">Select port…</option>
+                        {unusedKeys.map((key) => (
+                          <option key={key} value={key}>{key}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        className="h-7 flex-1 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                        placeholder="Alias name"
+                        value={aliasInput}
+                        onChange={(event) => setAliasInput(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="inline-flex h-7 items-center rounded-md border border-slate-300 bg-slate-200 px-2 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                        onClick={() => {
+                          if (!selectedAliasKey || !aliasInput.trim()) return;
+                          patch({
+                            portAliases: {
+                              ...aliases,
+                              [selectedAliasKey]: aliasInput.trim()
+                            }
+                          });
+                          setSelectedAliasKey('');
+                          setAliasInput('');
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })()}

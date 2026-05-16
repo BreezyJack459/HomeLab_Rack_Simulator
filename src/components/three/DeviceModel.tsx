@@ -81,15 +81,29 @@ function DevicePortFace({
                   />
                 </mesh>
                 {(showDetailedLabels || isHovered) && (
-                  <Text
-                    fontSize={Math.min(0.016, slot.width * 0.4)}
-                    color={isHovered ? '#ffffff' : '#0f172a'}
-                    anchorX="center"
-                    anchorY="middle"
-                    position={[0, 0, 0.003]}
-                  >
-                    {`${slot.index + 1}`}
-                  </Text>
+                  <>
+                    <Text
+                      fontSize={Math.min(0.016, slot.width * 0.4)}
+                      color={isHovered ? '#ffffff' : '#0f172a'}
+                      anchorX="center"
+                      anchorY="middle"
+                      position={[0, 0, 0.003]}
+                    >
+                      {`${slot.index + 1}`}
+                    </Text>
+                    {slot.speed && (
+                      <Text
+                        fontSize={Math.min(0.011, slot.width * 0.28)}
+                        color={isHovered ? '#ffffff' : '#0f172a'}
+                        anchorX="center"
+                        anchorY="bottom"
+                        position={[0, slot.height * 0.42, 0.004]}
+                      >
+                        {slot.speed}
+                        {slot.mediaType && slot.mediaType !== 'rj45' ? ` ${slot.mediaType}` : ''}
+                      </Text>
+                    )}
+                  </>
                 )}
               </group>
             );
@@ -103,7 +117,7 @@ function DevicePortFace({
               position={[0, -deviceHeight * 0.34, 0.006]}
               maxWidth={deviceWidth * 0.82}
             >
-              {`${group.slots.length} ${group.type}`}
+              {`${group.slots.length} ${group.type}${group.slots[0]?.speed ? ` ${group.slots[0].speed}${group.slots[0].mediaType && group.slots[0].mediaType !== 'rj45' ? ` ${group.slots[0].mediaType}` : ''}` : ''}`}
             </Text>
           )}
         </group>

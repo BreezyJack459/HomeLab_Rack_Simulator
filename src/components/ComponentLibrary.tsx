@@ -25,6 +25,7 @@ const categories: Array<{ id: 'all' | DeviceCategory; label: string }> = [
   { id: 'blank', label: 'Blank Panel' },
   { id: 'sbc', label: 'SBC' },
   { id: 'ip-kvm', label: 'IP KVM' },
+  { id: 'printed-mount', label: '3D Printed' },
   { id: 'custom', label: 'Custom' }
 ];
 
