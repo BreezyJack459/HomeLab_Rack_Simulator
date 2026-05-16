@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (57 files / 902 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (58 files / 914 tests passed).
 
 ## Completed ✅
 
@@ -217,7 +217,7 @@
 - [x] UPS runtime planner with critical-load grouping and shutdown priority (`upsRuntime.ts`, `UpsRuntimePanel`, outage priority UI, shutdown plan, critical-load warnings)
 - [~] Rack depth / rail / rear-clearance compatibility checks for rails, rear doors, shelves, and cable bend space — `DepthCompatibilityPanel` now models rail min/max, front/rear door clearance, and rear cable bend needs; combined printed-mount envelope still pending
 - [~] Serviceability / maintenance access mode for pull-out clearance, cable slack, and hard-to-reach devices — overlay highlights and selected-device maintenance checklist shipped; deeper pull-out path simulation still pending
-- [ ] Live sensor overlay for actual vs planned power, temperature, and fan readings
+- [x] Live sensor overlay for actual vs planned power, temperature, and fan readings (`DeviceSensorReading`, `deviceSensors.ts`, `DeviceSensorPanel`, 12 unit tests)
 - [x] Full build procurement planner for owned vs needed devices, shelves, rails, screws, cables, and printed parts (`BuildPlanner`, `procurement.ts`, persisted `procurementItems`, CSV/TXT export, generated hardware/accessory checklist)
 - [x] Rack readiness / build-day checklist (`readinessChecklist.ts`, `ReadinessChecklist`, persisted checklist state, Markdown export)
 - [x] Rack commissioning checklist (`commissioning.ts`, `CommissioningChecklist`, pass/fail tracking, commissioning report export)

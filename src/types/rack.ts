@@ -569,6 +569,7 @@ export interface RackLayout {
   domainAssignments?: DomainAssignment[];
   environment?: RackEnvironment;
   photos?: RackPhoto[];
+  sensorReadings?: DeviceSensorReading[];
 }
 
 export interface RackPhoto {
@@ -583,6 +584,19 @@ export interface RackEnvironment {
   roomTempC?: number;
   roomHumidityPercent?: number;
   ambientNoiseDb?: number;
+  recordedAt?: string;
+  notes?: string;
+}
+
+export interface DeviceSensorReading {
+  id: string;
+  deviceId: string;
+  powerActualW?: number;
+  powerPlannedW?: number;
+  tempActualC?: number;
+  tempPlannedC?: number;
+  fanActualRpm?: number;
+  fanPlannedRpm?: number;
   recordedAt?: string;
   notes?: string;
 }
