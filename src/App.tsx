@@ -35,6 +35,7 @@ const CableMap = lazy(() => import('./components/CableMap').then((m) => ({ defau
 const CablePlanner = lazy(() => import('./components/CablePlanner').then((m) => ({ default: m.CablePlanner })));
 const NetworkTopology = lazy(() => import('./components/NetworkTopology').then((m) => ({ default: m.NetworkTopology })));
 const CableTracePanel = lazy(() => import('./components/CableTracePanel').then((m) => ({ default: m.CableTracePanel })));
+const CableLabelPanel = lazy(() => import('./components/CableLabelPanel').then((m) => ({ default: m.CableLabelPanel })));
 const BootSequencePanel = lazy(() => import('./components/BootSequencePanel').then((m) => ({ default: m.BootSequencePanel })));
 const BuildPlanner = lazy(() => import('./components/BuildPlanner').then((m) => ({ default: m.BuildPlanner })));
 const CommissioningChecklist = lazy(() => import('./components/CommissioningChecklist').then((m) => ({ default: m.CommissioningChecklist })));
@@ -637,6 +638,7 @@ function App() {
             <PropertyPanel />
             <CablePlanner />
             <CableTracePanel />
+            <CableLabelPanel />
             <BuildPlanner />
             <ReadinessChecklist />
             <CommissioningChecklist />

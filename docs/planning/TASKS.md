@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (37 files / 646 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (38 files / 660 tests passed).
 
 ## Completed ✅
 
@@ -368,10 +368,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/RackEditor2D.tsx`, `src/components/ReservationPanel.tsx`, `src/utils/reservations.ts`, `src/utils/validation.ts`, `src/utils/layoutValidation.ts`
 **Effort**: Medium
 
-### 12. Cable / Device Label Protocol Generator
+### 12. Cable / Device Label Protocol Generator — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Real rack maintenance depends on consistent labels at both cable ends. This is separate from RU label printing: it is about endpoint naming, port IDs, rack IDs, and label export.
 **What to do**: Generate labels such as `R1-SW1:P24 <-> R1-PP1:F24`, detect inconsistent names, preview both cable-end labels, and export CSV for label printers.
-**Files to touch**: `src/utils/exporters.ts`, `src/components/CablePlanner.tsx`, new `src/utils/labeling.ts`
+**Status**: Shipped with both-end cable label generation (`RackName-Device:PORT_TYPEn <-> RackName-Device:PORT_TYPEn`), self-loop detection, orphaned device detection, missing port detection, duplicate source port detection, inconsistency summary, all/issues-only filter, CSV and Markdown export. Pure utility (`cableLabeling.ts`) with 14 unit tests.
+**Files touched**: `src/utils/cableLabeling.ts`, `src/utils/cableLabeling.test.ts`, `src/components/CableLabelPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 
 ### 13. Documentation Audit Mode — ✅ IMPLEMENTED
