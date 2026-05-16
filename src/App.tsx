@@ -75,6 +75,7 @@ const ReadinessChecklist = lazy(() => import('./components/ReadinessChecklist').
 const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
 const ServiceabilityPanel = lazy(() => import('./components/ServiceabilityPanel').then((m) => ({ default: m.ServiceabilityPanel })));
 const ServiceMapPanel = lazy(() => import('./components/ServiceMapPanel').then((m) => ({ default: m.ServiceMapPanel })));
+const PortReservationPanel = lazy(() => import('./components/PortReservationPanel').then((m) => ({ default: m.PortReservationPanel })));
 const UpsRuntimePanel = lazy(() => import('./components/UpsRuntimePanel').then((m) => ({ default: m.UpsRuntimePanel })));
 const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
 const WorkspaceManager = lazy(() => import('./components/WorkspaceManager').then((m) => ({ default: m.WorkspaceManager })));
@@ -669,6 +670,7 @@ function App() {
               onHighlightDevicesChange={setServiceabilityFocusDeviceIds}
             />
             <ServiceMapPanel />
+            <PortReservationPanel />
             <DocumentationAuditPanel />
             <ValidationPanel
               issues={issues}

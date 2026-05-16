@@ -545,6 +545,19 @@ export interface RackLayout {
   cableLengthAudits?: CableLengthAuditEntry[];
   evidenceRecords?: EvidenceRecord[];
   services?: RackService[];
+  portReservations?: PortReservation[];
+}
+
+export interface PortReservation {
+  id: string;
+  deviceId: string;
+  portType: PortType;
+  portIndex: number;
+  purpose: string;
+  expectedDevice?: string;
+  owner?: string;
+  notes?: string;
+  expiryDate?: string;
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
