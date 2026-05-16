@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (47 files / 770 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (47 files / 791 tests passed).
 
 ## Completed ✅
 
@@ -881,9 +881,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium-High
 **Dependencies**: Builds on Power Chain (#9), Rack Dependency Graph (#28), and Service Map Overlay (#47).
 
-### 47. Service Map Overlay
+### 47. Service Map Overlay — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Devices are not the goal; services are. Users care whether DNS, DHCP, VPN, Home Assistant, NAS, NVR, Plex, backups, and monitoring survive changes and failures.
 **What to do**: Add a service layer that maps logical services to hosts, storage, network paths, power dependencies, and backup targets.
+**Status**: Shipped with `RackService` type and `ServiceCriticality`, `serviceMap.ts` utility with SPOF detection, health validation, summary stats, and CSV/Markdown export, `ServiceMapPanel` with full CRUD, inline editing, dependency selectors, filter tabs, and export buttons. 20+ unit tests.
 **MVP scope**:
 - Add service records: name, criticality, host device, storage dependency, network dependency, power dependency, backup target, notes.
 - Show service badges on devices and a service-centric dependency view.
@@ -892,7 +893,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Import service lists from Proxmox, Unraid, TrueNAS, Docker Compose, or Home Assistant.
 - Service-level RTO/RPO tracking.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/serviceMap.ts`, new `src/components/ServiceMapPanel.tsx`, `src/utils/dependencyGraph.ts`, `src/utils/validation.ts`
+**Files touched**: `src/types/rack.ts`, new `src/utils/serviceMap.ts`, new `src/utils/serviceMap.test.ts`, new `src/components/ServiceMapPanel.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Builds on Hypervisor Config Sync (#38 in BRAINSTORM.md), Blast Radius Map (#28), and Backup Verification Log (#53).
 

@@ -491,6 +491,20 @@ export interface EvidenceRecord {
   notes?: string;
 }
 
+export type ServiceCriticality = 'critical' | 'high' | 'medium' | 'low';
+
+export interface RackService {
+  id: string;
+  name: string;
+  criticality: ServiceCriticality;
+  hostDeviceId?: string;
+  storageDeviceIds?: string[];
+  networkDeviceIds?: string[];
+  powerDeviceIds?: string[];
+  backupDeviceId?: string;
+  notes?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -530,6 +544,7 @@ export interface RackLayout {
   cleaningSchedule?: CleaningSchedule;
   cableLengthAudits?: CableLengthAuditEntry[];
   evidenceRecords?: EvidenceRecord[];
+  services?: RackService[];
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';

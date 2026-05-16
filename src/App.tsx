@@ -74,6 +74,7 @@ const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => 
 const ReadinessChecklist = lazy(() => import('./components/ReadinessChecklist').then((m) => ({ default: m.ReadinessChecklist })));
 const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
 const ServiceabilityPanel = lazy(() => import('./components/ServiceabilityPanel').then((m) => ({ default: m.ServiceabilityPanel })));
+const ServiceMapPanel = lazy(() => import('./components/ServiceMapPanel').then((m) => ({ default: m.ServiceMapPanel })));
 const UpsRuntimePanel = lazy(() => import('./components/UpsRuntimePanel').then((m) => ({ default: m.UpsRuntimePanel })));
 const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
 const WorkspaceManager = lazy(() => import('./components/WorkspaceManager').then((m) => ({ default: m.WorkspaceManager })));
@@ -667,6 +668,7 @@ function App() {
               onOverlayEnabledChange={setServiceabilityOverlayEnabled}
               onHighlightDevicesChange={setServiceabilityFocusDeviceIds}
             />
+            <ServiceMapPanel />
             <DocumentationAuditPanel />
             <ValidationPanel
               issues={issues}
