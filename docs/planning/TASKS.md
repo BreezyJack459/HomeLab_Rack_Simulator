@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (40 files / 687 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (41 files / 700 tests passed).
 
 ## Completed ✅
 
@@ -919,9 +919,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Complements Scheduled Layout Changes (#84 in BRAINSTORM.md), Change Risk Score (#30), and Commissioning Checklist (#42).
 
-### 49. Label Debt Heatmap
+### 49. Label Debt Heatmap — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Missing or stale labels are one of the cheapest problems to fix and one of the most expensive to discover during an outage. A heatmap makes the label gap obvious.
 **What to do**: Visualize label quality across devices, cables, ports, patch panels, and power feeds.
+**Status**: Shipped with `calculateLabelDebt()` utility scoring label completeness across upper/middle/lower rack zones, detecting missing device labels/serials/asset tags, missing cable port assignments, self-loops, orphaned devices, duplicate source ports, and unnamed reservations. Color-coded overall score and per-zone heatmap cards, severity-filtered issue list with expandable details, CSV and Markdown export. 13 unit tests.
 **MVP scope**:
 - Score label completeness and consistency per rack zone.
 - Highlight unlabeled cables, mismatched both-end labels, stale endpoint labels, and unnamed reserved ports.
@@ -930,7 +931,8 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Photo/OCR-assisted label verification.
 - Label aging reminders after major topology changes.
-**Files to touch**: `src/utils/documentationAudit.ts`, `src/utils/labeling.ts`, new `src/components/LabelDebtHeatmap.tsx`, `src/components/RackEditor2D.tsx`
+- Auto-generate rack debt items from label issues.
+**Files touched**: new `src/utils/labelDebt.ts`, new `src/utils/labelDebt.test.ts`, new `src/components/LabelDebtPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 **Dependencies**: Builds on Cable/Device Label Protocol Generator (#12), Documentation Audit (#13), and Photo Overlay (#37).
 
