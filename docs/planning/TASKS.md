@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-16. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (28 files / 468 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (32 files / 578 tests passed).
 
 ## Completed ✅
 
@@ -226,6 +226,7 @@
 - [x] Validation Explain Mode — expandable explanations for every validation issue type: what it means, why it matters, real-world symptom, fix difficulty, risk if ignored, and when to ignore (`validationExplanations.ts`, `ValidationPanel.tsx` UI with badges, 56 unit tests)
 - [x] Rack Debt Tracker — debt register for layout compromises with severity, status tracking (open/planned/fixed/accepted/ignored), scope (device/cable/zone/layout), debt score, health indicator, top-5 fix list, validation-issue-to-debt conversion, and full CRUD UI (`rackDebt.ts`, `RackDebtPanel.tsx`, store integration, 19 unit tests)
 - [x] Backup Verification Log — per-device backup tracking with destination, last backup date, size, restore test date/result, RPO target, 90-day overdue alert, pass rate dashboard, health indicators, and Markdown export (`backupTracking.ts`, `BackupVerificationPanel.tsx`, 20 unit tests)
+- [x] Asset Tag & Serial Number Registry — per-device asset fields (asset tag, serial number, purchase date, vendor, price, warranty, invoice ref), completeness summary, expired/expiring-soon warranty alerts, missing-field detection, CSV and Markdown export (`assetRegistry.ts`, `AssetRegistryPanel.tsx`, 15 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
@@ -949,9 +950,11 @@ The following items should not be picked as next work unless a regression appear
 
 > These will never get Reddit upvotes, but they are what separate a toy from a professional tool. Boring features are where the real value lives for long-term maintenance.
 
-### 45. Asset Tag & Serial Number Registry
+### 45. Asset Tag & Serial Number Registry — ✅ IMPLEMENTED (2026-05-17)
 **Why**: When the insurance company asks "what was stolen?" or a drive dies under warranty, you need serial numbers, purchase dates, and invoice PDFs. Everyone means to track this. Nobody does.
 **What to do**: Per-device fields for serial number, asset tag, purchase date, vendor, invoice upload, warranty end date, purchase price. Export as CSV/PDF for insurance claims.
+**Status**: Shipped with 7 asset fields on `PlacedDevice`, completeness tracking, expired/expiring-soon warranty alerts, missing-field detection, CSV/Markdown export, and inline editing panel.
+**Files touched**: `src/types/rack.ts`, `src/utils/assetRegistry.ts`, `src/utils/assetRegistry.test.ts`, `src/components/AssetRegistryPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴🌕
 
 ### 46. Maintenance Log / Service History

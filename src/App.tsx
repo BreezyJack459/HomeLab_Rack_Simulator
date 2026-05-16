@@ -44,6 +44,7 @@ const EnergySummary = lazy(() => import('./components/EnergySummary').then((m) =
 const FitCheckPanel = lazy(() => import('./components/FitCheckPanel').then((m) => ({ default: m.FitCheckPanel })));
 const BlastRadiusPanel = lazy(() => import('./components/BlastRadiusPanel').then((m) => ({ default: m.BlastRadiusPanel })));
 const BackupVerificationPanel = lazy(() => import('./components/BackupVerificationPanel').then((m) => ({ default: m.BackupVerificationPanel })));
+const AssetRegistryPanel = lazy(() => import('./components/AssetRegistryPanel').then((m) => ({ default: m.AssetRegistryPanel })));
 const ScenarioPlannerPanel = lazy(() => import('./components/ScenarioPlannerPanel').then((m) => ({ default: m.ScenarioPlannerPanel })));
 const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').then((m) => ({ default: m.RoomPlacementPanel })));
 const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
@@ -615,6 +616,7 @@ function App() {
             <FitCheckPanel />
             <BlastRadiusPanel />
             <BackupVerificationPanel />
+            <AssetRegistryPanel />
             <ScenarioPlannerPanel />
             <RoomPlacementPanel />
             <PolicyRulesPanel />

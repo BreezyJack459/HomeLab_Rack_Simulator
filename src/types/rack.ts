@@ -117,6 +117,13 @@ export interface PlacedDevice {
   bootDelaySeconds?: number;
   portAliases?: Record<string, string>;
   backups?: BackupRecord[];
+  assetTag?: string;
+  serialNumber?: string;
+  purchaseDate?: string;
+  vendor?: string;
+  purchasePrice?: number;
+  warrantyEndDate?: string;
+  invoiceRef?: string;
 }
 
 export interface BackupRecord {
