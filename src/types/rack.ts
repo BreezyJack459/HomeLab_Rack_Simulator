@@ -463,6 +463,30 @@ export interface CableLengthAuditEntry {
   notes?: string;
 }
 
+export type EvidenceType =
+  | 'receipt'
+  | 'serial-photo'
+  | 'firmware-screenshot'
+  | 'config-backup-hash'
+  | 'warranty-pdf'
+  | 'install-photo'
+  | 'test-result'
+  | 'thermal-photo'
+  | 'other';
+
+export interface EvidenceRecord {
+  id: string;
+  entityType: 'device' | 'cable' | 'rack';
+  entityId: string;
+  type: EvidenceType;
+  title: string;
+  source: string; // URL, file path, or description
+  capturedAt?: string; // ISO date
+  redacted?: boolean;
+  safeToExport?: boolean;
+  notes?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -501,6 +525,7 @@ export interface RackLayout {
   spareParts?: SparePart[];
   cleaningSchedule?: CleaningSchedule;
   cableLengthAudits?: CableLengthAuditEntry[];
+  evidenceRecords?: EvidenceRecord[];
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';

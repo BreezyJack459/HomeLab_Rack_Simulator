@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (42 files / 711 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (43 files / 720 tests passed).
 
 ## Completed ✅
 
@@ -937,9 +937,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Builds on Cable/Device Label Protocol Generator (#12), Documentation Audit (#13), and Photo Overlay (#37).
 
-### 50. Rack Evidence Locker
+### 50. Rack Evidence Locker — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Receipts, serial photos, firmware screenshots, warranty PDFs, config backup hashes, and installed-part photos are scattered across folders and phones. The rack layout should point to the evidence.
 **What to do**: Add attachment/reference records for proof and operational evidence without storing secrets directly.
+**Status**: Shipped with `EvidenceRecord` type (9 evidence types: receipt, serial photo, firmware screenshot, config backup hash, warranty PDF, install photo, test result, thermal photo, other), attached to devices, cables, or rack. EvidenceLockerPanel with CRUD, type badges with icons, entity selector, redaction and safe-to-export flags, capture date tracking, summary stats (records/safe export/redacted/unflagged), entity type filtering, CSV and Markdown export. 9 unit tests.
 **MVP scope**:
 - Attach evidence records to devices, cables, services, or rack-level documentation.
 - Evidence types: receipt, serial photo, firmware screenshot, config backup hash, warranty PDF, install photo, test result, thermal photo.
@@ -948,7 +949,8 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Integrity hash checks for external files.
 - Evidence requirements generated from policies.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/evidenceLocker.ts`, new `src/components/EvidenceLocker.tsx`, `src/utils/exporters.ts`
+- Include evidence summary in portfolio export.
+**Files touched**: `src/types/rack.ts`, new `src/utils/evidenceLocker.ts`, new `src/utils/evidenceLocker.test.ts`, new `src/components/EvidenceLockerPanel.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Extends Asset Registry (#45), Insurance Export (#58), Portfolio Export (#38), and Configuration Drift Detector (#45).
 

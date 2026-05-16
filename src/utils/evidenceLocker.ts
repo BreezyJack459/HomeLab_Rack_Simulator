@@ -1,0 +1,143 @@
+import type { CableRoute, EvidenceRecord, PlacedDevice, RackLayout } from '../types/rack';
+
+export interface EvidenceSummary {
+  totalRecords: number;
+  byType: Record<string, number>;
+  byEntity: Record<string, number>;
+  redactedCount: number;
+  safeToExportCount: number;
+  missingExportFlagCount: number;
+}
+
+export function summarizeEvidence(records: EvidenceRecord[]): EvidenceSummary {
+  const byType: Record<string, number> = {};
+  const byEntity: Record<string, number> = {};
+  let redactedCount = 0;
+  let safeToExportCount = 0;
+  let missingExportFlagCount = 0;
+
+  for (const r of records) {
+    byType[r.type] = (byType[r.type] ?? 0) + 1;
+    byEntity[r.entityType] = (byEntity[r.entityType] ?? 0) + 1;
+    if (r.redacted) redactedCount++;
+    if (r.safeToExport) safeToExportCount++;
+    if (r.safeToExport == null) missingExportFlagCount++;
+  }
+
+  return {
+    totalRecords: records.length,
+    byType,
+    byEntity,
+    redactedCount,
+    safeToExportCount,
+    missingExportFlagCount,
+  };
+}
+
+export function evidenceForEntity(
+  records: EvidenceRecord[],
+  entityType: EvidenceRecord['entityType'],
+  entityId: string
+): EvidenceRecord[] {
+  return records.filter((r) => r.entityType === entityType && r.entityId === entityId);
+}
+
+export function evidenceTypeLabel(type: EvidenceRecord['type']): string {
+  const labels: Record<string, string> = {
+    receipt: 'Receipt',
+    'serial-photo': 'Serial Photo',
+    'firmware-screenshot': 'Firmware Screenshot',
+    'config-backup-hash': 'Config Hash',
+    'warranty-pdf': 'Warranty PDF',
+    'install-photo': 'Install Photo',
+    'test-result': 'Test Result',
+    'thermal-photo': 'Thermal Photo',
+    other: 'Other',
+  };
+  return labels[type] ?? type;
+}
+
+export function entityOptions(layout: RackLayout): { type: EvidenceRecord['entityType']; id: string; name: string }[] {
+  const options: { type: EvidenceRecord['entityType']; id: string; name: string }[] = [
+    { type: 'rack', id: layout.id, name: layout.name },
+  ];
+
+  for (const d of layout.devices) {
+    options.push({ type: 'device', id: d.id, name: d.name });
+  }
+
+  for (const c of layout.cables) {
+    const fromName = layout.devices.find((d) => d.id === c.fromDeviceId)?.name ?? c.fromDeviceId;
+    const toName = layout.devices.find((d) => d.id === c.toDeviceId)?.name ?? c.toDeviceId;
+    options.push({ type: 'cable', id: c.id, name: `${fromName} → ${toName}` });
+  }
+
+  return options;
+}
+
+export function exportEvidenceCsv(records: EvidenceRecord[], layout: RackLayout): string {
+  const headers = ['ID', 'Type', 'Title', 'Entity Type', 'Entity Name', 'Source', 'Captured', 'Redacted', 'Safe to Export', 'Notes'];
+  const lines: string[] = [headers.join(',')];
+
+  const entityName = (r: EvidenceRecord): string => {
+    if (r.entityType === 'rack') return layout.name;
+    if (r.entityType === 'device') return layout.devices.find((d) => d.id === r.entityId)?.name ?? r.entityId;
+    const cable = layout.cables.find((c) => c.id === r.entityId);
+    if (cable) {
+      const fromName = layout.devices.find((d) => d.id === cable.fromDeviceId)?.name ?? cable.fromDeviceId;
+      const toName = layout.devices.find((d) => d.id === cable.toDeviceId)?.name ?? cable.toDeviceId;
+      return `${fromName} → ${toName}`;
+    }
+    return r.entityId;
+  };
+
+  for (const r of records) {
+    const row = [
+      r.id,
+      r.type,
+      `"${r.title.replace(/"/g, '""')}"`,
+      r.entityType,
+      `"${entityName(r).replace(/"/g, '""')}"`,
+      `"${r.source.replace(/"/g, '""')}"`,
+      r.capturedAt ?? '',
+      r.redacted ? 'Yes' : 'No',
+      r.safeToExport ? 'Yes' : 'No',
+      r.notes ? `"${r.notes.replace(/"/g, '""')}"` : '',
+    ];
+    lines.push(row.join(','));
+  }
+
+  return lines.join('\n');
+}
+
+export function exportEvidenceMarkdown(records: EvidenceRecord[], layout: RackLayout): string {
+  const lines: string[] = [
+    `# Evidence Locker — ${layout.name}`,
+    '',
+    `**Total Records:** ${records.length}`,
+    '',
+    '| Type | Title | Entity | Source | Date | Export Safe |',
+    '|------|-------|--------|--------|------|-------------|',
+  ];
+
+  const entityName = (r: EvidenceRecord): string => {
+    if (r.entityType === 'rack') return layout.name;
+    if (r.entityType === 'device') return layout.devices.find((d) => d.id === r.entityId)?.name ?? r.entityId;
+    const cable = layout.cables.find((c) => c.id === r.entityId);
+    if (cable) {
+      const fromName = layout.devices.find((d) => d.id === cable.fromDeviceId)?.name ?? cable.fromDeviceId;
+      const toName = layout.devices.find((d) => d.id === cable.toDeviceId)?.name ?? cable.toDeviceId;
+      return `${fromName} → ${toName}`;
+    }
+    return r.entityId;
+  };
+
+  for (const r of records) {
+    lines.push(
+      `| ${r.type} | ${r.title} | ${entityName(r)} | ${r.source} | ${r.capturedAt ?? '-'} | ${r.safeToExport ? 'Yes' : 'No'} |`
+    );
+  }
+
+  lines.push('', '---', '', '*Generated by Homelab Rack Simulator*', '');
+  return lines.join('\n');
+}
