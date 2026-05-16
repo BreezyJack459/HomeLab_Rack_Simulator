@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { sampleLayouts } from '../data/sampleLayouts';
-import type { CableRoute, DeviceTemplate, PlacedDevice, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable, PortRef } from '../types/rack';
+import type { CableRoute, DeviceTemplate, PlacedDevice, RackDebtItem, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable, PortRef } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { shouldHideDevice, withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { calculateCableNodes } from '../utils/routing';
@@ -84,6 +84,7 @@ function createBlankLayout(rackType: RackType = '19in', heightU = 12): RackLayou
     readinessChecks: [],
     commissioningChecks: [],
     changeEvents: [],
+    debtItems: [],
     updatedAt: new Date().toISOString()
   };
 }
@@ -129,6 +130,7 @@ function normalizeLayout(layout: RackLayout): RackLayout {
     commissioningChecks: visibleLayout.commissioningChecks ?? [],
     changeEvents: visibleLayout.changeEvents ?? [],
     policies: visibleLayout.policies ?? [],
+    debtItems: visibleLayout.debtItems ?? [],
     updatedAt: new Date().toISOString()
   };
   const normalized = {
@@ -229,6 +231,9 @@ interface RackState {
   addPolicy: (policy: Omit<RackPolicy, 'id'>) => void;
   updatePolicy: (policyId: string, patch: Partial<RackPolicy>) => void;
   removePolicy: (policyId: string) => void;
+  addDebtItem: (item: Omit<RackDebtItem, 'id' | 'createdAt'>) => void;
+  updateDebtItem: (itemId: string, patch: Partial<RackDebtItem>) => void;
+  removeDebtItem: (itemId: string) => void;
   setRackType: (rackType: RackType) => void;
   setRackHeight: (heightU: number) => void;
   setViewSide: (viewSide: ViewSide) => void;
@@ -631,6 +636,54 @@ export const useRackStore = create<RackState>((set, get) => ({
         updatedAt: new Date().toISOString(),
       },
       statusMessage: 'Policy removed.',
+    });
+  },
+
+  addDebtItem: (item) => {
+    const layout = get().layout;
+    const newItem: RackDebtItem = {
+      ...(item as RackDebtItem),
+      id: `debt-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    set({
+      layout: {
+        ...layout,
+        debtItems: [...(layout.debtItems ?? []), newItem],
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: 'Debt item added.',
+    });
+  },
+
+  updateDebtItem: (itemId, patch) => {
+    const layout = get().layout;
+    const resolvedAt = patch.status === 'fixed' || patch.status === 'accepted' || patch.status === 'ignored'
+      ? new Date().toISOString()
+      : undefined;
+    set({
+      layout: {
+        ...layout,
+        debtItems: (layout.debtItems ?? []).map((item) =>
+          item.id === itemId
+            ? { ...item, ...patch, ...(resolvedAt ? { resolvedAt } : {}) }
+            : item
+        ),
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: null,
+    });
+  },
+
+  removeDebtItem: (itemId) => {
+    const layout = get().layout;
+    set({
+      layout: {
+        ...layout,
+        debtItems: (layout.debtItems ?? []).filter((item) => item.id !== itemId),
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: 'Debt item removed.',
     });
   },
 

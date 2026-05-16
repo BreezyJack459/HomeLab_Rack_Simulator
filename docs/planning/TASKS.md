@@ -224,6 +224,7 @@
 - [x] Golden layout baseline for before/after planning comparisons (`goldenBaseline`, `baseline.ts`, `GoldenBaselinePanel`, Markdown export, baseline-copy restore)
 - [x] Rack change calendar (`changeEvents`, `changeCalendar.ts`, `RackChangeCalendar`, overdue/conflict warnings, ICS/TXT export)
 - [x] Validation Explain Mode — expandable explanations for every validation issue type: what it means, why it matters, real-world symptom, fix difficulty, risk if ignored, and when to ignore (`validationExplanations.ts`, `ValidationPanel.tsx` UI with badges, 56 unit tests)
+- [x] Rack Debt Tracker — debt register for layout compromises with severity, status tracking (open/planned/fixed/accepted/ignored), scope (device/cable/zone/layout), debt score, health indicator, top-5 fix list, validation-issue-to-debt conversion, and full CRUD UI (`rackDebt.ts`, `RackDebtPanel.tsx`, store integration, 19 unit tests)
 - [ ] Multi-rack room layout
 - [ ] Thermal/airflow simulation
 - [ ] Import from NetBox/DCIM tools
