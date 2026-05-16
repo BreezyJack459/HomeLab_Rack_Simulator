@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
+import type { RackLayout } from '../types/rack';
 import { CanvasWithRecovery } from './CanvasWithRecovery';
 import { RackModel } from './three/RackModel';
 import { SceneSetup } from './three/SceneSetup';
@@ -10,8 +11,13 @@ const FRONT_CAMERA_POSITION: [number, number, number] = [4.6, 3.6, 7];
 const REAR_CAMERA_POSITION: [number, number, number] = [4.6, 3.6, -7];
 const RACK_CAMERA_TARGET: [number, number, number] = [0, 0.2, 0];
 
-export function RackViewer3D() {
-  const layout = useRackStore((state) => state.layout);
+interface RackViewer3DProps {
+  layout?: RackLayout;
+}
+
+export function RackViewer3D({ layout: layoutOverride }: RackViewer3DProps) {
+  const storeLayout = useRackStore((state) => state.layout);
+  const layout = layoutOverride ?? storeLayout;
   const [viewAngle, setViewAngle] = useState<'front' | 'rear'>('front');
 
   const cameraPosition = viewAngle === 'front' ? FRONT_CAMERA_POSITION : REAR_CAMERA_POSITION;

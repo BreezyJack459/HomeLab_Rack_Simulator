@@ -6,6 +6,8 @@ import {
   Download,
   FileJson,
   Monitor,
+  Network,
+  Plus,
   Redo,
   RotateCcw,
   Save,
@@ -13,6 +15,7 @@ import {
   Upload,
   View
 } from 'lucide-react';
+const CommandPalette = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 import { ComponentLibrary } from './components/ComponentLibrary';
 import { IssueBar } from './components/IssueBar';
 import { RackEditor2D } from './components/RackEditor2D';
@@ -20,28 +23,46 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { sampleLayouts } from './data/sampleLayouts';
 import { useRackStore } from './store/rackStore';
 import { RackType } from './types/rack';
-import type { ValidationIssue } from './types/rack';
-import { exportLayoutJson, exportRackPng, readJsonFile } from './utils/exporters';
+import type { LifecycleViewFilter, ValidationIssue } from './types/rack';
+import { downloadWorkspaceJson, exportLayoutJson, exportMigrationPlanMarkdown, exportRackPng, importWorkspaceJson, readJsonFile } from './utils/exporters';
+import { getFilteredLayoutByLifecycle } from './utils/migrationCalc';
 import { RACK_HEIGHT_OPTIONS, RACK_SPECS } from './utils/rackMath';
+import { getServiceabilityHighlightedDeviceIds } from './utils/serviceability';
 import { getRackTotals, validateRackLayout } from './utils/validation';
 import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
 
 const CableMap = lazy(() => import('./components/CableMap').then((m) => ({ default: m.CableMap })));
 const CablePlanner = lazy(() => import('./components/CablePlanner').then((m) => ({ default: m.CablePlanner })));
+const NetworkTopology = lazy(() => import('./components/NetworkTopology').then((m) => ({ default: m.NetworkTopology })));
 const CableTracePanel = lazy(() => import('./components/CableTracePanel').then((m) => ({ default: m.CableTracePanel })));
+const BootSequencePanel = lazy(() => import('./components/BootSequencePanel').then((m) => ({ default: m.BootSequencePanel })));
+const BuildPlanner = lazy(() => import('./components/BuildPlanner').then((m) => ({ default: m.BuildPlanner })));
+const CommissioningChecklist = lazy(() => import('./components/CommissioningChecklist').then((m) => ({ default: m.CommissioningChecklist })));
 const DepthCompatibilityPanel = lazy(() => import('./components/DepthCompatibilityPanel').then((m) => ({ default: m.DepthCompatibilityPanel })));
 const DocumentationAuditPanel = lazy(() => import('./components/DocumentationAuditPanel').then((m) => ({ default: m.DocumentationAuditPanel })));
 const EnergySummary = lazy(() => import('./components/EnergySummary').then((m) => ({ default: m.EnergySummary })));
+const FitCheckPanel = lazy(() => import('./components/FitCheckPanel').then((m) => ({ default: m.FitCheckPanel })));
+const BlastRadiusPanel = lazy(() => import('./components/BlastRadiusPanel').then((m) => ({ default: m.BlastRadiusPanel })));
+const ScenarioPlannerPanel = lazy(() => import('./components/ScenarioPlannerPanel').then((m) => ({ default: m.ScenarioPlannerPanel })));
+const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').then((m) => ({ default: m.RoomPlacementPanel })));
+const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
+const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
 const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
 const PowerChainPanel = lazy(() => import('./components/PowerChainPanel').then((m) => ({ default: m.PowerChainPanel })));
 const PropertyPanel = lazy(() => import('./components/PropertyPanel').then((m) => ({ default: m.PropertyPanel })));
+const RackChangeCalendar = lazy(() => import('./components/RackChangeCalendar').then((m) => ({ default: m.RackChangeCalendar })));
 const RackHealthDashboard = lazy(() => import('./components/RackHealthDashboard').then((m) => ({ default: m.RackHealthDashboard })));
+const CapacityForecastPanel = lazy(() => import('./components/CapacityForecastPanel').then((m) => ({ default: m.CapacityForecastPanel })));
 const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
+const ReadinessChecklist = lazy(() => import('./components/ReadinessChecklist').then((m) => ({ default: m.ReadinessChecklist })));
 const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
 const ServiceabilityPanel = lazy(() => import('./components/ServiceabilityPanel').then((m) => ({ default: m.ServiceabilityPanel })));
 const UpsRuntimePanel = lazy(() => import('./components/UpsRuntimePanel').then((m) => ({ default: m.UpsRuntimePanel })));
 const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
+const WorkspaceManager = lazy(() => import('./components/WorkspaceManager').then((m) => ({ default: m.WorkspaceManager })));
+const InterRackMap = lazy(() => import('./components/InterRackMap').then((m) => ({ default: m.InterRackMap })));
+const InterRackCableWizard = lazy(() => import('./components/InterRackCableWizard').then((m) => ({ default: m.InterRackCableWizard })));
 
 const VIEW_BUTTON_ACTIVE_CLASS = 'rv-a';
 const VIEW_BUTTON_INACTIVE_CLASS = 'rv-i';
@@ -51,7 +72,10 @@ const RACK_LIMIT_INPUT_CLASS = 'rl-i';
 
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workspaceFileInputRef = useRef<HTMLInputElement>(null);
   const layout = useRackStore((state) => state.layout);
+  const workspace = useRackStore((state) => state.workspace);
+  const currentRackId = useRackStore((state) => state.currentRackId);
   const viewMode = useRackStore((state) => state.viewMode);
   const statusMessage = useRackStore((state) => state.statusMessage);
   const setViewMode = useRackStore((state) => state.setViewMode);
@@ -61,6 +85,8 @@ function App() {
   const updateRack = useRackStore((state) => state.updateRack);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
+  const selectedInterRackCableId = useRackStore((state) => state.selectedInterRackCableId);
+  const selectInterRackCable = useRackStore((state) => state.selectInterRackCable);
   const saveLocal = useRackStore((state) => state.saveLocal);
   const loadLocal = useRackStore((state) => state.loadLocal);
   const newLayout = useRackStore((state) => state.newLayout);
@@ -70,11 +96,28 @@ function App() {
   const redo = useRackStore((state) => state.redo);
   const canUndo = useRackStore((state) => state.canUndo);
   const canRedo = useRackStore((state) => state.canRedo);
+  const createRack = useRackStore((state) => state.createRack);
+  const deleteRack = useRackStore((state) => state.deleteRack);
+  const duplicateRack = useRackStore((state) => state.duplicateRack);
+  const switchRack = useRackStore((state) => state.switchRack);
+  const renameRack = useRackStore((state) => state.renameRack);
+  const renameWorkspace = useRackStore((state) => state.renameWorkspace);
+  const setWorkspace = useRackStore((state) => state.setWorkspace);
   const [confirmAction, setConfirmAction] = useState<null | { type: 'new' | 'sample' | 'import'; payload?: string }>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleViewFilter>('all');
+  const [serviceabilityOverlayEnabled, setServiceabilityOverlayEnabled] = useState(false);
+  const [serviceabilityFocusDeviceIds, setServiceabilityFocusDeviceIds] = useState<string[]>([]);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [interRackWizardOpen, setInterRackWizardOpen] = useState(false);
 
   const issues = useMemo(() => validateRackLayout(layout), [layout]);
   const totals = useMemo(() => getRackTotals(layout), [layout]);
+  const filteredLayout = useMemo(() => getFilteredLayoutByLifecycle(layout, lifecycleFilter), [layout, lifecycleFilter]);
+  const serviceabilityHighlightIds = useMemo(
+    () => (serviceabilityFocusDeviceIds.length > 0 ? serviceabilityFocusDeviceIds : getServiceabilityHighlightedDeviceIds(layout)),
+    [layout, serviceabilityFocusDeviceIds]
+  );
   const visibleSampleLayouts = useMemo(
     () => sampleLayouts.filter((sample) => !layoutUsesHiddenZeroUPdu(sample)),
     []
@@ -85,6 +128,21 @@ function App() {
       loadLayout(layout);
     }
   }, [layout, loadLayout]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+        event.preventDefault();
+        setCommandOpen((prev) => !prev);
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
   function handleIssueSelect(issue: ValidationIssue) {
     setSelectedIssueId(issue.id);
     if (issue.deviceIds?.length) selectDevice(issue.deviceIds[0]);
@@ -96,6 +154,27 @@ function App() {
     if (!file) return;
     const imported = await readJsonFile(file);
     loadLayout(imported as typeof layout);
+    event.currentTarget.value = '';
+  }
+
+  async function handleWorkspaceImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const workspace = importWorkspaceJson(text);
+      if (!workspace) {
+        useRackStore.setState({ statusMessage: 'Invalid workspace JSON file.' });
+        event.currentTarget.value = '';
+        return;
+      }
+      const success = setWorkspace(workspace);
+      if (!success) {
+        useRackStore.setState({ statusMessage: 'Workspace has no racks.' });
+      }
+    } catch {
+      useRackStore.setState({ statusMessage: 'Failed to read workspace file.' });
+    }
     event.currentTarget.value = '';
   }
 
@@ -143,6 +222,18 @@ function App() {
       </aside>
 
       <main className="flex min-w-0 flex-col">
+        <Suspense fallback={null}>
+          <WorkspaceManager
+            workspace={workspace}
+            currentRackId={currentRackId}
+            onSwitchRack={switchRack}
+            onCreateRack={createRack}
+            onDeleteRack={deleteRack}
+            onDuplicateRack={duplicateRack}
+            onRenameRack={renameRack}
+            onRenameWorkspace={renameWorkspace}
+          />
+        </Suspense>
         <header className="border-b border-slate-200 dark:border-slate-800 bg-white/72 dark:bg-slate-950/72 px-4 py-1.5">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -202,7 +293,26 @@ function App() {
                 <Cable size={14} />
                 Cables
               </button>
+              <button
+                className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition ${
+                  viewMode === 'topology' ? VIEW_BUTTON_ACTIVE_CLASS : VIEW_BUTTON_INACTIVE_CLASS
+                }`}
+                onClick={() => setViewMode('topology')}
+                type="button"
+              >
+                <Network size={14} />
+                Topology
+              </button>
               <ThemeToggle />
+              <button
+                className="rt-b"
+                onClick={() => setInterRackWizardOpen(true)}
+                type="button"
+                title="Add inter-rack cable"
+              >
+                <Plus size={13} />
+                Inter-Rack
+              </button>
             </div>
           </div>
 
@@ -238,6 +348,19 @@ function App() {
             >
               <option value="front">Front view</option>
               <option value="rear">Rear view</option>
+            </select>
+
+            <select
+              className={TOOLBAR_SELECT_CLASS}
+              value={lifecycleFilter}
+              onChange={(event) => setLifecycleFilter(event.target.value as LifecycleViewFilter)}
+              aria-label="Lifecycle filter"
+            >
+              <option value="all">All lifecycle</option>
+              <option value="changes">Changes only</option>
+              <option value="active">Active only</option>
+              <option value="planned">Planned only</option>
+              <option value="decommissioning">Decommissioning only</option>
             </select>
 
             <select
@@ -326,13 +449,38 @@ function App() {
             </button>
             <button
               className={TOOLBAR_BUTTON_CLASS}
+              onClick={() => downloadWorkspaceJson(workspace)}
+              type="button"
+            >
+              <FileJson size={13} />
+              Export Wks
+            </button>
+            <button
+              className={TOOLBAR_BUTTON_CLASS}
+              onClick={() => workspaceFileInputRef.current?.click()}
+              type="button"
+            >
+              <Upload size={13} />
+              Import Wks
+            </button>
+            <button
+              className={TOOLBAR_BUTTON_CLASS}
               onClick={() => exportRackPng(layout)}
               type="button"
             >
               <Download size={13} />
               PNG
             </button>
+            <button
+              className={TOOLBAR_BUTTON_CLASS}
+              onClick={() => exportMigrationPlanMarkdown(layout)}
+              type="button"
+            >
+              <Download size={13} />
+              Migration
+            </button>
             <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
+            <input ref={workspaceFileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleWorkspaceImport} />
           </div>
 
           {statusMessage && (
@@ -345,15 +493,26 @@ function App() {
         </header>
 
         <section className="min-h-0 flex-1">
-          {viewMode === '2d' && <RackEditor2D />}
+          {viewMode === '2d' && (
+            <RackEditor2D
+              layoutOverride={filteredLayout}
+              serviceabilityOverlay={serviceabilityOverlayEnabled}
+              highlightedDeviceIds={serviceabilityHighlightIds}
+            />
+          )}
           {viewMode === '3d' && (
             <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading 3D…</div>}>
-              <RackViewer3D />
+              <RackViewer3D layout={filteredLayout} />
             </Suspense>
           )}
           {viewMode === 'cables' && (
             <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading cable map...</div>}>
-              <CableMap />
+              <CableMap layout={filteredLayout} />
+            </Suspense>
+          )}
+          {viewMode === 'topology' && (
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading topology...</div>}>
+              <NetworkTopology layout={filteredLayout} />
             </Suspense>
           )}
         </section>
@@ -440,18 +599,42 @@ function App() {
             </div>
           </section>
           <Suspense fallback={null}>
+            <InterRackMap
+              racks={workspace.racks}
+              interRackCables={workspace.interRackCables}
+              selectedCableId={selectedInterRackCableId}
+              onSelectCable={selectInterRackCable}
+              onAddCable={() => setInterRackWizardOpen(true)}
+            />
             <RackHealthDashboard layout={layout} />
+            <CapacityForecastPanel />
             <EnergySummary layout={layout} onRateChange={(rate) => updateRack({ electricityRatePerKwh: rate })} />
             <NoiseSummary layout={layout} />
+            <FitCheckPanel />
+            <BlastRadiusPanel />
+            <ScenarioPlannerPanel />
+            <RoomPlacementPanel />
+            <PolicyRulesPanel />
             <ReservationPanel />
             <UpsRuntimePanel />
+            <BootSequencePanel />
             <PropertyPanel />
             <CablePlanner />
             <CableTracePanel />
+            <BuildPlanner />
+            <ReadinessChecklist />
+            <CommissioningChecklist />
+            <RackChangeCalendar />
             <DepthCompatibilityPanel />
             <PowerChainPanel />
             <MigrationSummaryPanel />
-            <ServiceabilityPanel layout={layout} />
+            <GoldenBaselinePanel />
+            <ServiceabilityPanel
+              layout={layout}
+              overlayEnabled={serviceabilityOverlayEnabled}
+              onOverlayEnabledChange={setServiceabilityOverlayEnabled}
+              onHighlightDevicesChange={setServiceabilityFocusDeviceIds}
+            />
             <DocumentationAuditPanel />
             <ValidationPanel
               issues={issues}
@@ -462,6 +645,12 @@ function App() {
           </Suspense>
         </div>
       </aside>
+      <Suspense fallback={null}>
+        <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <InterRackCableWizard open={interRackWizardOpen} onClose={() => setInterRackWizardOpen(false)} />
+      </Suspense>
     </div>
   );
 }

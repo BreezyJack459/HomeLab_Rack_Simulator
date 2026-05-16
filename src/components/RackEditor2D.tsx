@@ -4,7 +4,7 @@ import { deviceCatalog } from '../data/deviceCatalog';
 import { useRackStore } from '../store/rackStore';
 import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
 import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
-import { getPortFaceMap } from '../utils/portLayout';
+import { getPortFaceMap, type PortSlot } from '../utils/portLayout';
 import { getReservationXRange } from '../utils/reservations';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
 
@@ -22,6 +22,12 @@ const EDITOR_TOOL_BUTTON_CLASS = 're-tb';
 const EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS = 're-tbl';
 const EDITOR_TOGGLE_INACTIVE_CLASS = 're-ti';
 const SIDE_LABEL_ITEM_CLASS = 'rs-li';
+
+interface RackEditor2DProps {
+  layoutOverride?: RackLayout;
+  serviceabilityOverlay?: boolean;
+  highlightedDeviceIds?: string[];
+}
 
 interface DragState {
   deviceId: string;
@@ -83,6 +89,22 @@ function portItems(ports?: PortLayout) {
     ...Array.from({ length: ports.atx ?? 0 }, () => 'atx'),
     ...Array.from({ length: ports.coax ?? 0 }, () => 'coax')
   ];
+}
+
+function getDeviceSpeedBreakdown(device: PlacedDevice): { speed: string; count: number }[] {
+  if (!device.portLayouts) return [];
+  const counts = new Map<string, number>();
+  for (const face of ['front', 'rear'] as const) {
+    const layout = device.portLayouts[face];
+    if (!layout) continue;
+    for (const config of layout) {
+      if (!config.speed) continue;
+      const key = `${config.speed}${config.mediaType && config.mediaType !== 'rj45' ? ` ${config.mediaType}` : ''}`;
+      const count = config.count ?? (device.ports?.[config.type] ?? 0);
+      counts.set(key, (counts.get(key) ?? 0) + count);
+    }
+  }
+  return Array.from(counts.entries()).map(([speed, count]) => ({ speed, count }));
 }
 
 function portsForView(
@@ -196,9 +218,17 @@ function reservationVisual(layout: RackLayout, reservation: RackReservation, rac
   };
 }
 
-export function RackEditor2D() {
+function serviceabilityDeviceStyle(enabled: boolean, highlighted: boolean) {
+  if (!enabled || !highlighted) return undefined;
+  return {
+    boxShadow: '0 0 0 2px rgba(251, 191, 36, 0.65), 0 0 28px rgba(251, 191, 36, 0.18)',
+  };
+}
+
+export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, highlightedDeviceIds = [] }: RackEditor2DProps) {
   const rackRef = useRef<HTMLDivElement>(null);
-  const layout = useRackStore((state) => state.layout);
+  const storeLayout = useRackStore((state) => state.layout);
+  const layout = layoutOverride ?? storeLayout;
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const editorZoom = useRackStore((state) => state.editorZoom);
   const editorPan = useRackStore((state) => state.editorPan);
@@ -220,6 +250,7 @@ export function RackEditor2D() {
   const [spacePressed, setSpacePressed] = useState(false);
   const [contextMenu, setContextMenu] = useState<null | { x: number; y: number; deviceId: string }>(null);
   const [resizing, setResizing] = useState<null | { deviceId: string; startY: number; originalSizeU: number; originalPositionU: number }>(null);
+  const highlightedDeviceIdSet = useMemo(() => new Set(highlightedDeviceIds), [highlightedDeviceIds]);
 
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * BASE_UNIT_HEIGHT;
@@ -750,6 +781,7 @@ export function RackEditor2D() {
                 const visiblePorts = portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, isZeroU(device));
                 const hasVisiblePorts = portItems(visiblePorts).length > 0;
                 const useSidePorts = compact && hasVisiblePorts && width < COMPACT_SIDE_PORT_MIN_WIDTH;
+                const highlighted = highlightedDeviceIdSet.has(device.id);
                 return (
                   <div
                     key={device.id}
@@ -765,12 +797,15 @@ export function RackEditor2D() {
                       width,
                       height: height - 6,
                       background:
-                        layout.viewSide === 'rear'
-                          ? `linear-gradient(135deg, rgba(15, 23, 42, 0.98), ${device.color}88)`
-                          : `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
+                        device.category === 'printed-mount'
+                          ? `repeating-linear-gradient(45deg, ${device.color}, ${device.color} 8px, rgba(15, 23, 42, 0.85) 8px, rgba(15, 23, 42, 0.85) 16px)`
+                          : layout.viewSide === 'rear'
+                            ? `linear-gradient(135deg, rgba(15, 23, 42, 0.98), ${device.color}88)`
+                            : `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
                       zIndex: deviceIsZeroU ? 5 : undefined,
-                      borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
+                      borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : device.category === 'printed-mount' ? 'dashed' : undefined,
                       filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
+                      ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
                     }}
                     onPointerDown={(event) => startDeviceDrag(event, device)}
                     onClick={(event) => {
@@ -847,6 +882,15 @@ export function RackEditor2D() {
                             })}
                         </div>
                       )}
+                      {selected && (
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                          {getDeviceSpeedBreakdown(device).map(({ speed, count }) => (
+                            <span key={speed} className="rounded bg-slate-100 px-1 text-[9px] font-semibold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                              {speed} ×{count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {device.category === 'cable-management' && (
                         <div className="grid grid-cols-12 gap-1">
                           {Array.from({ length: 12 }, (_, slot) => (
@@ -900,6 +944,7 @@ export function RackEditor2D() {
                   </div>
                   {sideLeftDevices.map((device) => {
                     const selected = selectedDeviceId === device.id;
+                    const highlighted = highlightedDeviceIdSet.has(device.id);
                     return (
                       <div
                         key={device.id}
@@ -916,6 +961,7 @@ export function RackEditor2D() {
                           background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
                           borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
                           filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
+                          ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
                         }}
                         onPointerDown={(event) => startDeviceDrag(event, device)}
                         onClick={(event) => {
@@ -969,6 +1015,7 @@ export function RackEditor2D() {
                   </div>
                   {sideRightDevices.map((device) => {
                     const selected = selectedDeviceId === device.id;
+                    const highlighted = highlightedDeviceIdSet.has(device.id);
                     return (
                       <div
                         key={device.id}
@@ -985,6 +1032,7 @@ export function RackEditor2D() {
                           background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
                           borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
                           filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
+                          ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
                         }}
                         onPointerDown={(event) => startDeviceDrag(event, device)}
                         onClick={(event) => {

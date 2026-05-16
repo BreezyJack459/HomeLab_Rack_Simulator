@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
-import type { CableRoute, CableType, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
+import type { CableRoute, CableType, LifecycleStatus, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
 import { getCableDisplayColor } from '../utils/cableColors';
-import { calculateCablePlan, estimateCableLength, pathDescription } from '../utils/routing';
+import { calculateCablePlan, estimateCableLength, getCableSlackBudget, pathDescription } from '../utils/routing';
 import { formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
 import { exportBomCsv, exportBomText } from '../utils/exporters';
 import { getPatchPanelLinkedCableIds, patchPanelRouteLabel } from '../utils/patchPanel';
@@ -32,7 +32,8 @@ import {
   resolveCompatibleCable,
   type FreePortSummary,
   type PortFace,
-  type PortOption
+  type PortOption,
+  type PortChoice
 } from '../utils/portSelection';
 
 const mutedCableColor = '#64748b';
@@ -41,12 +42,7 @@ const mutedCableColor = '#64748b';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { isSelectingDest, isSelectingSource } from '../types/pairing';
 
-type PortChoice = PortOption & {
-  deviceId: string;
-  deviceName: string;
-  type: PortType;
-  cableTypes: CableType[];
-};
+
 
 
 
@@ -287,7 +283,7 @@ function DeviceFaceCard({
                             onFocus={() => onHoverChoice(choice)}
                             onBlur={() => onHoverChoice(null)}
                             onClick={() => onSelectChoice(choice)}
-                            className={`flex h-7 min-w-0 items-center justify-center rounded-[4px] border text-[10px] font-bold transition ${
+                            className={`flex h-7 min-w-0 flex-col items-center justify-center rounded-[4px] border text-[10px] font-bold leading-none transition ${
                               isSource
                                 ? 'border-cyan-700 bg-cyan-500 text-white ring-2 ring-cyan-500/40 dark:border-cyan-100 dark:bg-cyan-300 dark:text-slate-950 dark:ring-cyan-300/40'
                                 : disabled
@@ -296,9 +292,14 @@ function DeviceFaceCard({
                                     ? 'scale-105 border-cyan-300 bg-cyan-300/15 text-cyan-800 dark:text-cyan-50'
                                     : 'border-black/20 bg-slate-100 text-slate-800 hover:scale-105 hover:border-cyan-500 hover:bg-cyan-500/10 dark:border-white/40 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-300 dark:hover:bg-cyan-300/10'
                             }`}
-                            title={choice.label}
+                            title={`${choice.label}${choice.speed ? ` • ${choice.speed}${choice.mediaType && choice.mediaType !== 'rj45' ? ` ${choice.mediaType}` : ''}` : ''}`}
                           >
-                            {choice.index + 1}
+                            <span>{choice.index + 1}</span>
+                            {choice.speed && (
+                              <span className="text-[7px] font-medium opacity-80">
+                                {choice.speed}
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -378,6 +379,7 @@ export function CablePlanner() {
   const layout = useRackStore((state) => state.layout);
   const addCable = useRackStore((state) => state.addCable);
   const removeCable = useRackStore((state) => state.removeCable);
+  const updateCable = useRackStore((state) => state.updateCable);
   const selectCable = useRackStore((state) => state.selectCable);
   const selectedCableId = useRackStore((state) => state.selectedCableId);
   const setPreviewCable = useRackStore((state) => state.setPreviewCable);
@@ -699,23 +701,28 @@ export function CablePlanner() {
           />
 
           {layout.cables.length > 0 && (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
-                onClick={() => exportBomCsv(layout)}
-                type="button"
-              >
-                <FileSpreadsheet size={13} />
-                BOM CSV
-              </button>
-              <button
-                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
-                onClick={() => exportBomText(layout)}
-                type="button"
-              >
-                <FileText size={13} />
-                BOM Text
-              </button>
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  onClick={() => exportBomCsv(layout)}
+                  type="button"
+                >
+                  <FileSpreadsheet size={13} />
+                  BOM CSV
+                </button>
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  onClick={() => exportBomText(layout)}
+                  type="button"
+                >
+                  <FileText size={13} />
+                  BOM Text
+                </button>
+              </div>
+              <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                BOM lengths now include technician slack, service-loop allowance, and bend-radius notes.
+              </div>
             </div>
           )}
 
@@ -792,6 +799,7 @@ export function CablePlanner() {
                           const selected = selectedCableIds.has(route.id);
                           const muted = selectedCableId !== null && !selected;
                           const displayColor = getCableDisplayColor(route.type, route.color);
+                          const slack = getCableSlackBudget(layout, route);
                           const lengthStr = plan
                             ? formatCableLength(plan.standardLengthMm)
                             : `~${formatCableLength(estimateCableLength(layout, route))}`;
@@ -838,10 +846,36 @@ export function CablePlanner() {
                               {/* Expanded detail when selected */}
                               {selected && (
                                 <div className="mt-1 pl-4 text-[10px] text-slate-400 dark:text-slate-500">
+                                  <div className="mb-1 flex items-center gap-1.5">
+                                    <span className="uppercase tracking-[0.12em] text-slate-500 dark:text-slate-600">Lifecycle</span>
+                                    <select
+                                      value={route.lifecycleStatus ?? 'active'}
+                                      onClick={(event) => event.stopPropagation()}
+                                      onChange={(event) => updateCable(route.id, { lifecycleStatus: event.target.value as LifecycleStatus })}
+                                      className="h-6 rounded border border-slate-300 bg-slate-100 px-1.5 text-[10px] text-slate-600 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                                    >
+                                      <option value="active">Active</option>
+                                      <option value="planned">Planned</option>
+                                      <option value="decommissioning">Decommissioning</option>
+                                    </select>
+                                  </div>
                                   {portsLabel && <span>{portsLabel}</span>}
                                   {plan && (
                                     <span className={portsLabel ? ' ml-1.5' : ''}>
                                       {plan.discipline} / {plan.rail ? `${plan.rail} tray` : 'front manager'}
+                                    </span>
+                                  )}
+                                  {slack && (
+                                    <span className="mt-0.5 block">
+                                      Path {formatCableLength(slack.pathLengthMm)} + slack {formatCableLength(slack.slackMm)} = recommended {formatCableLength(slack.recommendedLengthMm)}
+                                      {slack.providedLengthMm ? ` / declared ${formatCableLength(slack.providedLengthMm)}` : ''}
+                                      {slack.missingMm > 0 ? ` / short by ${formatCableLength(slack.missingMm)}` : ''}
+                                    </span>
+                                  )}
+                                  {slack && (slack.serviceLoopMm > 0 || slack.bendRadiusMm > 0) && (
+                                    <span className="mt-0.5 block text-slate-400 dark:text-slate-600">
+                                      {slack.serviceLoopMm > 0 ? `Service loop ${slack.serviceLoopMm}mm` : 'No service loop'}
+                                      {slack.bendRadiusMm > 0 ? ` / bend >= ${slack.bendRadiusMm}mm` : ''}
                                     </span>
                                   )}
                                   {((plan?.nodes.length ?? 0) > 0 || (route.nodes?.length ?? 0) > 0) && (
