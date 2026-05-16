@@ -348,6 +348,7 @@ export interface RackLayoutSnapshot {
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
   powerBillHistory?: PowerBillEntry[];
+  spareParts?: SparePart[];
 }
 
 export interface RackGoldenBaseline {
@@ -435,6 +436,17 @@ export interface PowerBillEntry {
   notes?: string;
 }
 
+export interface SparePart {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  condition: 'new' | 'used' | 'refurbished' | 'unknown';
+  storageLocation?: string;
+  notes?: string;
+  compatibleDeviceIds?: string[];
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -470,6 +482,7 @@ export interface RackLayout {
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
   powerBillHistory?: PowerBillEntry[];
+  spareParts?: SparePart[];
 }
 
 export type ValidationSeverity = 'info' | 'warning' | 'critical';

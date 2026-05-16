@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (35 files / 617 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (36 files / 627 tests passed).
 
 ## Completed ✅
 
@@ -967,9 +967,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/maintenanceLog.ts`, `src/utils/maintenanceLog.test.ts`, `src/components/MaintenanceLogPanel.tsx`, `src/App.tsx`
 **Effort**: Low | **Boredom**: 😴😴😴😴😴
 
-### 47. Spare Parts Inventory
+### 47. Spare Parts Inventory — ✅ IMPLEMENTED (2026-05-17)
 **Why**: You have a box with spare PSU, drives, NICs, and cables somewhere. You don't remember what's in it until you need it.
 **What to do**: Track off-rack inventory: item, quantity, storage location ("blue bin under desk"), condition, date acquired. Cross-reference with rack devices: "Your NAS has 4x 4TB drives; your spare box has 1x 4TB drive. You are one failure away from trouble."
+**Status**: Shipped with `SparePart` type on `RackLayout`, full CRUD panel with condition badges (new/used/refurbished/unknown), device compatibility toggles, summary stats (parts, quantity, compatible, orphaned), orphaned-parts alert, CSV and Markdown export. Pure utility (`spareParts.ts`) with 10 unit tests.
+**Files touched**: `src/types/rack.ts`, `src/utils/spareParts.ts`, `src/utils/spareParts.test.ts`, `src/components/SparePartsPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium | **Boredom**: 😴😴😴😴🌕
 
 ### 48. Change Request / Approval Workflow
