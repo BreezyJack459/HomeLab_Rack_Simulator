@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (45 files / 751 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (47 files / 770 tests passed).
 
 ## Completed ✅
 
@@ -996,9 +996,11 @@ The following items should not be picked as next work unless a regression appear
 **What to do**: Per-device encrypted fields (client-side encryption with a master password): admin password, IPMI/iDRAC URL, SSH key fingerprint, SNMP community, BIOS password. Auto-lock after inactivity. Export is disabled for security.
 **Effort**: Medium | **Boredom**: 😴😴😴😴🌕
 
-### 52. Firmware Version Tracker
+### 52. Firmware Version Tracker — ✅ IMPLEMENTED (2026-05-17)
 **Why**: "Is my switch still on the factory firmware from 2019?" CVE databases exist. Your rack should cross-reference them.
 **What to do**: Track current firmware version per device. Manual or API-imported latest available version. CVE lookup against device model + firmware. Color-code: green (current), yellow (update available), red (known CVE).
+**Status**: Shipped with per-device firmware version tracking (current + latest), semantic version comparison with normalization, status classification (current/update-available/unknown/not-tracked), color-coded device rows, inline editing panel, summary dashboard with tracked/current/update/unknown counts, CSV and Markdown export. CVE field reserved in notes for future integration.
+**Files touched**: `src/types/rack.ts`, `src/utils/firmwareTracker.ts`, `src/utils/firmwareTracker.test.ts`, `src/components/FirmwareTrackerPanel.tsx`, `src/App.tsx`
 **Effort**: Medium | **Boredom**: 😴😴😴🌕🌕
 
 ### 53. Backup Verification Log

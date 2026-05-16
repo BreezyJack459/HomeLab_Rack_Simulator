@@ -151,6 +151,10 @@ export interface PlacedDevice {
   invoiceRef?: string;
   maintenanceLog?: MaintenanceLogEntry[];
   networkInterfaces?: NetworkInterface[];
+  firmwareVersion?: string;
+  firmwareLatest?: string;
+  firmwareReleaseDate?: string;
+  firmwareNotes?: string;
 }
 
 export interface BackupRecord {
