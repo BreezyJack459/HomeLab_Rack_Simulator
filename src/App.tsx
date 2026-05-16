@@ -79,6 +79,7 @@ const ServiceMapPanel = lazy(() => import('./components/ServiceMapPanel').then((
 const PortReservationPanel = lazy(() => import('./components/PortReservationPanel').then((m) => ({ default: m.PortReservationPanel })));
 const PatchPanelDocPanel = lazy(() => import('./components/PatchPanelDocPanel').then((m) => ({ default: m.PatchPanelDocPanel })));
 const CredentialVaultPanel = lazy(() => import('./components/CredentialVaultPanel').then((m) => ({ default: m.CredentialVaultPanel })));
+const FailureDomainPanel = lazy(() => import('./components/FailureDomainPanel').then((m) => ({ default: m.FailureDomainPanel })));
 const UpsRuntimePanel = lazy(() => import('./components/UpsRuntimePanel').then((m) => ({ default: m.UpsRuntimePanel })));
 const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
 const WorkspaceManager = lazy(() => import('./components/WorkspaceManager').then((m) => ({ default: m.WorkspaceManager })));
@@ -677,6 +678,7 @@ function App() {
             <PortReservationPanel />
             <PatchPanelDocPanel />
             <CredentialVaultPanel />
+            <FailureDomainPanel />
             <DocumentationAuditPanel />
             <ValidationPanel
               issues={issues}

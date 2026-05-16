@@ -565,6 +565,25 @@ export interface RackLayout {
   portReservations?: PortReservation[];
   patchPanelDocs?: PatchPanelPortDoc[];
   credentials?: DeviceCredential[];
+  failureDomains?: FailureDomain[];
+  domainAssignments?: DomainAssignment[];
+}
+
+export type FailureDomainType = 'power' | 'network' | 'storage' | 'site' | 'management' | 'cooling';
+
+export interface FailureDomain {
+  id: string;
+  name: string;
+  type: FailureDomainType;
+  color: string;
+  notes?: string;
+}
+
+export interface DomainAssignment {
+  domainId: string;
+  deviceIds?: string[];
+  cableIds?: string[];
+  serviceIds?: string[];
 }
 
 export interface DeviceCredential {

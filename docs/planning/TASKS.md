@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (51 files / 846 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (52 files / 861 tests passed).
 
 ## Completed ✅
 
@@ -868,9 +868,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium-High
 **Dependencies**: Builds on Live Sensor Overlay (#19), Documentation Audit (#13), Photo Overlay (#37), and Golden Layout Baseline (#43).
 
-### 46. Failure Domain Designer
+### 46. Failure Domain Designer — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Redundancy is only real if dependencies are separated across failure domains. A dual-PSU server is not redundant if both PSUs feed the same overloaded PDU.
 **What to do**: Let users define and visualize failure domains for power, network, storage, room/site, cooling, and management access.
+**Status**: Shipped with `FailureDomain` and `DomainAssignment` types, `failureDomains.ts` utility with domain lookup, unassigned detection, summary stats, validation (orphan references, critical/high service SPOF detection), and Markdown export. `FailureDomainPanel` with full CRUD, domain type and color picker, device/cable/service assignment checkboxes, summary cards, unassigned warnings, and issue display. 15 unit tests.
 **MVP scope**:
 - Define named domains: Circuit A/B, PDU A/B, Switch A/B, Storage Pool A/B, Room/Site, ISP, management plane.
 - Assign devices, cables, power paths, or services to domains.
@@ -879,7 +880,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Domain-aware auto-layout recommendations.
 - Failure-domain score for each service.
-**Files to touch**: `src/types/rack.ts`, new `src/utils/failureDomains.ts`, new `src/components/FailureDomainPanel.tsx`, `src/utils/dependencyGraph.ts`, `src/utils/validation.ts`
+**Files touched**: `src/types/rack.ts`, new `src/utils/failureDomains.ts`, new `src/utils/failureDomains.test.ts`, new `src/components/FailureDomainPanel.tsx`, `src/App.tsx`
 **Effort**: Medium-High
 **Dependencies**: Builds on Power Chain (#9), Rack Dependency Graph (#28), and Service Map Overlay (#47).
 
