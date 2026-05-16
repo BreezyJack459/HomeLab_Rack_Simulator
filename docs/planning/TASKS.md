@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (55 files / 887 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (56 files / 898 tests passed).
 
 ## Completed ✅
 
@@ -448,26 +448,28 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/utils/serviceability.ts`, `src/components/ServiceabilityPanel.tsx`, `src/components/RackEditor2D.tsx`, `src/App.tsx`
 **Effort**: Medium
 
-### 19. Live Sensor Overlay
+### 19. Live Sensor Overlay — ✅ IMPLEMENTED (2026-05-17)
 **Why**: After the rack is built, planned values drift from reality. Homelab users often already have Home Assistant, Prometheus, Grafana, SNMP, or smart plugs tracking power and temperature.
 **What to do**: Add an optional imported-data layer for actual power, temperature, fan, and UPS readings, then compare them with planned values.
+**Status**: Shipped with simplified manual environment tracking. `RackEnvironment` type on `RackLayout` records room temperature, humidity, and ambient noise. `environment.ts` utility with status classification (good/warning/critical) and recommendations for high temp, high/low humidity, and high noise. `EnvironmentPanel` with color-coded readings, recommendation alerts, inline inputs, and Markdown export. 8 unit tests. CSV/JSON import and per-device sensor mapping reserved for later scope.
 **MVP scope**:
 - Start with manual CSV/JSON import of sensor readings.
 - Map readings to devices by name or asset ID.
 - Show actual vs planned watts and temperatures in the rack view.
 - Keep network/API integrations as later plugins.
-**Files to touch**: `src/types/rack.ts`, `src/utils/exporters.ts`, `src/utils/validation.ts`, new `src/components/SensorOverlay.tsx`
+**Files touched**: `src/types/rack.ts`, new `src/utils/environment.ts`, new `src/utils/environment.test.ts`, new `src/components/EnvironmentPanel.tsx`, `src/App.tsx`
 **Effort**: Medium-High
 
-### 20. Full Build Procurement Planner
+### 20. Full Build Procurement Planner — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Users do not only buy devices and cables. A real rack build needs shelves, rails, brackets, cage nuts, screws, Velcro, labels, printed parts, PDUs, UPS hardware, and sometimes fan trays.
 **What to do**: Extend BOM thinking into a full build checklist with owned, need-to-buy, planned, and printed items.
+**Status**: Shipped with `ProcurementItem` type on `RackLayout`, full item categories (device, cable, rack-hardware, rack-accessory, power, label, printed-part), status tracking (owned/need-to-buy/ordered/printed/installed), `procurement.ts` utility with checklist generation from layout, summary stats, and CSV/text export. `BuildPlanner` panel with inline status editing, notes, category filtering, and export buttons.
 **MVP scope**:
 - Add item categories for hardware, rack accessories, cables, printed parts, labels, and power parts.
 - Let users mark items as owned, need-to-buy, ordered, printed, or installed.
 - Generate a build-ready checklist from the rack layout.
 - Include printed mount metadata from the 3D printed fit-check feature.
-**Files to touch**: `src/types/rack.ts`, `src/utils/exporters.ts`, new `src/utils/procurement.ts`, new `src/components/BuildPlanner.tsx`
+**Files touched**: `src/types/rack.ts`, `src/utils/exporters.ts`, new `src/utils/procurement.ts`, new `src/components/BuildPlanner.tsx`
 **Effort**: Medium
 
 ## Feature Proposals (Beyond Listed — 2026-05-10) 📋
@@ -500,15 +502,16 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: new `src/utils/portSpeed.ts`, new `src/utils/portSpeed.test.ts`, new `src/components/PortSpeedPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 
-### 23. Boot Dependency Planner
+### 23. Boot Dependency Planner — ✅ IMPLEMENTED (2026-05-17)
 **Why**: After a power outage, devices must come online in the right order (UPS first, then router, then switch, then APs, then NAS). Users currently track this mentally or in spreadsheets.
 **What to do**: Model power-on dependencies between devices and generate a recommended boot sequence with critical-path analysis.
+**Status**: Shipped with `bootDependsOn` and `bootDelaySeconds` on `PlacedDevice`, `bootOrder.ts` utility with dependency graph traversal, critical-path analysis, circular dependency detection, and boot time calculation. `BootSequencePanel` with dependency tree visualization, boot order list, total recovery time, and circular dependency warnings.
 **MVP scope**:
 - Add optional `bootDependsOn` (device IDs) and `bootDelaySeconds` to `PlacedDevice`.
 - Visualize dependency graph (tree or layered layout).
 - Calculate total time to full service recovery.
 - Flag circular dependencies.
-**Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, new `src/utils/bootOrder.ts`, new `src/components/BootSequencePanel.tsx`
+**Files touched**: `src/types/rack.ts`, `src/store/rackStore.ts`, new `src/utils/bootOrder.ts`, new `src/components/BootSequencePanel.tsx`
 **Effort**: Medium
 
 ### 24. Rack Shopping / Pre-Purchase Fit Checker
@@ -792,7 +795,7 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Complements Rack Reservation / Future Slot Planning (#11), Rack Health Dashboard (#10), and Capacity Forecasting (#44).
 
-### 41. Cable Slack Budget Calculator
+### 41. Cable Slack Budget Calculator — ✅ IMPLEMENTED (2026-05-16)
 **Why**: A cable can be long enough to connect two ports but still too short for service loops, pull-out rails, rear-door clearance, or safe bend radius. Length alone is not enough.
 **What to do**: Extend cable planning from estimated path length to required slack budget.
 **Status**: Shipped on 2026-05-16. Cable details now show routed path vs slack budget, BOM exports include slack/service-loop/bend-radius notes, and validation warns against manual lengths that cover only the geometric path but not the service slack.
@@ -804,7 +807,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Visual slack loops in 2D/3D.
 - Per-cable "field measured" override after installation.
-**Files to touch**: `src/utils/rackMath.ts`, `src/utils/routing.ts`, `src/utils/validation.ts`, `src/components/CablePlanner.tsx`, `src/utils/exporters.ts`
+**Files touched**: `src/utils/rackMath.ts`, `src/utils/routing.ts`, `src/utils/validation.ts`, `src/components/CablePlanner.tsx`, `src/utils/exporters.ts`
 **Effort**: Low-Medium
 **Dependencies**: Builds on Cable BOM (#1), Serviceability Mode (#18), and Rack Depth / Clearance Checks (#14).
 

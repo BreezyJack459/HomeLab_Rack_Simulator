@@ -43,6 +43,7 @@ const CommissioningChecklist = lazy(() => import('./components/CommissioningChec
 const DepthCompatibilityPanel = lazy(() => import('./components/DepthCompatibilityPanel').then((m) => ({ default: m.DepthCompatibilityPanel })));
 const DocumentationAuditPanel = lazy(() => import('./components/DocumentationAuditPanel').then((m) => ({ default: m.DocumentationAuditPanel })));
 const DriftPanel = lazy(() => import('./components/DriftPanel').then((m) => ({ default: m.DriftPanel })));
+const EnvironmentPanel = lazy(() => import('./components/EnvironmentPanel').then((m) => ({ default: m.EnvironmentPanel })));
 const EnergySummary = lazy(() => import('./components/EnergySummary').then((m) => ({ default: m.EnergySummary })));
 const FitCheckPanel = lazy(() => import('./components/FitCheckPanel').then((m) => ({ default: m.FitCheckPanel })));
 const BlastRadiusPanel = lazy(() => import('./components/BlastRadiusPanel').then((m) => ({ default: m.BlastRadiusPanel })));
@@ -685,6 +686,7 @@ function App() {
             <FailureDomainPanel />
             <TemplateQualityPanel />
             <DriftPanel />
+            <EnvironmentPanel />
             <DocumentationAuditPanel />
             <ValidationPanel
               issues={issues}

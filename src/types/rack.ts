@@ -567,6 +567,15 @@ export interface RackLayout {
   credentials?: DeviceCredential[];
   failureDomains?: FailureDomain[];
   domainAssignments?: DomainAssignment[];
+  environment?: RackEnvironment;
+}
+
+export interface RackEnvironment {
+  roomTempC?: number;
+  roomHumidityPercent?: number;
+  ambientNoiseDb?: number;
+  recordedAt?: string;
+  notes?: string;
 }
 
 export type FailureDomainType = 'power' | 'network' | 'storage' | 'site' | 'management' | 'cooling';
