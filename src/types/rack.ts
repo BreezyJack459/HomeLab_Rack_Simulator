@@ -570,6 +570,7 @@ export interface RackLayout {
   environment?: RackEnvironment;
   photos?: RackPhoto[];
   sensorReadings?: DeviceSensorReading[];
+  roomRacks?: RoomRack[];
 }
 
 export interface RackPhoto {
@@ -598,6 +599,18 @@ export interface DeviceSensorReading {
   fanActualRpm?: number;
   fanPlannedRpm?: number;
   recordedAt?: string;
+  notes?: string;
+}
+
+export interface RoomRack {
+  id: string;
+  name: string;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  depthMm: number;
+  heightU: number;
+  rackType: RackType;
   notes?: string;
 }
 
