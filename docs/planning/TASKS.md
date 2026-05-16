@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (49 files / 820 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (50 files / 836 tests passed).
 
 ## Completed ✅
 
@@ -1004,9 +1004,21 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/utils/ipAssignment.ts`, `src/utils/ipAssignment.test.ts`, `src/components/IpAssignmentPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium | **Boredom**: 😴😴😴🌕🌕
 
-### 51. Encrypted Credential Vault
+### 51. Encrypted Credential Vault — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Every device has a default password, IPMI URL, iDRAC IP, and SNMP community string. Storing them in a text file is insecure. Not storing them is impractical.
 **What to do**: Per-device encrypted fields (client-side encryption with a master password): admin password, IPMI/iDRAC URL, SSH key fingerprint, SNMP community, BIOS password. Auto-lock after inactivity. Export is disabled for security.
+**Status**: Shipped with `DeviceCredential` type on `PlacedDevice`, `credentialVault.ts` utility with AES-GCM encryption via Web Crypto API, PBKDF2 key derivation, vault lock/unlock state, credential lookup, summary stats, validation (empty label, empty value, unencrypted detection), and Markdown export. `CredentialVaultPanel` with master-password unlock, per-device credential sections, add/edit/delete, reveal/hide, copy-to-clipboard, and encrypted value display. 16 unit tests covering encrypt/decrypt round-trip, wrong-password failure, vault state, and validation.
+**MVP scope**:
+- Per-device encrypted credentials: label, type (password/url/text/ssh-key/snmp), encrypted value.
+- AES-GCM 256-bit encryption with PBKDF2 key derivation (100k iterations).
+- Vault lock/unlock with master password.
+- Credential reveal, copy-to-clipboard, inline editing.
+- Validation for empty labels, empty values, and unencrypted credentials.
+**Later scope**:
+- Auto-lock after inactivity timeout.
+- Credential templates for common device types.
+- Integration with service map for service-level credential grouping.
+**Files touched**: `src/types/rack.ts`, new `src/utils/credentialVault.ts`, new `src/utils/credentialVault.test.ts`, new `src/components/CredentialVaultPanel.tsx`, `src/App.tsx`
 **Effort**: Medium | **Boredom**: 😴😴😴😴🌕
 
 ### 52. Firmware Version Tracker — ✅ IMPLEMENTED (2026-05-17)
