@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (52 files / 861 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (53 files / 869 tests passed).
 
 ## Completed ✅
 
@@ -710,9 +710,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Low-Medium
 **Dependencies**: Builds on Full Build Procurement Planner (#20), Change Risk Score (#30), and Serviceability Mode (#18).
 
-### 36. Device Template Confidence / Data Quality Score
+### 36. Device Template Confidence / Data Quality Score — ✅ IMPLEMENTED (2026-05-17)
 **Why**: The device catalog may contain estimated dimensions, power draw, port maps, noise values, and thermal assumptions. Users should know which data is measured, vendor-sourced, estimated, or missing.
 **What to do**: Add metadata quality flags to device templates and surface a confidence score.
+**Status**: Shipped with `templateQuality.ts` utility analyzing the 114-entry device catalog for field completeness across 8 tracked optional fields (rackMountable, customWidthMm, ports, portFaceOverrides, portLayouts, mountType, mountSide0U, outletFacing). Calculates per-field coverage percentages, category-level average coverage, overall quality score (0-100), and low-quality template detection. `TemplateQualityPanel` with color-coded score, field coverage progress bars, category breakdown, and Markdown export. 6 unit tests.
 **MVP scope**:
 - Track source and confidence for dimensions, power, weight, ports, depth, noise, and thermal data.
 - Show low-confidence warnings when planning depends on estimated values.
@@ -721,7 +722,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - Community template verification workflow.
 - Versioned template updates with migration notes for existing layouts.
-**Files to touch**: `src/types/rack.ts`, `src/data/deviceCatalog.ts`, `src/components/ComponentLibrary.tsx`, `src/components/PropertyPanel.tsx`, `src/utils/validation.ts`
+**Files touched**: new `src/utils/templateQuality.ts`, new `src/utils/templateQuality.test.ts`, new `src/components/TemplateQualityPanel.tsx`, `src/App.tsx`
 **Effort**: Medium
 **Dependencies**: Improves Rack Shopping / Pre-Purchase Fit Checker (#24), Noise Planner (#16), and Energy Calculator (#15).
 
