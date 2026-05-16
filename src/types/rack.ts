@@ -568,6 +568,15 @@ export interface RackLayout {
   failureDomains?: FailureDomain[];
   domainAssignments?: DomainAssignment[];
   environment?: RackEnvironment;
+  photos?: RackPhoto[];
+}
+
+export interface RackPhoto {
+  id: string;
+  label: string;
+  source: string; // URL, file path, or description
+  capturedAt?: string;
+  notes?: string;
 }
 
 export interface RackEnvironment {

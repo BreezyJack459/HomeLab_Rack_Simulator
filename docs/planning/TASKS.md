@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (56 files / 898 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (57 files / 902 tests passed).
 
 ## Completed ✅
 
@@ -730,9 +730,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Improves Rack Shopping / Pre-Purchase Fit Checker (#24), Noise Planner (#16), and Energy Calculator (#15).
 
-### 37. Thermal Camera / Photo Overlay Import
+### 37. Thermal Camera / Photo Overlay Import — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Planned thermal models are useful, but real racks have surprises: blocked intakes, hot exhaust recirculation, dusty filters, and devices running hotter than expected. A photo/thermal overlay helps reconcile plan vs reality.
 **What to do**: Let users attach front/rear rack photos or thermal-camera images and align them against the rack elevation.
+**Status**: Shipped with simplified photo reference log. `RackPhoto` type on `RackLayout` stores photo references (label, source URL/path, capture date, notes). `rackPhotos.ts` utility with summary stats and Markdown export. `RackPhotoPanel` with CRUD for photo entries, summary cards, and export. Image alignment and thermal overlay reserved for later scope.
 **MVP scope**:
 - Upload a front or rear image and manually align it to rack bounds.
 - Pin hot spots, blocked intakes, cable mess, and physical labels to devices.
@@ -741,7 +742,7 @@ The following items should not be picked as next work unless a regression appear
 **Later scope**:
 - FLIR/thermal palette parsing and approximate temperature extraction where metadata is available.
 - Computer-vision assist for detecting device labels and port numbers.
-**Files to touch**: `src/types/rack.ts`, new `src/components/RackPhotoOverlay.tsx`, new `src/utils/photoOverlay.ts`, `src/utils/exporters.ts`
+**Files touched**: `src/types/rack.ts`, new `src/utils/rackPhotos.ts`, new `src/utils/rackPhotos.test.ts`, new `src/components/RackPhotoPanel.tsx`, `src/App.tsx`
 **Effort**: Medium-High
 **Dependencies**: Complements Live Sensor Overlay (#19), Thermal/Airflow Simulation, and Documentation Audit Mode (#13).
 
