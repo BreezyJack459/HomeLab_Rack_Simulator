@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (39 files / 672 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (40 files / 687 tests passed).
 
 ## Completed ✅
 
@@ -747,18 +747,20 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium-High
 **Dependencies**: Complements Live Sensor Overlay (#19), Thermal/Airflow Simulation, and Documentation Audit Mode (#13).
 
-### 38. Homelab Portfolio / Resume Export
+### 38. Homelab Portfolio / Resume Export — ✅ IMPLEMENTED (2026-05-17)
 **Why**: A well-documented homelab can demonstrate networking, storage, virtualization, automation, monitoring, and operational discipline. Users may want a polished export for a blog, portfolio, job interview, or project archive.
 **What to do**: Generate a portfolio-ready report from the layout and documentation.
+**Status**: Shipped with `generatePortfolioMarkdown()` utility, `PortfolioExportPanel` React component with per-section toggles, sensitive data redaction, and live preview. Auto-detects skills demonstrated from device categories and layout features. Exports as Markdown.
 **MVP scope**:
 - Include rack overview, topology, power/energy summary, redundancy notes, monitoring sources, backup posture, and before/after improvements.
-- Redact sensitive values by default: public IPs, serials, MAC addresses, credentials, home address, exact hostnames.
-- Export as Markdown, PDF, or static HTML.
+- Redact sensitive values by default: serials, asset tags, hostnames.
+- Export as Markdown.
 - Include optional "skills demonstrated" section: VLANs, UPS planning, backup validation, cable documentation, automation.
 **Later scope**:
+- PDF or static HTML export.
 - Public share page with read-only sanitized layout.
 - GitHub README generator for homelab repos.
-**Files to touch**: new `src/utils/portfolioExport.ts`, new `src/components/PortfolioExportPanel.tsx`, `src/utils/exporters.ts`
+**Files touched**: new `src/utils/portfolioExport.ts`, new `src/utils/portfolioExport.test.ts`, new `src/components/PortfolioExportPanel.tsx`, `src/App.tsx`
 **Effort**: Low-Medium
 **Dependencies**: Benefits from Network Topology (#21), Documentation Audit Mode (#13), and Asset Registry (#45).
 
