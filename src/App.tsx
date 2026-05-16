@@ -46,6 +46,7 @@ const BlastRadiusPanel = lazy(() => import('./components/BlastRadiusPanel').then
 const ScenarioPlannerPanel = lazy(() => import('./components/ScenarioPlannerPanel').then((m) => ({ default: m.ScenarioPlannerPanel })));
 const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').then((m) => ({ default: m.RoomPlacementPanel })));
 const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
+const RackDebtPanel = lazy(() => import('./components/RackDebtPanel').then((m) => ({ default: m.RackDebtPanel })));
 const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
 const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
@@ -615,6 +616,7 @@ function App() {
             <ScenarioPlannerPanel />
             <RoomPlacementPanel />
             <PolicyRulesPanel />
+            <RackDebtPanel />
             <ReservationPanel />
             <UpsRuntimePanel />
             <BootSequencePanel />

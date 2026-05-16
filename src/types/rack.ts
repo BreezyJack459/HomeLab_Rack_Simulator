@@ -344,6 +344,25 @@ export interface RackPolicy {
   params: Record<string, number | string>;
 }
 
+export type RackDebtSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type RackDebtStatus = 'open' | 'planned' | 'fixed' | 'accepted' | 'ignored';
+export type RackDebtScope = 'device' | 'cable' | 'zone' | 'layout';
+
+export interface RackDebtItem {
+  id: string;
+  title: string;
+  description: string;
+  severity: RackDebtSeverity;
+  status: RackDebtStatus;
+  scope: RackDebtScope;
+  deviceIds?: string[];
+  cableIds?: string[];
+  category?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  notes?: string;
+}
+
 export type InterRackCableType = 'fiber' | 'sfp+' | 'cat6a' | 'dac';
 
 export interface InterRackCable {
@@ -387,6 +406,7 @@ export interface RackLayout {
   goldenBaseline?: RackGoldenBaseline;
   changeEvents?: RackChangeEvent[];
   policies?: RackPolicy[];
+  debtItems?: RackDebtItem[];
   updatedAt: string;
   rearClearanceMm?: number;
   frontDoorClearanceMm?: number;
