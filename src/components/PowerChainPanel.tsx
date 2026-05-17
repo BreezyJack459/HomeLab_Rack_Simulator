@@ -1,4 +1,4 @@
-import { BatteryCharging, Cable, ChevronDown, ChevronRight, Plug, ShieldAlert, ShieldCheck, Zap } from 'lucide-react';
+import { AlertTriangle, BatteryCharging, Cable, ChevronDown, ChevronRight, Plug, ShieldAlert, ShieldCheck, X, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import {
@@ -7,10 +7,13 @@ import {
   formatWatts,
   getDeviceCapacityW,
   getCircuitLoads,
+  getPduOutletMap,
   getPduOutletUsage,
   isPowerSource,
+  simulateOutletFailure,
+  validatePduOutletAssignments,
 } from '../utils/powerChain';
-import type { PowerChainNode } from '../utils/powerChain';
+import type { OutletFailureResult, PowerChainNode } from '../utils/powerChain';
 import type { PlacedDevice } from '../types/rack';
 
 function CapacityBar({ used, capacity }: { used: number; capacity: number }) {
@@ -72,6 +75,114 @@ function RedundancyBadge({ isRedundant }: { isRedundant: boolean }) {
       {isRedundant ? <ShieldCheck size={11} /> : <ShieldAlert size={11} />}
       {isRedundant ? 'Redundant' : 'Single feed'}
     </span>
+  );
+}
+
+function OutletGrid({ pduId, circuit }: { pduId: string; circuit?: 'A' | 'B' }) {
+  const layout = useRackStore((state) => state.layout);
+  const selectDevice = useRackStore((state) => state.selectDevice);
+  const outlets = useMemo(() => getPduOutletMap(layout, pduId), [layout, pduId]);
+  const [simOutlet, setSimOutlet] = useState<number | null>(null);
+  const simResult = useMemo<OutletFailureResult | null>(() => {
+    if (simOutlet === null) return null;
+    return simulateOutletFailure(layout, pduId, simOutlet);
+  }, [layout, pduId, simOutlet]);
+  const issues = useMemo(() => validatePduOutletAssignments(layout).filter((i) => i.pduId === pduId), [layout, pduId]);
+
+  const cols = outlets.length <= 8 ? 4 : outlets.length <= 12 ? 4 : 6;
+
+  return (
+    <div className="mt-2">
+      <div className="mb-1.5 flex flex-wrap gap-1">
+        {outlets.map((o) => {
+          const issue = issues.find((i) => i.outletIndex === o.outletIndex);
+          const isUsed = o.assignedDeviceId !== null;
+          const base = 'flex h-7 w-7 items-center justify-center rounded text-[10px] font-medium transition';
+          const color = issue
+            ? 'bg-red-500/15 text-red-500 border border-red-500/30'
+            : isUsed
+              ? circuit === 'A'
+                ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                : circuit === 'B'
+                  ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                  : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+              : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500';
+          return (
+            <button
+              key={o.outletIndex}
+              className={`${base} ${color} ${isUsed ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+              onClick={() => {
+                if (isUsed) setSimOutlet(o.outletIndex);
+              }}
+              title={
+                issue
+                  ? `${issue.detail}`
+                  : o.assignedDeviceName
+                    ? `Outlet ${o.outletIndex + 1}: ${o.assignedDeviceName} · ${formatWatts(o.loadW)}`
+                    : `Outlet ${o.outletIndex + 1} · Free`
+              }
+              type="button"
+            >
+              {o.outletIndex + 1}
+            </button>
+          );
+        })}
+      </div>
+      {simResult && (
+        <div className="relative rounded-md border border-red-500/30 bg-red-500/5 p-2.5">
+          <button
+            className="absolute right-1.5 top-1.5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+            onClick={() => setSimOutlet(null)}
+            type="button"
+          >
+            <X size={12} />
+          </button>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-red-400">
+            <AlertTriangle size={12} />
+            Simulated failure: Outlet {simResult.outletIndex + 1}
+          </div>
+          {simResult.affectedDevices.length === 0 && simResult.downstreamDevices.length === 0 ? (
+            <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">No devices affected.</div>
+          ) : (
+            <div className="mt-1.5 space-y-1">
+              {simResult.affectedDevices.map((d) => (
+                <div key={d.id} className="flex items-center justify-between text-[10px]">
+                  <button
+                    className="text-left text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                    onClick={() => selectDevice(d.id)}
+                    type="button"
+                  >
+                    {d.name}
+                  </button>
+                  <span className="text-slate-400 dark:text-slate-500">{formatWatts(d.powerW)}</span>
+                </div>
+              ))}
+              {simResult.downstreamDevices.length > 0 && (
+                <div className="mt-1 border-t border-slate-200 pt-1 dark:border-slate-800">
+                  <div className="mb-1 text-[10px] text-slate-400 dark:text-slate-500">Downstream</div>
+                  {simResult.downstreamDevices.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-[10px]">
+                      <button
+                        className="text-left text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                        onClick={() => selectDevice(d.id)}
+                        type="button"
+                      >
+                        {d.name}
+                      </button>
+                      <span className="text-slate-400 dark:text-slate-500">{formatWatts(d.powerW)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t border-slate-200 pt-1 text-[10px] font-medium dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Total lost</span>
+                <span className="text-red-400">{formatWatts(simResult.totalLostW)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -172,6 +283,11 @@ function NodeRow({
         )}
       </div>
 
+      {expanded && isSource && (
+        <div style={{ marginLeft: depth * 16 + 24 }}>
+          <OutletGrid pduId={node.device.id} circuit={node.device.circuit} />
+        </div>
+      )}
       {expanded && hasChildren && (
         <div className="mt-1 space-y-1">
           {node.children.map((child) => (

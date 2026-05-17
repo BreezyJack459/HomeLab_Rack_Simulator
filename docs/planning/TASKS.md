@@ -345,12 +345,12 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/types/rack.ts`, `src/utils/migrationCalc.ts`, `src/store/rackStore.ts`, `src/components/CablePlanner.tsx`, `src/App.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 
-### 9. Power Chain / Redundant Feed Planner — 🔄 PARTIAL
+### 9. Power Chain / Redundant Feed Planner — ✅ IMPLEMENTED
 **Why**: Current power validation uses device draw, but real rack planning also needs circuits, PDUs, outlets, breaker utilization, and A/B redundancy.
 **What to do**: Model Circuit A/B, PDU outlets, device power ports, safe utilization thresholds, and failure simulation. Warn when dual-PSU devices are not split across redundant feeds.
-**Status**: `powerChain.ts`, circuit load checks, redundancy checks, and `PowerChainPanel` exist.
-**Remaining**: Outlet-level assignment, failure simulation UX, and stricter A/B feed workflows.
-**Files to touch**: `src/types/rack.ts`, `src/utils/powerChain.ts`, `src/utils/validation.ts`, `src/components/CablePlanner.tsx`, `src/components/ValidationPanel.tsx`
+**Status**: `powerChain.ts` with outlet-level modeling, circuit load checks, redundancy checks, `PowerChainPanel` with interactive outlet grid and failure simulation, and `validation.ts` integration for outlet issues.
+**Shipped**: `outletIndex` on `CableRoute`, `getPduOutletMap`, `getPduOutletUsage`, `validatePduOutletAssignments`, `simulateOutletFailure`, outlet grid UI with color-coded outlets (circuit A/B, free, error), click-to-simulate failure with affected/downstream device listing, and validation integration for duplicate assignments, unassigned cables, outlet overload, and A/B mismatches.
+**Files touched**: `src/types/rack.ts`, `src/utils/powerChain.ts`, `src/utils/powerChain.test.ts`, `src/utils/validation.ts`, `src/components/PowerChainPanel.tsx`
 **Effort**: Medium-High
 
 ### 10. Rack Health / Capacity Dashboard — ✅ IMPLEMENTED

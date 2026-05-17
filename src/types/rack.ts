@@ -282,6 +282,7 @@ export interface CableRoute {
   bundleId?: string; // Groups cables into a visual bundle
   speed?: PortSpeed;
   mediaType?: MediaType;
+  outletIndex?: number; // Power cables: which PDU outlet this cable uses (0-based)
 }
 
 export type RackReservationPurpose = 'future-device' | 'shelf' | 'patch-panel' | 'ups' | 'printed-mount' | 'clearance' | 'other';

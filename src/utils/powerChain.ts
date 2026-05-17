@@ -172,31 +172,274 @@ export function getCircuitLoads(layout: RackLayout): CircuitLoad[] {
   }));
 }
 
+export interface PduOutletInfo {
+  outletIndex: number;
+  assignedDeviceId: string | null;
+  assignedDeviceName: string | null;
+  loadW: number;
+  cableId: string | null;
+}
+
 export interface PduOutletUsage {
   totalOutlets: number;
   usedOutlets: number;
   freeOutlets: number;
   loadW: number;
+  assignedOutlets: number;
+  outlets: PduOutletInfo[];
+}
+
+export function getPduOutletMap(layout: RackLayout, pduId: string): PduOutletInfo[] {
+  const pdu = layout.devices.find((d) => d.id === pduId && (d.category === 'pdu' || d.category === 'pdu-0u'));
+  if (!pdu) return [];
+
+  const totalOutlets = pdu.ports?.power ?? 8;
+  const powerCables = layout.cables.filter((c) => c.type === 'power');
+  const connected = powerCables.filter((c) => c.fromDeviceId === pduId || c.toDeviceId === pduId);
+
+  const deviceMap = new Map(layout.devices.map((d) => [d.id, d]));
+  const outletMap = new Map<number, { deviceId: string; cableId: string; loadW: number }>();
+
+  for (const cable of connected) {
+    const peerId = cable.fromDeviceId === pduId ? cable.toDeviceId : cable.fromDeviceId;
+    const peer = deviceMap.get(peerId);
+    const loadW = peer?.powerW ?? 0;
+    if (cable.outletIndex !== undefined && cable.outletIndex >= 0 && cable.outletIndex < totalOutlets) {
+      outletMap.set(cable.outletIndex, { deviceId: peerId, cableId: cable.id, loadW });
+    }
+  }
+
+  const outlets: PduOutletInfo[] = [];
+  for (let i = 0; i < totalOutlets; i++) {
+    const assigned = outletMap.get(i);
+    const assignedDevice = assigned ? deviceMap.get(assigned.deviceId) : undefined;
+    outlets.push({
+      outletIndex: i,
+      assignedDeviceId: assigned?.deviceId ?? null,
+      assignedDeviceName: assignedDevice?.name ?? null,
+      loadW: assigned?.loadW ?? 0,
+      cableId: assigned?.cableId ?? null,
+    });
+  }
+  return outlets;
 }
 
 export function getPduOutletUsage(layout: RackLayout, pduId: string): PduOutletUsage | null {
   const pdu = layout.devices.find((d) => d.id === pduId && (d.category === 'pdu' || d.category === 'pdu-0u'));
   if (!pdu) return null;
 
-  const powerCables = layout.cables.filter((c) => c.type === 'power');
-  const connected = powerCables.filter((c) => c.fromDeviceId === pduId || c.toDeviceId === pduId);
   const totalOutlets = pdu.ports?.power ?? 8;
-  const loadW = connected.reduce((sum, c) => {
-    const peerId = c.fromDeviceId === pduId ? c.toDeviceId : c.fromDeviceId;
-    const peer = layout.devices.find((d) => d.id === peerId);
-    return sum + (peer?.powerW ?? 0);
-  }, 0);
+  const outlets = getPduOutletMap(layout, pduId);
+  const assignedOutlets = outlets.filter((o) => o.assignedDeviceId !== null).length;
+  const usedOutlets = outlets.filter((o) => o.cableId !== null).length;
+  const loadW = outlets.reduce((sum, o) => sum + o.loadW, 0);
 
   return {
     totalOutlets,
-    usedOutlets: connected.length,
-    freeOutlets: Math.max(0, totalOutlets - connected.length),
+    usedOutlets,
+    freeOutlets: Math.max(0, totalOutlets - usedOutlets),
     loadW,
+    assignedOutlets,
+    outlets,
+  };
+}
+
+export interface OutletValidationIssue {
+  pduId: string;
+  pduName: string;
+  outletIndex: number;
+  type: 'duplicate-assignment' | 'unassigned-cable' | 'outlet-overload' | 'ab-mismatch';
+  detail: string;
+  deviceIds: string[];
+  cableIds: string[];
+}
+
+export function validatePduOutletAssignments(layout: RackLayout): OutletValidationIssue[] {
+  const issues: OutletValidationIssue[] = [];
+  const powerCables = layout.cables.filter((c) => c.type === 'power');
+  const deviceMap = new Map(layout.devices.map((d) => [d.id, d]));
+
+  // Group power cables by PDU
+  const cablesByPdu = new Map<string, CableRoute[]>();
+  for (const cable of powerCables) {
+    const fromDevice = deviceMap.get(cable.fromDeviceId);
+    const toDevice = deviceMap.get(cable.toDeviceId);
+    const pduId = fromDevice && isPowerSource(fromDevice) ? cable.fromDeviceId : toDevice && isPowerSource(toDevice) ? cable.toDeviceId : null;
+    if (!pduId) continue;
+    const list = cablesByPdu.get(pduId) ?? [];
+    list.push(cable);
+    cablesByPdu.set(pduId, list);
+  }
+
+  for (const [pduId, cables] of cablesByPdu) {
+    const pdu = deviceMap.get(pduId);
+    if (!pdu) continue;
+    const totalOutlets = pdu.ports?.power ?? 8;
+
+    // Check for duplicate outlet assignments
+    const outletToCables = new Map<number, CableRoute[]>();
+    for (const cable of cables) {
+      if (cable.outletIndex === undefined) continue;
+      const list = outletToCables.get(cable.outletIndex) ?? [];
+      list.push(cable);
+      outletToCables.set(cable.outletIndex, list);
+    }
+    for (const [outletIndex, assignedCables] of outletToCables) {
+      if (assignedCables.length > 1) {
+        const deviceIds = assignedCables.map((c) => {
+          const peerId = c.fromDeviceId === pduId ? c.toDeviceId : c.fromDeviceId;
+          return peerId;
+        });
+        issues.push({
+          pduId,
+          pduName: pdu.name,
+          outletIndex,
+          type: 'duplicate-assignment',
+          detail: `Outlet ${outletIndex + 1} on ${pdu.name} has ${assignedCables.length} devices assigned.`,
+          deviceIds,
+          cableIds: assignedCables.map((c) => c.id),
+        });
+      }
+      if (outletIndex < 0 || outletIndex >= totalOutlets) {
+        issues.push({
+          pduId,
+          pduName: pdu.name,
+          outletIndex,
+          type: 'outlet-overload',
+          detail: `Outlet ${outletIndex + 1} on ${pdu.name} exceeds the ${totalOutlets} available outlets.`,
+          deviceIds: assignedCables.map((c) => (c.fromDeviceId === pduId ? c.toDeviceId : c.fromDeviceId)),
+          cableIds: assignedCables.map((c) => c.id),
+        });
+      }
+    }
+
+    // Check for unassigned cables (cables without outletIndex)
+    const unassigned = cables.filter((c) => c.outletIndex === undefined);
+    if (unassigned.length > 0) {
+      const deviceIds = unassigned.map((c) => (c.fromDeviceId === pduId ? c.toDeviceId : c.fromDeviceId));
+      issues.push({
+        pduId,
+        pduName: pdu.name,
+        outletIndex: -1,
+        type: 'unassigned-cable',
+        detail: `${unassigned.length} power cable(s) on ${pdu.name} are not assigned to a specific outlet.`,
+        deviceIds,
+        cableIds: unassigned.map((c) => c.id),
+      });
+    }
+
+    // Check A/B mismatch at outlet level for dual-PSU devices
+    const deviceOutlets = new Map<string, { circuit?: 'A' | 'B'; outletIndex: number; cableId: string }[]>();
+    for (const cable of cables) {
+      if (cable.outletIndex === undefined) continue;
+      const peerId = cable.fromDeviceId === pduId ? cable.toDeviceId : cable.fromDeviceId;
+      const peer = deviceMap.get(peerId);
+      if (!peer || (peer.ports?.power ?? 0) < 2) continue; // Only dual-PSU devices
+      const list = deviceOutlets.get(peerId) ?? [];
+      list.push({ circuit: pdu.circuit, outletIndex: cable.outletIndex, cableId: cable.id });
+      deviceOutlets.set(peerId, list);
+    }
+    for (const [deviceId, entries] of deviceOutlets) {
+      const circuits = Array.from(new Set(entries.map((e) => e.circuit).filter((c): c is 'A' | 'B' => c !== undefined)));
+      if (circuits.length === 1) {
+        const device = deviceMap.get(deviceId);
+        issues.push({
+          pduId,
+          pduName: pdu.name,
+          outletIndex: entries[0].outletIndex,
+          type: 'ab-mismatch',
+          detail: `${device?.name ?? deviceId} has both PSUs on circuit ${circuits[0]}. Move one to the other circuit for redundancy.`,
+          deviceIds: [deviceId],
+          cableIds: entries.map((e) => e.cableId),
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+export interface OutletFailureResult {
+  pduId: string;
+  pduName: string;
+  outletIndex: number;
+  affectedDevices: { id: string; name: string; powerW: number }[];
+  totalLostW: number;
+  downstreamDevices: { id: string; name: string; powerW: number }[];
+}
+
+export function simulateOutletFailure(layout: RackLayout, pduId: string, outletIndex: number): OutletFailureResult | null {
+  const pdu = layout.devices.find((d) => d.id === pduId && (d.category === 'pdu' || d.category === 'pdu-0u'));
+  if (!pdu) return null;
+
+  const powerCables = layout.cables.filter((c) => c.type === 'power');
+  const deviceMap = new Map(layout.devices.map((d) => [d.id, d]));
+
+  // Find the device directly connected to this outlet
+  const cable = powerCables.find(
+    (c) =>
+      (c.fromDeviceId === pduId || c.toDeviceId === pduId) &&
+      c.outletIndex === outletIndex
+  );
+  if (!cable) {
+    return {
+      pduId,
+      pduName: pdu.name,
+      outletIndex,
+      affectedDevices: [],
+      totalLostW: 0,
+      downstreamDevices: [],
+    };
+  }
+
+  const directDeviceId = cable.fromDeviceId === pduId ? cable.toDeviceId : cable.fromDeviceId;
+  const directDevice = deviceMap.get(directDeviceId);
+  if (!directDevice) {
+    return {
+      pduId,
+      pduName: pdu.name,
+      outletIndex,
+      affectedDevices: [],
+      totalLostW: 0,
+      downstreamDevices: [],
+    };
+  }
+
+  // Directly affected: the device on this outlet
+  const affectedDevices = [{ id: directDevice.id, name: directDevice.name, powerW: directDevice.powerW }];
+  let totalLostW = directDevice.powerW;
+
+  // Downstream: if the affected device is a PDU/UPS, its children also go down
+  const downstreamDevices: { id: string; name: string; powerW: number }[] = [];
+
+  function collectDownstream(deviceId: string) {
+    const device = deviceMap.get(deviceId);
+    if (!device || !isPowerSource(device)) return;
+    const childCables = powerCables.filter((c) => c.fromDeviceId === deviceId || c.toDeviceId === deviceId);
+    for (const childCable of childCables) {
+      const childId = childCable.fromDeviceId === deviceId ? childCable.toDeviceId : childCable.fromDeviceId;
+      const childDevice = deviceMap.get(childId);
+      if (!childDevice || isPowerSource(childDevice)) continue;
+      if (!downstreamDevices.some((d) => d.id === childId)) {
+        downstreamDevices.push({ id: childId, name: childDevice.name, powerW: childDevice.powerW });
+        totalLostW += childDevice.powerW;
+      }
+      // Recurse if child is also a power source
+      if (isPowerSource(childDevice)) {
+        collectDownstream(childId);
+      }
+    }
+  }
+
+  collectDownstream(directDeviceId);
+
+  return {
+    pduId,
+    pduName: pdu.name,
+    outletIndex,
+    affectedDevices,
+    totalLostW,
+    downstreamDevices,
   };
 }
 
