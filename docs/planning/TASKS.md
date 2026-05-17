@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (60 files / 943 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (61 files / 955 tests passed).
 
 ## Completed ✅
 
@@ -232,7 +232,7 @@
 - [x] Power Bill Reconciliation — monthly actual kWh/cost entry tracking, estimated vs actual consumption comparison, variance percentage with trending indicator, anomaly detection (30% threshold from moving average), CSV and Markdown export (`powerBill.ts`, `PowerBillPanel.tsx`, 12 unit tests)
 - [x] Multi-rack room layout (`RoomRack`, `roomRacks.ts`, `RoomRackMapPanel`, 14 unit tests)
 - [x] Thermal/airflow simulation (`ThermalZone`, `thermalDistribution.ts`, `ThermalDistributionPanel`, 15 unit tests)
-- [ ] Import from NetBox/DCIM tools
+- [x] Import from NetBox/DCIM tools (`DcimDevice`, `dcimImport.ts`, `DcimImportPanel`, NetBox JSON + Generic CSV parsers, template matching, 12 unit tests)
 
 ## Suggested Next Work 🎯
 
