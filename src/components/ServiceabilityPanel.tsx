@@ -7,6 +7,7 @@ import {
   getCableStrainRisks,
   getFrontRearCollisions,
   getHeavyOverLightIssues,
+  getPullOutSimulation,
   getServiceabilityHighlightedDeviceIds,
 } from '../utils/serviceability';
 
@@ -15,6 +16,59 @@ interface ServiceabilityPanelProps {
   overlayEnabled: boolean;
   onOverlayEnabledChange: (enabled: boolean) => void;
   onHighlightDevicesChange: (deviceIds: string[]) => void;
+}
+
+function PullOutSimulationCard({ layout, deviceId }: { layout: RackLayout; deviceId: string }) {
+  const sim = useMemo(() => getPullOutSimulation(layout, deviceId), [layout, deviceId]);
+  if (!sim) return null;
+
+  return (
+    <div
+      className="rounded-md border p-3"
+      style={{
+        backgroundColor: sim.canPullOut ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
+        borderColor: sim.canPullOut ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)',
+      }}
+    >
+      <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
+        <span style={{ color: sim.canPullOut ? '#4ade80' : '#f87171' }}>
+          {sim.canPullOut ? 'Pull-out OK' : 'Pull-out blocked'}
+        </span>
+        <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
+          {sim.mountSide} mount
+        </span>
+      </div>
+      <div className="space-y-1 text-[11px]" style={{ color: 'var(--theme-text-secondary)' }}>
+        <div className="flex items-center justify-between">
+          <span>Device depth</span>
+          <span>
+            {sim.deviceDepthMm}mm{sim.mountEnvelopeMm > 0 ? ` + ${sim.mountEnvelopeMm}mm env` : ''}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Required travel</span>
+          <span>{sim.requiredSlideMm}mm</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Available travel</span>
+          <span>{sim.availableSlideMm}mm</span>
+        </div>
+        {sim.blockers.length > 0 && (
+          <div className="mt-1.5 space-y-1">
+            <div className="text-[10px] font-medium" style={{ color: 'var(--theme-text-muted)' }}>Blockers:</div>
+            {sim.blockers.map((b) => (
+              <div key={b.deviceId} className="flex items-center justify-between">
+                <span>{b.deviceName}</span>
+                <span className="text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
+                  {b.reason === 'front-rear-collision' ? 'collision' : b.reason === 'door-clearance' ? 'door' : 'deeper'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function ServiceabilityPanel({
@@ -196,6 +250,8 @@ export function ServiceabilityPanel({
                   </div>
                 </button>
               ))}
+
+              {selectedDeviceId && <PullOutSimulationCard layout={layout} deviceId={selectedDeviceId} />}
 
               {selectedDeviceId && maintenanceChecklist.length > 0 && (
                 <div className="rounded-md border p-3" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)' }}>

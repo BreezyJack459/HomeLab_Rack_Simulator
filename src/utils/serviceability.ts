@@ -175,6 +175,92 @@ export function getServiceabilityIssues(layout: RackLayout): ValidationIssue[] {
   return issues;
 }
 
+export interface PullOutBlocker {
+  deviceId: string;
+  deviceName: string;
+  depthMm: number;
+  reason: 'same-u-deeper' | 'front-rear-collision' | 'door-clearance';
+}
+
+export interface PullOutSimulation {
+  deviceId: string;
+  deviceName: string;
+  mountSide: 'front' | 'rear';
+  deviceDepthMm: number;
+  mountEnvelopeMm: number;
+  requiredSlideMm: number;
+  availableSlideMm: number;
+  frontDoorClearanceMm: number;
+  rearDoorClearanceMm: number;
+  doorBlocked: boolean;
+  canPullOut: boolean;
+  blockers: PullOutBlocker[];
+}
+
+export function getPullOutSimulation(layout: RackLayout, deviceId: string): PullOutSimulation | null {
+  const device = layout.devices.find((d) => d.id === deviceId);
+  if (!device || isZeroU(device)) return null;
+
+  const mountSide = getDeviceMountSide(device);
+  const deviceDepth = device.depthMm + (device.mountEnvelopeMm ?? 0);
+  const requiredSlideMm = deviceDepth + SERVICE_SLACK_MM;
+  const frontDoorClearanceMm = layout.frontDoorClearanceMm ?? 0;
+  const rearDoorClearanceMm = layout.rearDoorClearanceMm ?? 0;
+  const availableSlideMm = Math.max(0, layout.rackDepthMm - frontDoorClearanceMm - rearDoorClearanceMm);
+  const doorBlocked = mountSide === 'front'
+    ? deviceDepth > layout.rackDepthMm - rearDoorClearanceMm
+    : deviceDepth > layout.rackDepthMm - frontDoorClearanceMm;
+
+  const blockers: PullOutBlocker[] = [];
+
+  // Front/rear collision at same U blocks both devices
+  const counterpart = layout.devices.find(
+    (d) =>
+      d.id !== device.id &&
+      !isZeroU(d) &&
+      getDeviceMountSide(d) !== mountSide &&
+      rangesOverlap(device.positionU, device.sizeU, d.positionU, d.sizeU)
+  );
+  if (counterpart) {
+    const counterpartDepth = counterpart.depthMm + (counterpart.mountEnvelopeMm ?? 0);
+    if (deviceDepth + counterpartDepth > layout.rackDepthMm) {
+      blockers.push({
+        deviceId: counterpart.id,
+        deviceName: counterpart.name,
+        depthMm: counterpartDepth,
+        reason: 'front-rear-collision',
+      });
+    }
+  }
+
+  // Door clearance blocker
+  if (doorBlocked) {
+    blockers.push({
+      deviceId: 'door',
+      deviceName: mountSide === 'front' ? 'Rear door/clearance' : 'Front door/clearance',
+      depthMm: mountSide === 'front' ? rearDoorClearanceMm : frontDoorClearanceMm,
+      reason: 'door-clearance',
+    });
+  }
+
+  const canPullOut = blockers.length === 0 && requiredSlideMm <= availableSlideMm;
+
+  return {
+    deviceId: device.id,
+    deviceName: device.name,
+    mountSide,
+    deviceDepthMm: device.depthMm,
+    mountEnvelopeMm: device.mountEnvelopeMm ?? 0,
+    requiredSlideMm,
+    availableSlideMm,
+    frontDoorClearanceMm,
+    rearDoorClearanceMm,
+    doorBlocked,
+    canPullOut,
+    blockers,
+  };
+}
+
 export function getServiceabilityHighlightedDeviceIds(layout: RackLayout): string[] {
   return Array.from(
     new Set([
@@ -255,6 +341,27 @@ export function getDeviceMaintenanceChecklist(layout: RackLayout, deviceId: stri
         severity: 'info',
         title: 'Heavy device access hazard',
         detail: `${action} Current gap: ${issue.gapU}U.`,
+      });
+    }
+  }
+
+  // Pull-out simulation
+  const sim = getPullOutSimulation(layout, deviceId);
+  if (sim) {
+    if (sim.canPullOut) {
+      items.push({
+        id: `${deviceId}-pullout-ok`,
+        severity: 'ok',
+        title: 'Pull-out simulation',
+        detail: `${sim.deviceName} (${sim.deviceDepthMm}mm${sim.mountEnvelopeMm > 0 ? ` + ${sim.mountEnvelopeMm}mm envelope` : ''}) can slide out ${sim.mountSide}-side. Needs ${sim.requiredSlideMm}mm travel, ${sim.availableSlideMm}mm available.`,
+      });
+    } else {
+      const blockerNames = sim.blockers.map((b) => b.deviceName).join(', ');
+      items.push({
+        id: `${deviceId}-pullout-blocked`,
+        severity: sim.blockers.some((b) => b.reason === 'front-rear-collision') ? 'critical' : 'warning',
+        title: 'Pull-out blocked',
+        detail: `${sim.deviceName} needs ${sim.requiredSlideMm}mm ${sim.mountSide}-side travel but only ${sim.availableSlideMm}mm is available. ${blockerNames ? `Blocked by: ${blockerNames}.` : 'Rack depth or door clearance is insufficient.'}`,
       });
     }
   }
