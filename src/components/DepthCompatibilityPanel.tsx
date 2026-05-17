@@ -145,7 +145,9 @@ export function DepthCompatibilityPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium" style={{ color: 'var(--theme-text-primary)' }}>{device.name}</div>
                   <div className="text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
-                    {device.depthMm}mm
+                    {(device.mountEnvelopeMm ?? 0) > 0
+                      ? `${device.depthMm}+${device.mountEnvelopeMm ?? 0}=${device.depthMm + (device.mountEnvelopeMm ?? 0)}mm`
+                      : `${device.depthMm}mm`}
                     {reasons.includes('too-deep') && ` > usable ${summary.usableDepthMm}mm`}
                     {reasons.includes('rail-min') && ` < rail min ${layout.railMinDepthMm ?? 0}mm`}
                     {reasons.includes('rail-max') && ` > rail max ${layout.railMaxDepthMm ?? layout.rackDepthMm}mm`}

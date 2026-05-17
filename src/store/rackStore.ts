@@ -62,6 +62,7 @@ function templateToDevice(template: DeviceTemplate, positionU: number, xMm?: num
     mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
     mountSide0U: template.mountSide0U,
     outletFacing: template.outletFacing,
+    mountEnvelopeMm: template.mountEnvelopeMm,
     color: template.color,
     description: template.description
   };
