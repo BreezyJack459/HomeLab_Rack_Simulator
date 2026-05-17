@@ -336,12 +336,11 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/utils/cableTrace.ts`, `src/utils/cableTrace.test.ts`, `src/components/CableTracePanel.tsx`, `src/components/CableMap.tsx`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
-### 8. Planned / Active / Decommissioning Mode — 🔄 PARTIAL
+### 8. Planned / Active / Decommissioning Mode — ✅ IMPLEMENTED
 **Why**: Rack planning is often about migration: what exists now, what is planned, and what should be removed. Real DCIM systems track lifecycle/status so users can compare current and future states.
 **What to do**: Add `status` to devices and cables, then support filtered views and a change summary: additions, removals, moved devices, and new cable runs.
-**Status**: Device lifecycle editing in `PropertyPanel`, cable lifecycle editing in `CablePlanner`, lifecycle-filtered 2D/3D/cable views in `App.tsx`, and Markdown migration-plan export are now shipped. `migrationCalc.ts` also exposes filtered-layout helpers for the view mode.
-**Remaining**: Richer moved-device diffing / change detection beyond lifecycle buckets.
-**Files to touch**: `src/types/rack.ts`, `src/utils/migrationCalc.ts`, `src/store/rackStore.ts`, `src/components/CablePlanner.tsx`, `src/App.tsx`, `src/utils/exporters.ts`
+**Status**: Device lifecycle editing in `PropertyPanel`, cable lifecycle editing in `CablePlanner`, lifecycle-filtered 2D/3D/cable views in `App.tsx`, and Markdown migration-plan export. `migrationCalc.ts` exposes filtered-layout helpers. `driftDetector.ts` compares current layout against golden baseline with added/removed/changed device and cable detection (position, size, name, depth, power, weight, category changes). `DriftPanel` shows drift summary with severity counts, individual change items, expand/collapse, and Markdown export. `GoldenBaselinePanel` captures and compares baselines.
+**Files touched**: `src/types/rack.ts`, `src/utils/migrationCalc.ts`, `src/utils/driftDetector.ts`, `src/components/DriftPanel.tsx`, `src/components/GoldenBaselinePanel.tsx`, `src/store/rackStore.ts`, `src/components/CablePlanner.tsx`, `src/App.tsx`, `src/utils/exporters.ts`
 **Effort**: Medium
 
 ### 9. Power Chain / Redundant Feed Planner — ✅ IMPLEMENTED
@@ -428,7 +427,7 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/components/PropertyPanel.tsx`, `src/utils/upsRuntime.ts`, `src/components/UpsRuntimePanel.tsx`, `src/utils/upsRuntime.test.ts`, `src/utils/layoutValidation.ts`
 **Effort**: Medium
 
-### 18. Serviceability / Maintenance Access Mode — 🔄 PARTIAL
+### 18. Serviceability / Maintenance Access Mode — ✅ IMPLEMENTED
 **Why**: A rack can fit on paper but still be painful to maintain. Users need to know whether devices can slide out, whether cable slack is enough, and whether small devices are blocked behind deeper equipment.
 **What to do**: Add a serviceability overlay that simulates access paths, pull-out clearance, cable slack, and likely maintenance blockers.
 **MVP scope**:
@@ -436,9 +435,9 @@ The following items should not be picked as next work unless a regression appear
 - Warn when cable length/slack is too short for pull-out service.
 - Highlight devices that require removing another device or shelf first.
 - Add a maintenance checklist for risky devices.
-**Status**: `serviceability.ts` now also exposes highlighted-device and per-device maintenance-checklist helpers; `ServiceabilityPanel` can drive an interactive overlay and show a selected-device checklist; `RackEditor2D.tsx` renders overlay highlights for risky hardware.
-**Remaining**: More physical pull-out path simulation beyond the current issue-driven overlay.
-**Files to touch**: `src/utils/serviceability.ts`, `src/components/ServiceabilityPanel.tsx`, `src/components/RackEditor2D.tsx`, `src/App.tsx`
+**Status**: `serviceability.ts` with `getCableStrainRisks`, `getFrontRearCollisions`, `getHeavyOverLightIssues`, `getPullOutSimulation`, and per-device `getDeviceMaintenanceChecklist`. `ServiceabilityPanel` with interactive overlay toggle, issue list (cable strain, front/rear collision, heavy-over-light), and `PullOutSimulationCard` showing device depth, required/available travel, and blocker list. `RackEditor2D.tsx` renders amber overlay highlights for risky hardware.
+**Shipped**: Pull-out simulation checks required slide distance against available rack depth, detects front/rear collision blockers and door clearance issues, includes mount envelope in effective depth calculation.
+**Files touched**: `src/utils/serviceability.ts`, `src/components/ServiceabilityPanel.tsx`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
 ### 19. Live Sensor Overlay — ✅ IMPLEMENTED (2026-05-17)
