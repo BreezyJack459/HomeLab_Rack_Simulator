@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (61 files / 955 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (62 files / 967 tests passed).
 
 ## Completed ✅
 
@@ -514,9 +514,10 @@ The following items should not be picked as next work unless a regression appear
 **Files touched**: `src/types/rack.ts`, `src/store/rackStore.ts`, new `src/utils/bootOrder.ts`, new `src/components/BootSequencePanel.tsx`
 **Effort**: Medium
 
-### 24. Rack Shopping / Pre-Purchase Fit Checker
+### 24. Rack Shopping / Pre-Purchase Fit Checker — ✅ IMPLEMENTED
 **Why**: The #1 real-world pain point is buying a rack (or devices) that don't physically fit. Users check chassis depth but forget rails, rear cable clearance, door thickness, and power-plug bend radius. This mode lets users validate fit before spending money.
 **What to do**: Add a guided fit-check flow that focuses on physical compatibility without requiring cable planning.
+**Status**: Shipped via `FitCheckPanel.tsx` (`src/components/FitCheckPanel.tsx`) with device-template browser, rack-depth/height quick-switch, rear-clearance calculator, non-rackmount auto-flag, door-closure warnings, weight-distribution preview, and per-device fit scoring. Powered by `checkDeviceFit()` in `src/utils/fitCheck.ts`.
 **MVP scope**:
 - Quick-switch rack depth/height templates (600mm/800mm/1000mm/1200mm deep; 12U/24U/42U) to see if all devices fit.
 - Visual rear-clearance indicator: show remaining mm after deepest device + cable bend radius + door thickness.
@@ -527,9 +528,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Reuses existing validation and rack-math infrastructure.
 
-### 25. Room Placement Advisor ⭐ High Practical Value, Novel
+### 25. Room Placement Advisor ⭐ High Practical Value, Novel — ✅ IMPLEMENTED
 **Why**: "Where do I put this rack?" is one of the most common homelab questions. Bedroom? Too noisy. Closet? Overheats. Garage? Too dusty/cold. Basement? Good but cable run is long. Existing noise/heat calculators only show static badges ("suitable for garage"). This advisor turns those numbers into spatial recommendations.
 **What to do**: Collect room constraints and suggest optimal rack placement, connecting existing noise, heat, weight, and cable data into a cohesive spatial decision tool.
+**Status**: Shipped via `RoomPlacementPanel.tsx` (`src/components/RoomPlacementPanel.tsx`) with room-type selector, floor-type selector, AC toggle, rack-position selector, and scored placement analysis. Powered by `analyzeRoomPlacement()` in `src/utils/roomPlacement.ts`. Reports include floor-loading kg/m², minimum room dimensions, required clearances, heat output, estimated noise, and prioritized recommendations.
 **MVP scope**:
 - Constraint questionnaire: room type (bedroom/office/closet/garage/basement), dimensions, floor type (wood/concrete/tile), ventilation (window/AC/none), network ingress location, power outlet count/circuit capacity, door width.
 - Scored placement report per candidate location:
@@ -547,9 +549,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium
 **Dependencies**: Builds on existing `NoiseSummary.tsx` and `EnergySummary.tsx` data.
 
-### 26. Zero-to-Homelab Interactive Guide ⭐ Onboarding & Education, Highly Differentiating
+### 26. Zero-to-Homelab Interactive Guide ⭐ Onboarding & Education, Highly Differentiating — ✅ IMPLEMENTED (2026-05-17)
 **Why**: Most homelab beginners don't know where to start. They either buy too much at once ("endgame at start") or buy incompatible gear. There is no built-in guidance inside rack planning tools that teaches *how* to think about building a homelab. A guided questionnaire and roadmap turns the app from a planning tool into a long-term companion.
 **What to do**: Add an interactive onboarding guide that asks about the user's goals, budget, constraints, and experience level, then generates a personalized "grow into it" roadmap instead of pushing an expensive full build.
+**Status**: Shipped. `homelabGuide.ts` utility with 8-question wizard, personalized report generation, rack sizing logic, starter device recommendations with new/used/cost guidance, 4-phase incremental growth plan with "stop and enjoy" checkpoints, and contextual warnings (bedroom noise, closet heat, budget mismatch). `HomelabGuidePanel.tsx` provides step-by-step questionnaire UI with progress bar, answer selection, report view with recommended rack, starter device cards, growth phase timeline, and Markdown export. 12 unit tests.
 **MVP scope**:
 - **Questionnaire wizard** (~10 questions):
   1. What is your primary goal? (learn networking / self-host apps / NAS / Plex / Kubernetes / game server)
@@ -578,9 +581,10 @@ The following items should not be picked as next work unless a regression appear
 **Dependencies**: Independent feature, but synergizes with `RoomPlacementAdvisor` and existing sample layouts.
 **Key principle**: The guide must *never* encourage "buy everything now." Default messaging should emphasize starting small, buying used where safe, and upgrading in phases. Each phase should have a "stop and enjoy" checkpoint.
 
-### 27. Multi-Rack Workspace with Inter-Rack Connection Tracking ⭐ Major Architectural Extension, High Value
+### 27. Multi-Rack Workspace with Inter-Rack Connection Tracking ⭐ Major Architectural Extension, High Value — ✅ IMPLEMENTED (MVP)
 **Why**: Most serious homelabbers eventually outgrow one rack. They have a main rack, a secondary test rack, a wall-mounted mini rack, or even a remote site rack at a family member's house. Today they track inter-rack connections with hand-drawn network diagrams or spreadsheets, and easily forget which physical port on Rack A connects to which port on Rack B. A unified workspace that manages multiple racks and their cross-rack links turns the app from a single-rack planner into a whole-lab management system.
 **What to do**: Upgrade from a single `RackLayout` to a `Workspace` that contains multiple rack layouts, plus a new inter-rack connection layer for cables that run between racks.
+**Status**: MVP shipped. `Workspace` type exists in `src/types/rack.ts` with `racks` array and `interRackCables`. `WorkspaceManager.tsx` provides rack switcher, create/delete/duplicate/rename, and summary health indicators per rack. Inter-rack cables stored at workspace level. Port aliases (`portAliases`) indexed for search. Full inter-rack connection map and global search remain in later scope.
 **MVP scope**:
 - **Workspace model**: a container holding multiple named `RackLayout` instances (e.g., "Main Rack", "Garage Lab", "Test Bench").
 - **Rack manager UI**: switch between racks, create/delete/duplicate racks within the workspace, see a summary list of all racks with health indicators.
@@ -601,9 +605,10 @@ The following items should not be picked as next work unless a regression appear
 **Dependencies**: Touches core data model. Best implemented after the store and export/import formats are stable. Synergizes with Network Topology Auto-Generator (#21) — inter-rack edges become the top-level links in the logical topology.
 **Differentiation note**: This is distinct from the existing backlog item "Multi-rack room layout," which is about placing multiple racks inside a single physical room. This feature is about managing multiple racks as a connected system, potentially across rooms or buildings, with tracked inter-rack cabling.
 
-### 28. Rack Dependency Graph / Blast Radius Map ⭐ High Operational Value
+### 28. Rack Dependency Graph / Blast Radius Map ⭐ High Operational Value — ✅ IMPLEMENTED (MVP)
 **Why**: Physical cabling shows what is connected, but users also need to know what breaks when one device, power feed, cable, switch uplink, or NAS goes down. Commercial DCIM tools treat impact analysis as a first-class operations workflow; a homelab version would make outage planning much more concrete.
 **What to do**: Build a dependency graph across power, network, storage, management access, and services. Let users simulate a failed device/cable/PDU/UPS and see impacted devices, unreachable services, and suggested recovery order.
+**Status**: MVP shipped. `analyzeBlastRadius()` in `src/utils/blastRadius.ts` infers dependencies from cables and power paths, then simulates failure impact by impact type (power, network, boot, storage, management). `BlastRadiusPanel.tsx` provides device selector, impact-type tabs, outage summary, impacted device list with severity badges, and recovery-order hints. Degraded-state modeling and incident-response export remain in later scope.
 **MVP scope**:
 - Add optional dependency metadata: `provides`, `dependsOn`, `criticality`, and `serviceTags` for devices.
 - Infer simple dependencies from existing cables and power paths.
@@ -616,9 +621,10 @@ The following items should not be picked as next work unless a regression appear
 **Effort**: Medium-High
 **Dependencies**: Builds on Cable Trace / Path Explorer (#7), Power Chain / Redundant Feed Planner (#9), Network Topology Auto-Generator (#21), and Boot Dependency Planner (#23).
 
-### 29. Layout Policy Rules Engine ⭐ Turns Validation Into Governance
+### 29. Layout Policy Rules Engine ⭐ Turns Validation Into Governance — ✅ IMPLEMENTED
 **Why**: Built-in validation catches generic problems, but every homelab has personal rules: "UPS always bottom-mounted," "critical devices must have redundant power," "leave 20% switch ports free," "no noisy gear in bedroom mode," or "power draw must stay under 80% of circuit capacity."
 **What to do**: Add user-configurable policies that run alongside validation and produce actionable warnings.
+**Status**: Shipped. `RackPolicy` type with `RackPolicyType` (power-budget-headroom, weight-limit, noise-limit, port-density, device-count, depth-limit, temperature-limit, airflow-minimum) exists in `src/types/rack.ts`. `policyEngine.ts` evaluates policies against layouts and produces `ValidationIssue`-compatible results. `PolicyRulesPanel.tsx` provides preset selector (safe-bedroom, low-power, redundant-network, learning-lab, media-nas), per-policy enable/disable, threshold editing, and violation list with severity badges. Policy import/export as JSON remains in later scope.
 **MVP scope**:
 - Define policy presets: safe bedroom rack, low-power rack, redundant network rack, learning lab, media/NAS rack.
 - Support simple rule fields: target, metric, operator, threshold, severity, message.
