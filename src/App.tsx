@@ -67,6 +67,7 @@ const DeviceSensorPanel = lazy(() => import('./components/DeviceSensorPanel').th
 const RoomRackMapPanel = lazy(() => import('./components/RoomRackMapPanel').then((m) => ({ default: m.RoomRackMapPanel })));
 const ThermalDistributionPanel = lazy(() => import('./components/ThermalDistributionPanel').then((m) => ({ default: m.ThermalDistributionPanel })));
 const DcimImportPanel = lazy(() => import('./components/DcimImportPanel').then((m) => ({ default: m.DcimImportPanel })));
+const HomelabGuidePanel = lazy(() => import('./components/HomelabGuidePanel').then((m) => ({ default: m.HomelabGuidePanel })));
 const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
 const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
@@ -666,6 +667,7 @@ function App() {
             <CableLengthAuditPanel />
             <PortfolioExportPanel />
             <DcimImportPanel />
+            <HomelabGuidePanel />
             <LabelDebtPanel />
             <RunbookPanel />
             <EvidenceLockerPanel />
