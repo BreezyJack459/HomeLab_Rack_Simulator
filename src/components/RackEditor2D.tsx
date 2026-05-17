@@ -5,6 +5,7 @@ import { useRackStore } from '../store/rackStore';
 import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
 import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap, type PortSlot } from '../utils/portLayout';
+import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { getReservationXRange } from '../utils/reservations';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
 
@@ -225,6 +226,13 @@ function serviceabilityDeviceStyle(enabled: boolean, highlighted: boolean) {
   };
 }
 
+function cableHighlightStyle(highlighted: boolean): React.CSSProperties | undefined {
+  if (!highlighted) return undefined;
+  return {
+    boxShadow: '0 0 0 2px rgba(6, 182, 212, 0.55), 0 0 20px rgba(6, 182, 212, 0.12)',
+  };
+}
+
 export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, highlightedDeviceIds = [] }: RackEditor2DProps) {
   const rackRef = useRef<HTMLDivElement>(null);
   const storeLayout = useRackStore((state) => state.layout);
@@ -240,6 +248,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   const updateDevice = useRackStore((state) => state.updateDevice);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
+  const selectedCableId = useRackStore((state) => state.selectedCableId);
   const undo = useRackStore((state) => state.undo);
   const redo = useRackStore((state) => state.redo);
   const setEditorZoom = useRackStore((state) => state.setEditorZoom);
@@ -251,6 +260,18 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   const [contextMenu, setContextMenu] = useState<null | { x: number; y: number; deviceId: string }>(null);
   const [resizing, setResizing] = useState<null | { deviceId: string; startY: number; originalSizeU: number; originalPositionU: number }>(null);
   const highlightedDeviceIdSet = useMemo(() => new Set(highlightedDeviceIds), [highlightedDeviceIds]);
+  const selectedCableDeviceIds = useMemo(() => {
+    if (!selectedCableId) return new Set<string>();
+    const linked = getPatchPanelLinkedCableIds(layout, selectedCableId);
+    const ids = new Set<string>();
+    for (const cable of layout.cables) {
+      if (linked.has(cable.id)) {
+        ids.add(cable.fromDeviceId);
+        ids.add(cable.toDeviceId);
+      }
+    }
+    return ids;
+  }, [layout, selectedCableId]);
 
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * BASE_UNIT_HEIGHT;
@@ -781,7 +802,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                 const visiblePorts = portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, isZeroU(device));
                 const hasVisiblePorts = portItems(visiblePorts).length > 0;
                 const useSidePorts = compact && hasVisiblePorts && width < COMPACT_SIDE_PORT_MIN_WIDTH;
-                const highlighted = highlightedDeviceIdSet.has(device.id);
+                const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
                 return (
                   <div
                     key={device.id}
@@ -806,6 +827,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                       borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : device.category === 'printed-mount' ? 'dashed' : undefined,
                       filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
                       ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
+                      ...cableHighlightStyle(highlighted),
                     }}
                     onPointerDown={(event) => startDeviceDrag(event, device)}
                     onClick={(event) => {
@@ -944,7 +966,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   </div>
                   {sideLeftDevices.map((device) => {
                     const selected = selectedDeviceId === device.id;
-                    const highlighted = highlightedDeviceIdSet.has(device.id);
+                    const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
                     return (
                       <div
                         key={device.id}
@@ -1015,7 +1037,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   </div>
                   {sideRightDevices.map((device) => {
                     const selected = selectedDeviceId === device.id;
-                    const highlighted = highlightedDeviceIdSet.has(device.id);
+                    const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
                     return (
                       <div
                         key={device.id}
