@@ -619,7 +619,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             );
           })}
 
-          {cablePaths.map(({ cable, path, color }, index) => {
+          {cablePaths.map(({ cable, path, color, from, to }) => {
             const selected = selectedCableIds.has(cable.id);
             const muted = hasSelectedCable && !selected;
             const typeMuted = !hasSelectedCable && typeFilter === 'all' && cable.type === 'structured';
@@ -628,6 +628,15 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
 
             const displayColor = isMuted ? MUTED_CABLE_COLOR : color;
             const routeState = selected ? 'selected' : isMuted ? 'muted' : 'normal';
+
+            const fromX = connectionX(layout, from, rackWidth, cable.type, cable.fromPort ?? undefined);
+            const fromY = devicePortY(from, layout.heightU, cable.fromPort?.index, cable.fromPort?.type ?? cable.type);
+            const toX = connectionX(layout, to, rackWidth, cable.type, cable.toPort ?? undefined);
+            const toY = devicePortY(to, layout.heightU, cable.toPort?.index, cable.toPort?.type ?? cable.type);
+
+            const fromLabel = cable.fromPort ? `${cable.fromPort.type} ${cable.fromPort.index + 1}` : from.name;
+            const toLabel = cable.toPort ? `${cable.toPort.type} ${cable.toPort.index + 1}` : to.name;
+
             return (
               <g
                 key={cable.id}
@@ -657,13 +666,52 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
                   strokeLinejoin="round"
                   strokeWidth={selected ? 5 : isMuted ? 2 : 3}
                 />
+                {/* Port endpoint dots */}
                 <circle
-                  fill={displayColor}
-                  r={selected ? 4.5 : isMuted ? 2.8 : 3.2}
-                  cx={routeListX - 26}
-                  cy={RACK_Y + 18 + index * 24}
-                  opacity={isMuted ? 0.36 : 0.9}
+                  fill={isMuted ? '#1e293b' : '#ffffff'}
+                  stroke={displayColor}
+                  strokeWidth={selected ? 2 : 1.5}
+                  r={selected ? 5 : 3.5}
+                  cx={fromX}
+                  cy={fromY}
+                  opacity={isMuted ? 0.3 : 0.95}
+                  style={{ pointerEvents: 'none' }}
                 />
+                <circle
+                  fill={isMuted ? '#1e293b' : '#ffffff'}
+                  stroke={displayColor}
+                  strokeWidth={selected ? 2 : 1.5}
+                  r={selected ? 5 : 3.5}
+                  cx={toX}
+                  cy={toY}
+                  opacity={isMuted ? 0.3 : 0.95}
+                  style={{ pointerEvents: 'none' }}
+                />
+                {/* Selected cable port labels */}
+                {selected && (
+                  <>
+                    <text
+                      fill={displayColor}
+                      fontSize={9}
+                      fontWeight={600}
+                      textAnchor={cable.type === 'power' ? 'start' : 'end'}
+                      x={cable.type === 'power' ? fromX + 8 : fromX - 8}
+                      y={fromY + 3}
+                    >
+                      {fromLabel}
+                    </text>
+                    <text
+                      fill={displayColor}
+                      fontSize={9}
+                      fontWeight={600}
+                      textAnchor={cable.type === 'power' ? 'start' : 'end'}
+                      x={cable.type === 'power' ? toX + 8 : toX - 8}
+                      y={toY + 3}
+                    >
+                      {toLabel}
+                    </text>
+                  </>
+                )}
               </g>
             );
           })}
