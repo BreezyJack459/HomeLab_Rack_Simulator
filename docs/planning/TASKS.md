@@ -329,12 +329,11 @@ The following items should not be picked as next work unless a regression appear
 **Files to touch**: `src/types/rack.ts`, `src/store/rackStore.ts`, `src/components/RackEditor2D.tsx`, `src/components/three/DeviceModel.tsx` or a new accessory model component, `src/utils/validation.ts`, `src/data/deviceCatalog.ts` or a new accessory catalog.
 **Effort**: Medium-High
 
-### 7. Cable Trace / Path Explorer ⭐ Major Troubleshooting Value — 🔄 PARTIAL
+### 7. Cable Trace / Path Explorer ⭐ Major Troubleshooting Value — ✅ IMPLEMENTED
 **Why**: DCIM tools commonly let users trace a connection from one endpoint through patch panels and pass-through ports to the far endpoint. This would make the current cable map more useful for debugging, not just visualization.
 **What to do**: Let users click a device port or cable and see the full signal path, including patch panel front/rear hops, disconnected endpoints, and broken chains.
-**Status**: Core tracing exists in `src/utils/cableTrace.ts`, is covered by `src/utils/cableTrace.test.ts`, and is surfaced by `CableTracePanel`.
-**Remaining**: Port-level click targets and richer visual highlighting in cable map / rack views.
-**Files to touch**: `src/utils/routing.ts` or new `src/utils/cableTrace.ts`, `src/components/CableMap.tsx`, `src/components/CablePlanner.tsx`
+**Status**: Core tracing in `cableTrace.ts` with patch-panel hop detection, circular-reference guards, and broken-chain reporting. `CableTracePanel` shows full path with device/cable selection. Port endpoint dots in `CableMap` show exact port positions per cable with click-to-select. Selected cable highlights connected devices in `RackEditor2D` via cyan glow ring (includes patch-panel-linked cables).
+**Files touched**: `src/utils/cableTrace.ts`, `src/utils/cableTrace.test.ts`, `src/components/CableTracePanel.tsx`, `src/components/CableMap.tsx`, `src/components/RackEditor2D.tsx`
 **Effort**: Medium
 
 ### 8. Planned / Active / Decommissioning Mode — 🔄 PARTIAL
