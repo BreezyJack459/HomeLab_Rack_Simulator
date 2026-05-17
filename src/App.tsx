@@ -65,6 +65,7 @@ const RackDebtPanel = lazy(() => import('./components/RackDebtPanel').then((m) =
 const RackPhotoPanel = lazy(() => import('./components/RackPhotoPanel').then((m) => ({ default: m.RackPhotoPanel })));
 const DeviceSensorPanel = lazy(() => import('./components/DeviceSensorPanel').then((m) => ({ default: m.DeviceSensorPanel })));
 const RoomRackMapPanel = lazy(() => import('./components/RoomRackMapPanel').then((m) => ({ default: m.RoomRackMapPanel })));
+const ThermalDistributionPanel = lazy(() => import('./components/ThermalDistributionPanel').then((m) => ({ default: m.ThermalDistributionPanel })));
 const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
 const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
 const NoiseSummary = lazy(() => import('./components/NoiseSummary').then((m) => ({ default: m.NoiseSummary })));
@@ -692,6 +693,7 @@ function App() {
             <TemplateQualityPanel />
             <DriftPanel />
             <EnvironmentPanel />
+            <ThermalDistributionPanel />
             <DeviceSensorPanel />
             <DocumentationAuditPanel />
             <ValidationPanel

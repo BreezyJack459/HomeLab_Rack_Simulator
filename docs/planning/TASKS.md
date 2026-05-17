@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (59 files / 928 tests passed).
+> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (60 files / 943 tests passed).
 
 ## Completed ✅
 
@@ -231,7 +231,7 @@
 - [x] IP Address & VLAN Assignment Table — per-device network interfaces with name, MAC, static IP, DHCP reservation, VLAN ID, subnet, gateway, DNS. Duplicate IP/MAC detection, invalid IP/MAC/VLAN validation, conflict alerts, CSV and Markdown export (`ipAssignment.ts`, `IpAssignmentPanel.tsx`, 15 unit tests)
 - [x] Power Bill Reconciliation — monthly actual kWh/cost entry tracking, estimated vs actual consumption comparison, variance percentage with trending indicator, anomaly detection (30% threshold from moving average), CSV and Markdown export (`powerBill.ts`, `PowerBillPanel.tsx`, 12 unit tests)
 - [x] Multi-rack room layout (`RoomRack`, `roomRacks.ts`, `RoomRackMapPanel`, 14 unit tests)
-- [ ] Thermal/airflow simulation
+- [x] Thermal/airflow simulation (`ThermalZone`, `thermalDistribution.ts`, `ThermalDistributionPanel`, 15 unit tests)
 - [ ] Import from NetBox/DCIM tools
 
 ## Suggested Next Work 🎯

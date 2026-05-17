@@ -571,6 +571,7 @@ export interface RackLayout {
   photos?: RackPhoto[];
   sensorReadings?: DeviceSensorReading[];
   roomRacks?: RoomRack[];
+  thermalZones?: ThermalZone[];
 }
 
 export interface RackPhoto {
@@ -611,6 +612,16 @@ export interface RoomRack {
   depthMm: number;
   heightU: number;
   rackType: RackType;
+  notes?: string;
+}
+
+export interface ThermalZone {
+  id: string;
+  name: string;
+  startU: number;
+  endU: number;
+  targetTempC: number;
+  coolingCapacityW?: number;
   notes?: string;
 }
 
