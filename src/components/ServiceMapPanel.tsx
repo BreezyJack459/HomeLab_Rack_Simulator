@@ -63,7 +63,7 @@ function ServiceRow({
         </span>
         <span className="flex-1 truncate font-medium">{service.name}</span>
         {status.singlePointOfFailure && (
-          <ShieldAlert size={13} className="shrink-0 text-red-500" title="Single point of failure" />
+          <ShieldAlert size={13} className="shrink-0 text-red-500" />
         )}
         {!status.healthy && (
           <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] text-red-600 dark:text-red-400">

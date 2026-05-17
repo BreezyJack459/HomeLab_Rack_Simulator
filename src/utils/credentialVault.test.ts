@@ -81,20 +81,17 @@ describe('vault state', () => {
 });
 
 describe('getDeviceCredentials', () => {
-  it('returns credentials from device', () => {
-    const device = makeDevice({
-      credentials: [
-        { id: 'cred-1', label: 'Admin', value: 'enc1', type: 'password' },
-      ],
-    });
-    const creds = getDeviceCredentials(device);
+  it('returns credentials for device', () => {
+    const credentials = [
+      { id: 'cred-1', deviceId: 'd1', label: 'Admin', value: 'enc1', type: 'password' as const },
+    ];
+    const creds = getDeviceCredentials('d1', credentials);
     expect(creds).toHaveLength(1);
     expect(creds[0].label).toBe('Admin');
   });
 
   it('returns empty array when no credentials', () => {
-    const device = makeDevice();
-    const creds = getDeviceCredentials(device);
+    const creds = getDeviceCredentials('d1', []);
     expect(creds).toHaveLength(0);
   });
 });
@@ -110,30 +107,19 @@ describe('getCredentialTypeLabel', () => {
 });
 
 describe('summarizeCredentials', () => {
-  it('returns zeros for empty devices', () => {
+  it('returns zeros for empty credentials', () => {
     const summary = summarizeCredentials([]);
     expect(summary.totalDevices).toBe(0);
     expect(summary.totalCredentials).toBe(0);
   });
 
   it('counts by type', () => {
-    const devices: PlacedDevice[] = [
-      makeDevice({
-        id: 'd1',
-        credentials: [
-          { id: 'c1', label: 'Admin', value: 'enc', type: 'password' },
-          { id: 'c2', label: 'iDRAC', value: 'enc', type: 'url' },
-        ],
-      }),
-      makeDevice({
-        id: 'd2',
-        credentials: [
-          { id: 'c3', label: 'SNMP', value: 'enc', type: 'snmp' },
-        ],
-      }),
-      makeDevice({ id: 'd3' }),
+    const credentials = [
+      { id: 'c1', deviceId: 'd1', label: 'Admin', value: 'enc', type: 'password' as const },
+      { id: 'c2', deviceId: 'd1', label: 'iDRAC', value: 'enc', type: 'url' as const },
+      { id: 'c3', deviceId: 'd2', label: 'SNMP', value: 'enc', type: 'snmp' as const },
     ];
-    const summary = summarizeCredentials(devices);
+    const summary = summarizeCredentials(credentials);
     expect(summary.totalDevices).toBe(2);
     expect(summary.totalCredentials).toBe(3);
     expect(summary.byType['password']).toBe(1);
@@ -144,50 +130,38 @@ describe('summarizeCredentials', () => {
 
 describe('validateCredentials', () => {
   it('returns empty for valid credentials', () => {
-    const devices = [
-      makeDevice({
-        credentials: [
-          { id: 'c1', label: 'Admin', value: 'hrs_v1_abc123', type: 'password' },
-        ],
-      }),
+    const devices = [makeDevice({ id: 'd1' })];
+    const credentials = [
+      { id: 'c1', deviceId: 'd1', label: 'Admin', value: 'hrs_v1_abc123', type: 'password' as const },
     ];
-    const issues = validateCredentials(devices);
+    const issues = validateCredentials(credentials, devices);
     expect(issues).toHaveLength(0);
   });
 
   it('flags empty label', () => {
-    const devices = [
-      makeDevice({
-        credentials: [
-          { id: 'c1', label: '  ', value: 'hrs_v1_abc', type: 'password' },
-        ],
-      }),
+    const devices = [makeDevice({ id: 'd1' })];
+    const credentials = [
+      { id: 'c1', deviceId: 'd1', label: '  ', value: 'hrs_v1_abc', type: 'password' as const },
     ];
-    const issues = validateCredentials(devices);
+    const issues = validateCredentials(credentials, devices);
     expect(issues.some((i) => i.title.includes('missing label'))).toBe(true);
   });
 
   it('flags empty value', () => {
-    const devices = [
-      makeDevice({
-        credentials: [
-          { id: 'c1', label: 'Admin', value: '  ', type: 'password' },
-        ],
-      }),
+    const devices = [makeDevice({ id: 'd1' })];
+    const credentials = [
+      { id: 'c1', deviceId: 'd1', label: 'Admin', value: '  ', type: 'password' as const },
     ];
-    const issues = validateCredentials(devices);
+    const issues = validateCredentials(credentials, devices);
     expect(issues.some((i) => i.title.includes('empty value'))).toBe(true);
   });
 
   it('flags unencrypted credential', () => {
-    const devices = [
-      makeDevice({
-        credentials: [
-          { id: 'c1', label: 'Admin', value: 'plaintext-password', type: 'password' },
-        ],
-      }),
+    const devices = [makeDevice({ id: 'd1' })];
+    const credentials = [
+      { id: 'c1', deviceId: 'd1', label: 'Admin', value: 'plaintext-password', type: 'password' as const },
     ];
-    const issues = validateCredentials(devices);
+    const issues = validateCredentials(credentials, devices);
     expect(issues.some((i) => i.severity === 'critical')).toBe(true);
     expect(issues.some((i) => i.title.includes('unencrypted'))).toBe(true);
   });

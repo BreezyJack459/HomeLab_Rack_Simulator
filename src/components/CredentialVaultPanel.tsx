@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
-import type { DeviceCredential, PlacedDevice } from '../types/rack';
+import type { DeviceCredential } from '../types/rack';
 import {
   decryptValue,
   encryptValue,
@@ -192,11 +192,15 @@ function CredentialRow({
 }
 
 function DeviceCredentialSection({
-  device,
+  deviceId,
+  deviceName,
+  allCredentials,
   password,
   onUpdate,
 }: {
-  device: PlacedDevice;
+  deviceId: string;
+  deviceName: string;
+  allCredentials: DeviceCredential[];
   password: string;
   onUpdate: (deviceId: string, credentials: DeviceCredential[]) => void;
 }) {
@@ -205,18 +209,19 @@ function DeviceCredentialSection({
   const [formType, setFormType] = useState<DeviceCredential['type']>('password');
   const [formValue, setFormValue] = useState('');
 
-  const credentials = getDeviceCredentials(device);
+  const credentials = getDeviceCredentials(deviceId, allCredentials);
 
   async function addCredential() {
     if (!formLabel.trim() || !formValue.trim()) return;
     const encrypted = await encryptValue(password, formValue);
     const newCredential: DeviceCredential = {
       id: `cred-${Date.now()}`,
+      deviceId,
       label: formLabel.trim(),
       value: encrypted,
       type: formType,
     };
-    onUpdate(device.id, [...credentials, newCredential]);
+    onUpdate(deviceId, [...credentials, newCredential]);
     setFormLabel('');
     setFormValue('');
     setFormType('password');
@@ -225,14 +230,14 @@ function DeviceCredentialSection({
 
   function updateCredential(id: string, patch: Partial<DeviceCredential>) {
     onUpdate(
-      device.id,
+      deviceId,
       credentials.map((c) => (c.id === id ? { ...c, ...patch } : c))
     );
   }
 
   function removeCredential(id: string) {
     onUpdate(
-      device.id,
+      deviceId,
       credentials.filter((c) => c.id !== id)
     );
   }
@@ -243,7 +248,7 @@ function DeviceCredentialSection({
       style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-sm font-semibold">{device.name}</div>
+        <div className="text-sm font-semibold">{deviceName}</div>
         <div className="text-[10px] opacity-60">{credentials.length} credential(s)</div>
       </div>
 
@@ -342,18 +347,20 @@ function DeviceCredentialSection({
 
 export function CredentialVaultPanel() {
   const layout = useRackStore((state) => state.layout);
-  const updateDevice = useRackStore((state) => state.updateDevice);
+  const updateRack = useRackStore((state) => state.updateRack);
   const [password, setPassword] = useState('');
   const [unlocked, setUnlocked] = useState(isVaultUnlocked());
   const [showExport, setShowExport] = useState(false);
 
-  const devicesWithCredentials = useMemo(
-    () => layout.devices.filter((d) => (d.credentials ?? []).length > 0 || d.category !== 'blank'),
-    [layout.devices]
-  );
+  const allCredentials = layout.credentials ?? [];
 
-  const summary = useMemo(() => summarizeCredentials(layout.devices), [layout.devices]);
-  const issues = useMemo(() => validateCredentials(layout.devices), [layout.devices]);
+  const devicesWithCredentials = useMemo(() => {
+    const credentialDeviceIds = new Set(allCredentials.map((c) => c.deviceId));
+    return layout.devices.filter((d) => credentialDeviceIds.has(d.id) || d.category !== 'blank');
+  }, [layout.devices, allCredentials]);
+
+  const summary = useMemo(() => summarizeCredentials(allCredentials), [allCredentials]);
+  const issues = useMemo(() => validateCredentials(allCredentials, layout.devices), [allCredentials, layout.devices]);
 
   function doUnlock() {
     if (!password.trim()) return;
@@ -369,13 +376,15 @@ export function CredentialVaultPanel() {
   }
 
   function updateDeviceCredentials(deviceId: string, credentials: DeviceCredential[]) {
-    updateDevice(deviceId, { credentials: credentials.length > 0 ? credentials : undefined });
+    const otherCreds = allCredentials.filter((c) => c.deviceId !== deviceId);
+    const newCredentials = credentials.length > 0 ? [...otherCreds, ...credentials] : otherCreds;
+    updateRack({ credentials: newCredentials.length > 0 ? newCredentials : undefined });
   }
 
   async function handleExport() {
     if (!unlocked) return;
     const vaultPassword = password;
-    const md = await exportCredentialsMarkdown(layout.devices, vaultPassword);
+    const md = await exportCredentialsMarkdown(allCredentials, layout.devices, vaultPassword);
     const blob = new Blob([md], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -518,7 +527,9 @@ export function CredentialVaultPanel() {
           {devicesWithCredentials.map((device) => (
             <DeviceCredentialSection
               key={device.id}
-              device={device}
+              deviceId={device.id}
+              deviceName={device.name}
+              allCredentials={allCredentials}
               password={password}
               onUpdate={updateDeviceCredentials}
             />

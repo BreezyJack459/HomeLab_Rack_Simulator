@@ -3,27 +3,13 @@ import type { DeviceCredential, PlacedDevice, ValidationIssue } from '../types/r
 const ENCODING = 'base64';
 const SALT_PREFIX = 'hrs_v1_';
 
-// Simple fallback for test environments where crypto.subtle is unavailable
-function getCrypto(): typeof crypto {
-  if (typeof crypto !== 'undefined') return crypto;
-  // Node.js crypto module fallback for vitest/jsdom
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const nodeCrypto = require('crypto');
-    return nodeCrypto.webcrypto as Crypto;
-  } catch {
-    throw new Error('Web Crypto API is not available');
-  }
-}
-
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
-  const c = getCrypto();
   const enc = new TextEncoder();
-  const keyMaterial = await c.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, [
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, [
     'deriveKey',
   ]);
-  return c.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: 100_000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -32,12 +18,11 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
 }
 
 export async function encryptValue(password: string, plaintext: string): Promise<string> {
-  const c = getCrypto();
   const enc = new TextEncoder();
-  const salt = c.getRandomValues(new Uint8Array(16));
-  const iv = c.getRandomValues(new Uint8Array(12));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
-  const ciphertext = await c.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
   const combined = new Uint8Array(salt.length + iv.length + new Uint8Array(ciphertext).length);
   combined.set(salt, 0);
   combined.set(iv, salt.length);
@@ -46,7 +31,6 @@ export async function encryptValue(password: string, plaintext: string): Promise
 }
 
 export async function decryptValue(password: string, encrypted: string): Promise<string> {
-  const c = getCrypto();
   if (!encrypted.startsWith(SALT_PREFIX)) {
     throw new Error('Invalid credential format');
   }
@@ -55,7 +39,7 @@ export async function decryptValue(password: string, encrypted: string): Promise
   const iv = data.slice(16, 28);
   const ciphertext = data.slice(28);
   const key = await deriveKey(password, salt);
-  const decrypted = await c.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
   return new TextDecoder().decode(decrypted);
 }
 
@@ -83,8 +67,8 @@ export function isVaultUnlocked(): boolean {
   return vaultState.unlocked && vaultState.masterPassword !== null;
 }
 
-export function getDeviceCredentials(device: PlacedDevice): DeviceCredential[] {
-  return device.credentials ?? [];
+export function getDeviceCredentials(deviceId: string, allCredentials: DeviceCredential[]): DeviceCredential[] {
+  return allCredentials.filter((c) => c.deviceId === deviceId);
 }
 
 export function getCredentialTypeLabel(type: DeviceCredential['type']): string {
@@ -97,62 +81,64 @@ export function getCredentialTypeLabel(type: DeviceCredential['type']): string {
   }
 }
 
-export function summarizeCredentials(devices: PlacedDevice[]): {
+export function summarizeCredentials(credentials: DeviceCredential[]): {
   totalDevices: number;
   totalCredentials: number;
   byType: Record<string, number>;
 } {
   const byType: Record<string, number> = {};
   let totalCredentials = 0;
-  const devicesWithCreds = devices.filter((d) => (d.credentials ?? []).length > 0);
 
-  for (const d of devicesWithCreds) {
-    for (const c of d.credentials ?? []) {
-      totalCredentials++;
-      byType[c.type] = (byType[c.type] ?? 0) + 1;
-    }
+  for (const c of credentials) {
+    totalCredentials++;
+    byType[c.type] = (byType[c.type] ?? 0) + 1;
   }
 
+  const deviceIds = new Set(credentials.map((c) => c.deviceId));
+
   return {
-    totalDevices: devicesWithCreds.length,
+    totalDevices: deviceIds.size,
     totalCredentials,
     byType,
   };
 }
 
-export function validateCredentials(devices: PlacedDevice[]): ValidationIssue[] {
+export function validateCredentials(
+  credentials: DeviceCredential[],
+  devices: PlacedDevice[]
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const deviceMap = new Map(devices.map((d) => [d.id, d]));
 
-  for (const d of devices) {
-    const creds = d.credentials ?? [];
-    for (const c of creds) {
-      if (!c.label.trim()) {
-        issues.push({
-          id: `cred-empty-label-${c.id}`,
-          severity: 'warning',
-          title: 'Credential missing label',
-          detail: `A credential on ${d.name} has no label.`,
-          deviceIds: [d.id],
-        });
-      }
-      if (!c.value.trim()) {
-        issues.push({
-          id: `cred-empty-value-${c.id}`,
-          severity: 'warning',
-          title: 'Credential has empty value',
-          detail: `Credential "${c.label}" on ${d.name} has no encrypted value.`,
-          deviceIds: [d.id],
-        });
-      }
-      if (!c.value.startsWith(SALT_PREFIX)) {
-        issues.push({
-          id: `cred-unencrypted-${c.id}`,
-          severity: 'critical',
-          title: 'Credential appears unencrypted',
-          detail: `Credential "${c.label}" on ${d.name} does not use the expected encryption format.`,
-          deviceIds: [d.id],
-        });
-      }
+  for (const c of credentials) {
+    const device = deviceMap.get(c.deviceId);
+    const deviceName = device?.name ?? c.deviceId;
+    if (!c.label.trim()) {
+      issues.push({
+        id: `cred-empty-label-${c.id}`,
+        severity: 'warning',
+        title: 'Credential missing label',
+        detail: `A credential on ${deviceName} has no label.`,
+        deviceIds: [c.deviceId],
+      });
+    }
+    if (!c.value.trim()) {
+      issues.push({
+        id: `cred-empty-value-${c.id}`,
+        severity: 'warning',
+        title: 'Credential has empty value',
+        detail: `Credential "${c.label}" on ${deviceName} has no encrypted value.`,
+        deviceIds: [c.deviceId],
+      });
+    }
+    if (!c.value.startsWith(SALT_PREFIX)) {
+      issues.push({
+        id: `cred-unencrypted-${c.id}`,
+        severity: 'critical',
+        title: 'Credential appears unencrypted',
+        detail: `Credential "${c.label}" on ${deviceName} does not use the expected encryption format.`,
+        deviceIds: [c.deviceId],
+      });
     }
   }
 
@@ -160,6 +146,7 @@ export function validateCredentials(devices: PlacedDevice[]): ValidationIssue[] 
 }
 
 export async function exportCredentialsMarkdown(
+  credentials: DeviceCredential[],
   devices: PlacedDevice[],
   password: string
 ): Promise<string> {
@@ -170,11 +157,19 @@ export async function exportCredentialsMarkdown(
     '',
   ];
 
-  for (const d of devices) {
-    const creds = d.credentials ?? [];
-    if (creds.length === 0) continue;
+  const deviceMap = new Map(devices.map((d) => [d.id, d]));
+  const credsByDevice = new Map<string, DeviceCredential[]>();
+  for (const c of credentials) {
+    const list = credsByDevice.get(c.deviceId) ?? [];
+    list.push(c);
+    credsByDevice.set(c.deviceId, list);
+  }
 
-    lines.push(`## ${d.name}`, '');
+  for (const [deviceId, creds] of credsByDevice) {
+    if (creds.length === 0) continue;
+    const deviceName = deviceMap.get(deviceId)?.name ?? deviceId;
+
+    lines.push(`## ${deviceName}`, '');
     for (const c of creds) {
       let decrypted: string;
       try {
