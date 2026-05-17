@@ -19,7 +19,7 @@ import {
   rangesOverlap,
   isZeroU
 } from './rackMath';
-import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW } from './powerChain';
+import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW, validatePduOutletAssignments } from './powerChain';
 import { getServiceabilityIssues } from './serviceability';
 import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
 import { validatePrintedMountFit } from './printedMount';
@@ -738,6 +738,27 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
         cableIds: result.powerCables.map((c) => c.id),
       });
     }
+  }
+
+  // PDU outlet-level validation
+  const outletIssues = validatePduOutletAssignments(layout);
+  for (const oi of outletIssues) {
+    const severity: ValidationIssue['severity'] =
+      oi.type === 'duplicate-assignment' || oi.type === 'outlet-overload' ? 'critical' : 'warning';
+    const titleMap: Record<string, string> = {
+      'duplicate-assignment': 'Duplicate PDU outlet assignment',
+      'unassigned-cable': 'Unassigned PDU power cable',
+      'outlet-overload': 'PDU outlet index out of range',
+      'ab-mismatch': 'Dual-PSU device on same circuit',
+    };
+    issues.push({
+      id: `outlet-${oi.type}-${oi.pduId}-${oi.outletIndex}`,
+      severity,
+      title: titleMap[oi.type] ?? 'PDU outlet issue',
+      detail: oi.detail,
+      deviceIds: oi.deviceIds,
+      cableIds: oi.cableIds,
+    });
   }
 
   // Serviceability checks

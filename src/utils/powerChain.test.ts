@@ -7,8 +7,11 @@ import {
   getCircuitLoads,
   getDeviceCapacityW,
   getDeviceCircuit,
+  getPduOutletMap,
   getPduOutletUsage,
   getUpsCapacityW,
+  simulateOutletFailure,
+  validatePduOutletAssignments,
 } from './powerChain';
 
 const baseLayout: RackLayout = {
@@ -284,6 +287,7 @@ describe('getPduOutletUsage', () => {
           type: 'power',
           color: '#fb923c',
           nodes: [],
+          outletIndex: 0,
         },
       ],
     };
@@ -446,5 +450,302 @@ describe('getDeviceCircuit', () => {
 
   it('returns undefined for missing device', () => {
     expect(getDeviceCircuit(baseLayout, 'missing')).toBeUndefined();
+  });
+});
+
+describe('getPduOutletMap', () => {
+  it('returns empty for non-PDU', () => {
+    expect(getPduOutletMap(baseLayout, 'no-such')).toEqual([]);
+  });
+
+  it('maps all outlets for a PDU', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('srv1', 'server', 200),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 1,
+        },
+      ],
+    };
+    const map = getPduOutletMap(layout, 'pdu1');
+    expect(map).toHaveLength(4);
+    expect(map[0].assignedDeviceId).toBeNull();
+    expect(map[1].assignedDeviceId).toBe('srv1');
+    expect(map[1].loadW).toBe(200);
+    expect(map[2].assignedDeviceId).toBeNull();
+    expect(map[3].assignedDeviceId).toBeNull();
+  });
+
+  it('ignores out-of-range outlet indices', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 2 } }),
+        makeDevice('srv1', 'server', 200),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 5,
+        },
+      ],
+    };
+    const map = getPduOutletMap(layout, 'pdu1');
+    expect(map).toHaveLength(2);
+    expect(map.every((o) => o.assignedDeviceId === null)).toBe(true);
+  });
+});
+
+describe('getPduOutletUsage (with outlet map)', () => {
+  it('includes outlet detail array', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('srv1', 'server', 200),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+      ],
+    };
+    const usage = getPduOutletUsage(layout, 'pdu1')!;
+    expect(usage.totalOutlets).toBe(4);
+    expect(usage.usedOutlets).toBe(1);
+    expect(usage.assignedOutlets).toBe(1);
+    expect(usage.outlets).toHaveLength(4);
+    expect(usage.outlets[0].assignedDeviceId).toBe('srv1');
+  });
+});
+
+describe('validatePduOutletAssignments', () => {
+  it('flags duplicate outlet assignments', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 8 } }),
+        makeDevice('srv1', 'server', 100),
+        makeDevice('srv2', 'server', 150),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+        {
+          id: 'c2',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv2',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+      ],
+    };
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues.some((i) => i.type === 'duplicate-assignment')).toBe(true);
+  });
+
+  it('flags unassigned cables', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 8 } }),
+        makeDevice('srv1', 'server', 100),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+        },
+      ],
+    };
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues.some((i) => i.type === 'unassigned-cable')).toBe(true);
+  });
+
+  it('flags outlet index out of range', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('srv1', 'server', 100),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 10,
+        },
+      ],
+    };
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues.some((i) => i.type === 'outlet-overload')).toBe(true);
+  });
+
+  it('flags dual-PSU on same circuit', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pduA', 'pdu', 0, { circuit: 'A', ports: { power: 8 } }),
+        makeDevice('srv1', 'server', 200, { ports: { power: 2 } }),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pduA',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+        {
+          id: 'c2',
+          fromDeviceId: 'pduA',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 1,
+        },
+      ],
+    };
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues.some((i) => i.type === 'ab-mismatch')).toBe(true);
+  });
+
+  it('returns empty for valid assignments', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 8 } }),
+        makeDevice('srv1', 'server', 100),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 2,
+        },
+      ],
+    };
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues).toHaveLength(0);
+  });
+});
+
+describe('simulateOutletFailure', () => {
+  it('returns empty for unused outlet', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } })],
+    };
+    const result = simulateOutletFailure(layout, 'pdu1', 0);
+    expect(result).not.toBeNull();
+    expect(result!.affectedDevices).toHaveLength(0);
+    expect(result!.totalLostW).toBe(0);
+  });
+
+  it('affects the device on the failed outlet', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('srv1', 'server', 200),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 1,
+        },
+      ],
+    };
+    const result = simulateOutletFailure(layout, 'pdu1', 1);
+    expect(result!.affectedDevices).toHaveLength(1);
+    expect(result!.affectedDevices[0].id).toBe('srv1');
+    expect(result!.totalLostW).toBe(200);
+  });
+
+  it('includes downstream devices when failing a chained PDU', () => {
+    const layout: RackLayout = {
+      ...baseLayout,
+      devices: [
+        makeDevice('pdu1', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('pdu2', 'pdu', 0, { ports: { power: 4 } }),
+        makeDevice('srv1', 'server', 200),
+      ],
+      cables: [
+        {
+          id: 'c1',
+          fromDeviceId: 'pdu1',
+          toDeviceId: 'pdu2',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+        {
+          id: 'c2',
+          fromDeviceId: 'pdu2',
+          toDeviceId: 'srv1',
+          type: 'power',
+          color: '#fb923c',
+          nodes: [],
+          outletIndex: 0,
+        },
+      ],
+    };
+    const result = simulateOutletFailure(layout, 'pdu1', 0);
+    expect(result!.affectedDevices).toHaveLength(1);
+    expect(result!.affectedDevices[0].id).toBe('pdu2');
+    expect(result!.downstreamDevices).toHaveLength(1);
+    expect(result!.downstreamDevices[0].id).toBe('srv1');
+    expect(result!.totalLostW).toBe(200);
   });
 });
