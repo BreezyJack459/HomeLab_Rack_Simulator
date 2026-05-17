@@ -194,7 +194,7 @@ export function ThermalDistributionPanel() {
           const seen = new Set<string>();
           for (const d of devices) {
             if (!d.powerW || d.powerW <= 0) continue;
-            const startU = d.y ?? 0;
+            const startU = d.positionU;
             const endU = startU + d.sizeU;
             if (startU < zone.endU && endU > zone.startU) {
               zonePowerW += d.powerW;

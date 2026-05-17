@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
-import type { PatchPanelPortDoc, PlacedDevice } from '../types/rack';
+import type { CableRoute, PatchPanelPortDoc, PlacedDevice, RackLayout } from '../types/rack';
 import {
   exportPatchPanelDocsCsv,
   exportPatchPanelDocsMarkdown,
@@ -34,6 +34,7 @@ function PortDocRow({
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<PatchPanelPortDoc>({
     portIndex,
+    deviceId: doc?.deviceId ?? '',
     ...(doc ?? {}),
   });
 
@@ -205,7 +206,7 @@ function PortDocRow({
             <button
               type="button"
               onClick={() => {
-                setForm({ portIndex, ...(doc ?? {}) });
+                setForm({ portIndex, deviceId: doc?.deviceId ?? '', ...(doc ?? {}) });
                 setIsEditing(false);
               }}
               className="rounded border px-2 py-1 text-[11px]"
@@ -237,12 +238,12 @@ function PatchPanelSection({
   onUpdateDoc,
 }: {
   device: PlacedDevice;
-  layout: { devices: PlacedDevice[]; cables: CableRoute[] };
+  layout: RackLayout;
   onUpdateDoc: (doc: PatchPanelPortDoc) => void;
 }) {
   const jacks = useMemo(() => getPatchPanelJacks(layout, device.id), [layout, device.id]);
-  const summary = useMemo(() => getPatchPanelDocSummary(device), [device]);
-  const issues = useMemo(() => validatePatchPanelDocs(device, layout.cables), [device, layout.cables]);
+  const summary = useMemo(() => getPatchPanelDocSummary(device, layout.patchPanelDocs ?? []), [device, layout.patchPanelDocs]);
+  const issues = useMemo(() => validatePatchPanelDocs(device, layout.patchPanelDocs ?? [], layout.cables), [device, layout.patchPanelDocs, layout.cables]);
 
   return (
     <div className="rounded-lg border p-3" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
@@ -279,7 +280,7 @@ function PatchPanelSection({
             key={jack.index}
             portIndex={jack.index}
             jack={jack}
-            doc={findPatchPanelDoc(device.patchPanelDocs ?? [], jack.index)}
+            doc={findPatchPanelDoc(layout.patchPanelDocs ?? [], jack.index)}
             onUpdate={onUpdateDoc}
           />
         ))}
@@ -290,18 +291,15 @@ function PatchPanelSection({
 
 export function PatchPanelDocPanel() {
   const layout = useRackStore((state) => state.layout);
-  const updateDevice = useRackStore((state) => state.updateDevice);
+  const updateRack = useRackStore((state) => state.updateRack);
   const patchPanels = useMemo(
     () => layout.devices.filter((d) => d.category === 'patch-panel'),
     [layout.devices]
   );
 
   function updateDoc(deviceId: string, doc: PatchPanelPortDoc) {
-    const device = layout.devices.find((d) => d.id === deviceId);
-    if (!device) return;
-
-    const existing = device.patchPanelDocs ?? [];
-    const filtered = existing.filter((d) => d.portIndex !== doc.portIndex);
+    const existing = layout.patchPanelDocs ?? [];
+    const filtered = existing.filter((d) => !(d.deviceId === deviceId && d.portIndex === doc.portIndex));
     const hasData =
       doc.destinationRoom?.trim() ||
       doc.wallPlate?.trim() ||
@@ -310,9 +308,9 @@ export function PatchPanelDocPanel() {
       doc.testedSpeed?.trim() ||
       doc.notes?.trim();
 
-    updateDevice(deviceId, {
-      patchPanelDocs: hasData ? [...filtered, doc] : filtered,
-    });
+    const updatedDoc: PatchPanelPortDoc = { ...doc, deviceId };
+    const newDocs = hasData ? [...filtered, updatedDoc] : filtered;
+    updateRack({ patchPanelDocs: newDocs.length > 0 ? newDocs : undefined });
   }
 
   return (
@@ -334,7 +332,7 @@ export function PatchPanelDocPanel() {
               <button
                 type="button"
                 onClick={() => {
-                  const csv = exportPatchPanelDocsCsv(patchPanels[0]);
+                  const csv = exportPatchPanelDocsCsv(patchPanels[0], layout.patchPanelDocs ?? []);
                   const blob = new Blob([csv], { type: 'text/csv' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -352,7 +350,7 @@ export function PatchPanelDocPanel() {
               <button
                 type="button"
                 onClick={() => {
-                  const md = exportPatchPanelDocsMarkdown(patchPanels[0]);
+                  const md = exportPatchPanelDocsMarkdown(patchPanels[0], layout.patchPanelDocs ?? []);
                   const blob = new Blob([md], { type: 'text/plain' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');

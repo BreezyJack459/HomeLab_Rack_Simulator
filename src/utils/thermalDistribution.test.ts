@@ -11,10 +11,10 @@ import {
 import type { PlacedDevice, ThermalZone } from '../types/rack';
 
 const devices: PlacedDevice[] = [
-  { id: 'd1', name: 'Server A', templateId: 'srv', sizeU: 2, y: 10, powerW: 250 } as PlacedDevice,
-  { id: 'd2', name: 'Switch B', templateId: 'sw', sizeU: 1, y: 12, powerW: 50 } as PlacedDevice,
-  { id: 'd3', name: 'Blank', templateId: 'blank', sizeU: 1, y: 13, powerW: 0 } as PlacedDevice,
-  { id: 'd4', name: 'Server C', templateId: 'srv', sizeU: 2, y: 10, powerW: 350 } as PlacedDevice,
+  { id: 'd1', category: 'server', name: 'Server A', templateId: 'srv', sizeU: 2, positionU: 10, depthMm: 500, widthType: '19in', weightKg: 10, powerW: 250, heatLevel: 3, color: '#333' } as PlacedDevice,
+  { id: 'd2', category: 'switch', name: 'Switch B', templateId: 'sw', sizeU: 1, positionU: 12, depthMm: 300, widthType: '19in', weightKg: 4, powerW: 50, heatLevel: 2, color: '#333' } as PlacedDevice,
+  { id: 'd3', category: 'blank', name: 'Blank', templateId: 'blank', sizeU: 1, positionU: 13, depthMm: 100, widthType: '19in', weightKg: 1, powerW: 0, heatLevel: 1, color: '#333' } as PlacedDevice,
+  { id: 'd4', category: 'server', name: 'Server C', templateId: 'srv', sizeU: 2, positionU: 10, depthMm: 500, widthType: '19in', weightKg: 10, powerW: 350, heatLevel: 3, color: '#333' } as PlacedDevice,
 ];
 
 const zones: ThermalZone[] = [
@@ -69,7 +69,7 @@ describe('findHotSpots', () => {
 
   it('returns empty when no devices exceed threshold', () => {
     const noPower: PlacedDevice[] = [
-      { id: 'd', name: 'Blank', templateId: 'blank', sizeU: 1, y: 0, powerW: 0 } as PlacedDevice,
+      { id: 'd', category: 'blank', name: 'Blank', templateId: 'blank', sizeU: 1, positionU: 0, depthMm: 100, widthType: '19in', weightKg: 1, powerW: 0, heatLevel: 1, color: '#333' } as PlacedDevice,
     ];
     const hotspots = findHotSpots(noPower, 5, 300);
     expect(hotspots.length).toBe(0);

@@ -8,8 +8,8 @@ export interface PatchPanelDocSummary {
   portsTested: number;
 }
 
-export function getPatchPanelDocs(device: PlacedDevice): PatchPanelPortDoc[] {
-  return device.patchPanelDocs ?? [];
+export function getPatchPanelDocs(deviceId: string, allDocs: PatchPanelPortDoc[]): PatchPanelPortDoc[] {
+  return allDocs.filter((d) => d.deviceId === deviceId);
 }
 
 export function findPatchPanelDoc(
@@ -20,28 +20,30 @@ export function findPatchPanelDoc(
 }
 
 export function getPatchPanelDocSummary(
-  device: PlacedDevice
+  device: PlacedDevice,
+  docs: PatchPanelPortDoc[]
 ): PatchPanelDocSummary {
-  const docs = device.patchPanelDocs ?? [];
+  const deviceDocs = docs.filter((d) => d.deviceId === device.id);
   const portCount = device.ports?.ethernet ?? 0;
 
   return {
     totalPorts: portCount,
-    documentedPorts: docs.length,
-    portsWithRoom: docs.filter((d) => d.destinationRoom?.trim()).length,
-    portsWithWireCode: docs.filter((d) => d.wireCode).length,
-    portsTested: docs.filter((d) => d.testedSpeed?.trim()).length,
+    documentedPorts: deviceDocs.length,
+    portsWithRoom: deviceDocs.filter((d) => d.destinationRoom?.trim()).length,
+    portsWithWireCode: deviceDocs.filter((d) => d.wireCode).length,
+    portsTested: deviceDocs.filter((d) => d.testedSpeed?.trim()).length,
   };
 }
 
 export function validatePatchPanelDocs(
   device: PlacedDevice,
+  allDocs: PatchPanelPortDoc[],
   cables: CableRoute[]
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (device.category !== 'patch-panel') return issues;
 
-  const docs = device.patchPanelDocs ?? [];
+  const docs = allDocs.filter((d) => d.deviceId === device.id);
   const portCount = device.ports?.ethernet ?? 0;
 
   // Check for ports that have a cable but no documentation
@@ -80,21 +82,21 @@ export function validatePatchPanelDocs(
   return issues;
 }
 
-export function exportPatchPanelDocsMarkdown(device: PlacedDevice): string {
-  const docs = device.patchPanelDocs ?? [];
+export function exportPatchPanelDocsMarkdown(device: PlacedDevice, docs: PatchPanelPortDoc[]): string {
+  const deviceDocs = docs.filter((d) => d.deviceId === device.id);
   const portCount = device.ports?.ethernet ?? 0;
 
   const lines: string[] = [
     `# Patch Panel Documentation: ${device.name}`,
     '',
-    `**Ports:** ${portCount} | **Documented:** ${docs.length}`,
+    `**Ports:** ${portCount} | **Documented:** ${deviceDocs.length}`,
     '',
     '| Port | Room | Wall Plate | Wire Code | Punch-Down Date | Tested Speed | Notes |',
     '|------|------|------------|-----------|-----------------|--------------|-------|',
   ];
 
   for (let i = 0; i < portCount; i++) {
-    const doc = findPatchPanelDoc(docs, i);
+    const doc = findPatchPanelDoc(deviceDocs, i);
     lines.push(
       `| ${i + 1} | ${doc?.destinationRoom ?? '-'} | ${doc?.wallPlate ?? '-'} | ${doc?.wireCode ?? '-'} | ${doc?.punchDownDate ?? '-'} | ${doc?.testedSpeed ?? '-'} | ${doc?.notes ?? '-'} |`
     );
@@ -104,15 +106,15 @@ export function exportPatchPanelDocsMarkdown(device: PlacedDevice): string {
   return lines.join('\n');
 }
 
-export function exportPatchPanelDocsCsv(device: PlacedDevice): string {
-  const docs = device.patchPanelDocs ?? [];
+export function exportPatchPanelDocsCsv(device: PlacedDevice, docs: PatchPanelPortDoc[]): string {
+  const deviceDocs = docs.filter((d) => d.deviceId === device.id);
   const portCount = device.ports?.ethernet ?? 0;
 
   const headers = ['Port', 'Room', 'Wall Plate', 'Wire Code', 'Punch-Down Date', 'Tested Speed', 'Notes'];
   const lines: string[] = [headers.join(',')];
 
   for (let i = 0; i < portCount; i++) {
-    const doc = findPatchPanelDoc(docs, i);
+    const doc = findPatchPanelDoc(deviceDocs, i);
     const row = [
       String(i + 1),
       doc?.destinationRoom ? `"${doc.destinationRoom.replace(/"/g, '""')}"` : '',

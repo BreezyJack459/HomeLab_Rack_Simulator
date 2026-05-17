@@ -644,6 +644,7 @@ export interface DomainAssignment {
 
 export interface DeviceCredential {
   id: string;
+  deviceId: string;
   label: string;
   value: string; // encrypted
   type: 'password' | 'url' | 'text' | 'ssh-key' | 'snmp';
@@ -651,6 +652,7 @@ export interface DeviceCredential {
 
 export interface PatchPanelPortDoc {
   portIndex: number;
+  deviceId: string;
   cableId?: string;
   destinationRoom?: string;
   wallPlate?: string;

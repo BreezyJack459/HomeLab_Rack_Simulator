@@ -141,18 +141,18 @@ export function parseGenericCsv(csvText: string): DcimDevice[] {
     const i = headers.findIndex((h) => h === name.toLowerCase());
     return i >= 0 ? i : undefined;
   };
-  const nameIdx = idx('name');
-  const typeIdx = idx('type') ?? idx('device_type') ?? idx('model');
-  const mfrIdx = idx('manufacturer') ?? idx('mfr') ?? idx('vendor');
-  const posIdx = idx('position') ?? idx('u_position') ?? idx('positionu');
-  const heightIdx = idx('height') ?? idx('height_u') ?? idx('u_height');
-  const depthIdx = idx('depth') ?? idx('depth_mm');
-  const weightIdx = idx('weight') ?? idx('weight_kg');
-  const powerIdx = idx('power') ?? idx('power_w') ?? idx('draw');
-  const serialIdx = idx('serial');
-  const assetIdx = idx('asset_tag') ?? idx('asset');
-  const faceIdx = idx('face');
-  const rackIdx = idx('rack');
+  const nameIdx = idx('name') ?? -1;
+  const typeIdx = (idx('type') ?? idx('device_type') ?? idx('model') ?? -1);
+  const mfrIdx = (idx('manufacturer') ?? idx('mfr') ?? idx('vendor') ?? -1);
+  const posIdx = (idx('position') ?? idx('u_position') ?? idx('positionu') ?? -1);
+  const heightIdx = (idx('height') ?? idx('height_u') ?? idx('u_height') ?? -1);
+  const depthIdx = (idx('depth') ?? idx('depth_mm') ?? -1);
+  const weightIdx = (idx('weight') ?? idx('weight_kg') ?? -1);
+  const powerIdx = (idx('power') ?? idx('power_w') ?? idx('draw') ?? -1);
+  const serialIdx = idx('serial') ?? -1;
+  const assetIdx = (idx('asset_tag') ?? idx('asset') ?? -1);
+  const faceIdx = idx('face') ?? -1;
+  const rackIdx = idx('rack') ?? -1;
 
   const devices: DcimDevice[] = [];
   for (let i = 1; i < lines.length; i++) {
