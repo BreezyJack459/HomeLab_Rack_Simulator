@@ -67,6 +67,7 @@ export interface DeviceTemplate {
   mountType?: ZeroUMountType;
   mountSide0U?: ZeroUMountSide;
   outletFacing?: OutletFacing;
+  mountEnvelopeMm?: number;
   color: string;
   description: string;
 }
@@ -131,6 +132,7 @@ export interface PlacedDevice {
   mountType?: ZeroUMountType;
   mountSide0U?: ZeroUMountSide;
   outletFacing?: OutletFacing;
+  mountEnvelopeMm?: number;
   color: string;
   label?: string;
   description?: string;

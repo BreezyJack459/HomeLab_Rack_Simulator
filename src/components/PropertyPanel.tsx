@@ -293,6 +293,7 @@ export function PropertyPanel() {
             />
             <NumberField label="Rack size U" min={1} max={layout.heightU} value={device.sizeU} onChange={(value) => patch({ sizeU: value })} />
             <NumberField label="Depth mm" min={1} value={device.depthMm} onChange={(value) => patch({ depthMm: value })} />
+            <NumberField label="Mount envelope mm" min={0} value={device.mountEnvelopeMm ?? 0} onChange={(value) => patch({ mountEnvelopeMm: value })} />
             <NumberField label="Weight kg" min={0} step={0.1} value={device.weightKg} onChange={(value) => patch({ weightKg: value })} />
             <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
             <label className="text-xs text-slate-500 dark:text-slate-400">

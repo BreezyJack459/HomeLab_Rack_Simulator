@@ -97,6 +97,7 @@ export function convertToPlacedDevice(dcim: DcimDevice, template: DeviceTemplate
     mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
     mountSide0U: template.mountSide0U,
     outletFacing: template.outletFacing,
+    mountEnvelopeMm: template.mountEnvelopeMm,
     color: template.color,
     description: template.description,
     serialNumber: dcim.serial,
