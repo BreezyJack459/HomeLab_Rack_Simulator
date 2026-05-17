@@ -384,17 +384,11 @@ The following items should not be picked as next work unless a regression appear
 
 ## Feature Proposals (2026-05-09 Homelab Pain Point Coverage) 📋
 
-### 14. Rack Depth / Rail / Rear-Clearance Compatibility ⭐ High Practical Value — 🔄 PARTIAL
+### 14. Rack Depth / Rail / Rear-Clearance Compatibility ⭐ High Practical Value — ✅ IMPLEMENTED
 **Why**: A common homelab failure mode is buying or printing hardware that technically fits in U height but fails in real life because rails are too long, rear doors cannot close, power cables need bend space, shelves collide with rear posts, or a short device sits awkwardly behind a deep device.
 **What to do**: Track usable rack depth, rail min/max depth, rear cable clearance, front/rear door clearance, shelf depth, and printed-part depth envelopes. Warn when a device, shelf, rail, bracket, or cable bend radius conflicts with the rack volume.
-**MVP scope**:
-- Add per-device rail/shelf depth metadata and rack usable-depth checks.
-- Warn when rear cable clearance is below a configurable threshold.
-- Combine device + shelf + printed mount depth into one fit envelope.
-- Flag devices that cannot be serviced because they cannot slide or be removed without conflicts.
-**Status**: `DepthCompatibilityPanel`, depth summary helpers, rail min/max checks, front/rear door clearance, and inferred rear cable bend checks exist.
-**Remaining**: Combined printed-mount envelope and per-device rail/shelf metadata beyond inferred bend needs.
-**Files to touch**: `src/types/rack.ts`, `src/utils/rackMath.ts`, `src/utils/validation.ts`, `src/components/PropertyPanel.tsx`, `src/components/RackEditor2D.tsx`
+**Status**: `DepthCompatibilityPanel` with rack depth, usable depth, rail min/max, front/rear door clearance, rear cable clearance inputs. `getDepthCompatibilityIssues` validates device effective depth (device depth + mount envelope) against usable depth and rail limits. `getDepthSummary` computes deepest effective depth and max required rear bend. `mountEnvelopeMm` field on `DeviceTemplate`/`PlacedDevice` lets printed mounts and shelves declare extra hardware depth. Printed-mount templates include default `mountEnvelopeMm` values. PropertyPanel editable field.
+**Files touched**: `src/types/rack.ts`, `src/utils/rackMath.ts`, `src/components/DepthCompatibilityPanel.tsx`, `src/components/PropertyPanel.tsx`, `src/data/deviceCatalog.ts`, `src/store/rackStore.ts`, `src/utils/dcimImport.ts`
 **Effort**: Medium
 
 ### 15. Energy Cost + Heat-Load Calculator ⭐ High Homelab Value — ✅ IMPLEMENTED
