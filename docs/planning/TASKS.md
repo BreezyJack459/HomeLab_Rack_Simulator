@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-18. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, and `node scripts/check-bundle-size.mjs` (62 files / 979 tests passed; initial `index-*.js` back down to 213.3KB vs the 250KB limit).
+> Last audited: 2026-05-18. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, and `node scripts/check-bundle-size.mjs` (62 files / 979 tests passed; initial `index-*.js` at 224.1KB vs the 250KB limit).
 
 ## Completed ✅
 
@@ -236,14 +236,14 @@
 
 ## Suggested Next Work 🎯
 
-### 1. Housekeeping: sync planning docs with shipped state
+### 1. V2 shell rewrite: refine `Operate` and `Plan`
 **Status**: Active.
-**Why**: The bundle regression is fixed, but this file and the transfer notes still contain completed items in the active follow-up queue, which makes backlog triage noisy and misleading.
+**Why**: The shell-first rewrite has already carved the app into `Model / Operate / Audit / Plan / Portfolio`, but `Operate` and `Plan` still behave more like grouped panel grids than purpose-built workflows.
 **Scope**:
-- Move completed follow-up items out of "next work" and keep them in the implemented backlog/history sections only.
-- Keep the top audit snapshot, status bullets, and detailed feature sections aligned.
-- Refresh `TRANSFER_FOLLOWUP.md` / handoff notes so they point at the current blockers instead of already-shipped work.
-**Validation**: docs-only; no code validation required beyond making sure references match current source.
+- Keep the current workspace shell, registry, and lazy-loading strategy.
+- Refine `Operate` toward a clearer list/detail operating console.
+- Refine `Plan` toward timeline/baseline/change-review workflows instead of generic panel accumulation.
+**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, and `node scripts/check-bundle-size.mjs`.
 
 ### 2. Preserve the restored bundle guard
 **Status**: Watch item.
@@ -254,9 +254,17 @@
 - Treat any new static import in `App.tsx` as suspicious until the build proves otherwise.
 **Validation**: `npm run build` and `node scripts/check-bundle-size.mjs`.
 
-### 3. Deferred 0U PDU physical model decision
+### 3. Restore Playwright as a practical smoke gate
+**Status**: Active blocker.
+**Why**: Shell and routing work are moving quickly again, but local smoke coverage is currently blocked because `playwright.config.ts` cannot import `@playwright/test` in this environment.
+**Scope**:
+- Restore the missing dependency or document the canonical smoke-test environment.
+- Reconfirm the core shell flows: workspace switching, issue-to-audit jump, command-palette workspace/panel quick-open, and contextual inspector behavior.
+**Validation**: `npx playwright test tests/smoke/app.spec.ts`.
+
+### 4. Deferred 0U PDU physical model decision
 **Status**: Deferred by design.
-**Why**: The 0U PDU problem is still the hardest remaining visual/geometry task and should stay out of the active feature queue until the bundle/doc housekeeping is stable.
+**Why**: The 0U PDU problem is still the hardest remaining visual/geometry task and should stay out of the active feature queue until the shell rewrite and smoke-test story are stable.
 **Scope**:
 - Keep `ENABLE_ZERO_U_PDU = false`.
 - Separate the true physical anchor from any inspection/exploded display.
