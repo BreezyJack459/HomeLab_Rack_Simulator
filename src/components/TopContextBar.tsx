@@ -51,7 +51,7 @@ export function TopContextBar({
             onChange={(event) => onRenameLayout(event.target.value)}
             aria-label="Layout name"
           />
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400" data-testid="context-stats">
             <span>{layout.devices.length} devices</span>
             <span>/</span>
             <span>{layout.cables.length} cables</span>
