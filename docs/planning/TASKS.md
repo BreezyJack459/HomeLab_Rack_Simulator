@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-17. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and `npm run build` (62 files / 967 tests passed).
+> Last audited: 2026-05-18. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, and `node scripts/check-bundle-size.mjs` (62 files / 979 tests passed; initial `index-*.js` back down to 213.3KB vs the 250KB limit).
 
 ## Completed ✅
 
@@ -236,38 +236,32 @@
 
 ## Suggested Next Work 🎯
 
-### Removed from active plan after this audit
-The following items should not be picked as next work unless a regression appears: Cable BOM export, Rack/RU label printing, 3D raycast port picking, weight/center-of-gravity warning + 2D marker, Rack Health Dashboard, Energy Summary, and Noise Summary. They are now implemented in source and covered by the current type/test gate.
-
-### 1. Complete Cable Port Selection polish
-**Status**: Completed on 2026-05-14.
-**Why**: The 2-click device-first flow and 3D port picking are shipped, and the ghost route preview promised by Phase 7 now renders in `CableViewer3D`.
+### 1. Housekeeping: sync planning docs with shipped state
+**Status**: Active.
+**Why**: The bundle regression is fixed, but this file and the transfer notes still contain completed items in the active follow-up queue, which makes backlog triage noisy and misleading.
 **Scope**:
-- `CableViewer3D.tsx` reads `previewCable` from the store.
-- A translucent `previewRoute` is built with existing `calculateCablePlan()` + `buildCablePath3D()`.
-- It renders as a non-interactive ghost tube and clears through existing cancel/commit/unmount cleanup.
-**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, focused port-selection tests, and Playwright smoke for cable planning.
+- Move completed follow-up items out of "next work" and keep them in the implemented backlog/history sections only.
+- Keep the top audit snapshot, status bullets, and detailed feature sections aligned.
+- Refresh `TRANSFER_FOLLOWUP.md` / handoff notes so they point at the current blockers instead of already-shipped work.
+**Validation**: docs-only; no code validation required beyond making sure references match current source.
 
-### 2. Finish remaining correctness/performance cleanup
-**Status**: Completed on 2026-05-14.
-**Why**: All high/critical review findings in the tracked table are now closed. The remaining medium-priority 3D path allocation cleanup has also been completed.
+### 2. Preserve the restored bundle guard
+**Status**: Watch item.
+**Why**: The initial app path is back under budget, but only after moving `ComponentLibrary`, sample layouts, and exporter helpers off the eager path. New always-on imports can easily regress this again.
 **Scope**:
-- `cablePath3D.ts` now pushes de-duplicated waypoint coordinates through a small helper before allocating `Vector3` objects.
-- Revisit any remaining local/shared geometry helper drift that is unrelated to the deferred 0U PDU visual model.
-**Validation**: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, and production build / bundle guard.
+- Keep left-rail libraries and export helpers lazy where practical.
+- Re-run `node scripts/check-bundle-size.mjs` after new panels, shared utilities, or toolbar actions are added.
+- Treat any new static import in `App.tsx` as suspicious until the build proves otherwise.
+**Validation**: `npm run build` and `node scripts/check-bundle-size.mjs`.
 
-### 3. Next product feature after cleanup
-**Recommended**: 3D printed mount / shelf fit-check system.
-**Why**: It is the highest-value still-unstarted homelab feature and connects naturally to rack depth, serviceability, procurement, and 0U physical fit concerns.
-
-### Last. Deferred 0U PDU physical model decision
-**Why**: The 0U PDU work is intentionally last because the visual/physics constraints are much harder than the remaining cleanup and product features.
+### 3. Deferred 0U PDU physical model decision
+**Status**: Deferred by design.
+**Why**: The 0U PDU problem is still the hardest remaining visual/geometry task and should stay out of the active feature queue until the bundle/doc housekeeping is stable.
 **Scope**:
-- Keep `ENABLE_ZERO_U_PDU = false` while other roadmap work continues.
-- Separate true physical anchor from optional inspection/exploded display.
-- Align 0U cable endpoints, outlet rendering, and rear/side rail display with the shared rack geometry.
-- Only re-enable user-facing 0U PDU support after the model is visually believable and does not destabilize 2D/3D routing.
-**Validation**: `npm test`, `npm run build`, bundle size guard, and manual 3D screenshot check.
+- Keep `ENABLE_ZERO_U_PDU = false`.
+- Separate the true physical anchor from any inspection/exploded display.
+- Revisit outlet placement, cable endpoint realism, and rear/side rail presentation together instead of via piecemeal tweaks.
+**Validation**: `npm test`, `npm run build`, bundle size guard, and manual 3D review when this work is resumed.
 
 ## Feature Proposals (2026-05-09 Review) 📋
 
