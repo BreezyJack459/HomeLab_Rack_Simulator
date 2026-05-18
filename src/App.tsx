@@ -9,7 +9,7 @@ import { PrimaryNav } from './components/PrimaryNav';
 import { RightInspectorShell } from './components/RightInspectorShell';
 import { TopContextBar } from './components/TopContextBar';
 import { useRackStore } from './store/rackStore';
-import type { AppPanelId, AppWorkspace, AuditLens, OperateLens, PlanLens, PanelPlacement, PanelRegistryItem } from './types/appShell';
+import type { AppPanelId, AppWorkspace, AuditLens, OperateLens, PlanLens, PortfolioLens, PanelPlacement, PanelRegistryItem } from './types/appShell';
 import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue, ViewMode } from './types/rack';
 import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
 import { validateDomains } from './utils/failureDomains';
@@ -84,6 +84,7 @@ const RackPhotoPanel = lazy(() => import('./components/RackPhotoPanel').then((m)
 const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
 const HomelabGuidePanel = lazy(() => import('./components/HomelabGuidePanel').then((m) => ({ default: m.HomelabGuidePanel })));
 const InterRackCableWizard = lazy(() => import('./components/InterRackCableWizard').then((m) => ({ default: m.InterRackCableWizard })));
+const PortfolioWorkbench = lazy(() => import('./components/PortfolioWorkbench').then((m) => ({ default: m.PortfolioWorkbench })));
 
 const PANEL_REGISTRY: PanelRegistryItem[] = [
   { id: 'property', title: 'Properties', workspace: 'model', priority: 10, defaultPlacement: 'inspector' },
@@ -262,6 +263,7 @@ function App() {
   const [currentAuditLens, setCurrentAuditLens] = useState<AuditLens>('overview');
   const [currentOperateLens, setCurrentOperateLens] = useState<OperateLens>('assets');
   const [currentPlanLens, setCurrentPlanLens] = useState<PlanLens>('scenarios');
+  const [currentPortfolioLens, setCurrentPortfolioLens] = useState<PortfolioLens>('overview');
 
   const issues = useMemo(() => validateRackLayout(layout), [layout]);
   const totals = useMemo(() => getRackTotals(layout), [layout]);
@@ -636,6 +638,15 @@ function App() {
     fit: ['fit-check'],
   };
 
+  const portfolioPanelIdsByLens: Record<PortfolioLens, AppPanelId[]> = {
+    overview: ['workspace-manager', 'portfolio-export'],
+    rooms: ['room-rack-map', 'room-placement'],
+    interconnect: ['inter-rack-map'],
+    data: ['dcim-import'],
+    policy: ['policy-rules'],
+    guide: ['homelab-guide', 'rack-photo'],
+  };
+
   function renderInspectorPanels() {
     const panels = visiblePanels(currentWorkspace, 'inspector');
     if (panels.length === 0) {
@@ -908,7 +919,15 @@ function App() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
         <WorkspaceHero title={WORKSPACE_META.portfolio.title} description={WORKSPACE_META.portfolio.description} icon={WORKSPACE_META.portfolio.icon} />
-        {renderPanelGrid('portfolio')}
+        <Suspense fallback={null}>
+          <PortfolioWorkbench
+            workspace={workspace}
+            layout={layout}
+            currentLens={currentPortfolioLens}
+            onSelectLens={setCurrentPortfolioLens}
+          />
+        </Suspense>
+        {renderPanelGrid('portfolio', portfolioPanelIdsByLens[currentPortfolioLens])}
       </div>
     );
   }

@@ -10,6 +10,8 @@ export type OperateLens = 'assets' | 'maintenance' | 'firmware' | 'network' | 'e
 
 export type PlanLens = 'scenarios' | 'baseline' | 'schedule' | 'changes' | 'build' | 'fit';
 
+export type PortfolioLens = 'overview' | 'rooms' | 'interconnect' | 'data' | 'policy' | 'guide';
+
 export type BottomTrayView = 'issues' | 'activity';
 
 export type AppPanelId =
