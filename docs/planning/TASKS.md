@@ -1,6 +1,6 @@
 # Tasks
 
-> Last audited: 2026-05-18. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, and `node scripts/check-bundle-size.mjs` (62 files / 979 tests passed; initial `index-*.js` at 224.1KB vs the 250KB limit).
+> Last audited: 2026-05-18. Checked against current source files and the latest local verification: `node node_modules/typescript/bin/tsc --noEmit`, `npm test -- --pool=threads`, `npm run build`, `node scripts/check-bundle-size.mjs`, and `npx playwright test tests/smoke/app.spec.ts` (62 files / 979 tests passed; 10 E2E tests passed; initial `index-*.js` at 249.9KB vs the 250KB limit).
 
 ## Completed ✅
 
@@ -73,7 +73,7 @@
 - [x] **Phase 5** — Cable bundle rendering: `bundleId` added to `CableRoute`; `CableViewer3D` groups bundles into single thick tube (`radius = 0.006 + count * 0.003`) with click-to-expand (`src/types/rack.ts`, `src/components/CableViewer3D.tsx`)
 - [x] **Phase 6** — Patch panel label export: `PrintableLabels` generates `Panel:Port → Device:PORTn` format labels with recommended length and label-printer presets (Brady M210, Panduit MP300, Generic A4) (`src/components/PrintableLabels.tsx`, `src/styles/index.css`)
 
-### Phase 7: Cable Port Selection UX Redesign (2026-05-12) 🚧 Mostly Complete
+### Phase 7: Cable Port Selection UX Redesign (2026-05-12) ✅ Complete
 
 > **Goal**: Replace the current MiniRackBrowser + port-grid flow with a device-first, auto-assign approach. Happy path reduces from 6+ clicks to 2 clicks.
 > **Plan doc**: `docs/planning/cable-port-selection-ux-redesign.md`
@@ -117,6 +117,18 @@
 
 ### Phase 8: Operational Planning (2026-05-16)
 - [x] **Rack Scenario Planner (#39)** — 8 preset what-if scenarios (power outage, ISP down, switch reboot, NAS failure, weak UPS battery, summer heatwave, AP offline, management network down) with impacted devices, survivors, failed assumptions, and prioritized recommendations. Lazy-loaded panel (`src/components/ScenarioPlannerPanel.tsx`), pure analysis utility (`src/utils/scenarioPlanner.ts`), 28 unit tests, scenario report text export. Reuses `analyzeBlastRadius`, `calculateUpsRuntimes`, `isPowerSource`, and `buildTopologyGraph`.
+
+### Phase 9: V2 Shell-First App Rewrite (2026-05-18) ✅ Complete
+- [x] **Phase 1 — Shell Primitives** — `PrimaryNav`, `TopContextBar`, `ActionBar`, `RightInspectorShell`, `BottomTray`, `CommandPalette`
+- [x] **Phase 2 — Model + Audit Deepening** — `AuditWorkbench` with 6 lenses (overview, issues, serviceability, documentation, thermal, domains). Inspector gating with `selectionRequired`. Issue click routes to Audit workspace.
+- [x] **Phase 3 — Operate + Plan + Portfolio Workbenches** — Dedicated hub workspaces for all non-model workspaces
+  - `OperateWorkbench` — 6 lenses (assets, maintenance, firmware, network, evidence, power)
+  - `PlanWorkbench` — 6 lenses (scenarios, baseline, schedule, changes, build, fit)
+  - `PortfolioWorkbench` — 6 lenses (overview, rooms, interconnect, data, policy, guide)
+- [x] **8 Orphan Components Registered** — `BootSequencePanel`, `ServiceMapPanel`, `BlastRadiusPanel`, `CableLengthAuditPanel`, `ReadinessChecklist`, `CommissioningChecklist`, `FitCheckPanel`, `TemplateQualityPanel` added to `PANEL_REGISTRY`
+- [x] **Panel Placement Migration** — Primary panels moved from inspector to main (firmware-tracker, runbook, evidence-locker, change-review, change-request)
+- [x] **Bundle Maintained** — 249.9KB / 250KB initial chunk limit (lazy-loaded PortfolioWorkbench)
+- [x] **Playwright Restored** — `@playwright/test` installed, smoke tests updated for V2 UI, all 10 tests pass
 
 ## Paused / Known Problems ⏸️
 - [ ] **0U PDU 3D visual model needs redesign before continuing.**
