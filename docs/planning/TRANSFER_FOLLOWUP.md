@@ -1,44 +1,44 @@
 # Transfer Follow-up
 
-## Current State (2026-05-06)
+## Current State (2026-05-18)
 
-This repo is not currently inside a git worktree, so transfer review was done by inspecting the local files directly.
+This repo has moved well beyond the original 2026-05-06 transfer scope. Most of the earlier follow-up items are now implemented and should no longer be treated as active transfer work.
 
-Completed follow-up from the Game Studio review:
-- Lazy-loaded 3D surfaces keep Three.js out of the initial app path; latest observed build produced ~357KB initial JS and a ~963KB lazy 3D chunk.
-- Vitest is installed and `npm test` runs the source regression suite.
-- Cable route recompute is incremental for `moveDevice`, `updateDevice`, and `removeDevice`.
-- History subscriber errors are logged instead of silently swallowed.
-- WebGL context restore remounts the Canvas through `recoveryKey`.
-- Hidden 0U PDU cleanup is feature-gated through `ENABLE_ZERO_U_PDU = false`; loaded layouts are sanitized and now select the first normalized visible device.
+Latest local verification:
+- `node node_modules/typescript/bin/tsc --noEmit` — passed.
+- `npm test -- --pool=threads` — passed (`62` files / `979` tests).
+- `npm run build` — passed.
+- `node scripts/check-bundle-size.mjs` — passed: current `index-*.js` is `213.3KB`, under the `250KB` initial-chunk limit.
 
-## Files Updated In This Transfer Pass
+Stable completed areas that no longer belong in active transfer follow-up:
+- Playwright smoke coverage exists.
+- Bundle budget guard exists, is a real gate, and is back in compliance after moving `ComponentLibrary`, sample-layout loading, and exporter helpers off the eager app path.
+- Cable preview / 3D port-picking / planning workflow follow-up is shipped.
+- Scenario planner, capacity forecast, service map, failure domains, drift detection, and many other roadmap items have shipped since the original transfer notes.
 
-- `src/store/rackStore.ts` — fixed selected device state after normalized layout cleanup.
-- `src/store/rackStore.test.ts` — added regression coverage for hidden 0U PDU cleanup selection.
-- `CLAUDE.md` — replaced stale testing guidance and added transfer status.
-- `DECISIONS.md` — added ADR-014 for hidden 0U PDU gating and cleanup.
-- `TASKS.md`, `NEXT_STEPS.md`, `KNOWN_ISSUES.md` — synchronized completed work and remaining priorities.
-- `game-studio-code-review.md` — updated the original review report so it reflects completed fixes instead of old gaps.
+## Active Follow-up
 
-## Open Follow-up
+1. **Housekeeping pass on planning/handoff docs**
+   - Remove already-completed work from active next-step sections.
+   - Keep `TASKS.md`, transfer notes, and current handoff docs aligned with the real repo state.
 
-1. Add Playwright smoke specs for load app, switch views, add device/cable, and JSON import/export.
-2. Add a bundle budget guard so accidental eager Three.js imports fail early.
-3. Redesign 0U PDU 3D display as separate physical anchor plus optional inspection proxy before re-enabling it.
-4. Profile 3D port labels on dense 48-port and multi-device scenes before adding more label-heavy features.
+2. **Keep 0U PDU 3D redesign deferred**
+   - `ENABLE_ZERO_U_PDU = false` remains the correct product stance.
+   - Resume only when the team is ready to handle physical-anchor vs inspection-proxy rendering as one coherent redesign.
+
+3. **Protect the restored bundle budget**
+   - Re-run `node scripts/check-bundle-size.mjs` after new toolbar actions, shared utilities, or always-mounted UI are added.
+   - Treat new static imports in `App.tsx` as bundle-sensitive by default.
 
 ## Validation Commands
 
-Run these before handing off another implementation pass:
+Use these before handing off another implementation pass:
 
 ```bash
-npm test
+node node_modules/typescript/bin/tsc --noEmit
+npm test -- --pool=threads
 npm run build
+node scripts/check-bundle-size.mjs
 ```
 
-`npm run lint` exists, but it depends on ESLint being installed/configured. Treat lint as optional until that gate is made real.
-
-Latest local validation from this transfer pass:
-- `npm test` passed: 4 files, 57 tests.
-- `npm run build` passed. Vite still reported the expected chunk-size warning for the lazy 3D chunk.
+`npm run lint` still depends on ESLint being fully configured, so it remains optional until that gate is made real.

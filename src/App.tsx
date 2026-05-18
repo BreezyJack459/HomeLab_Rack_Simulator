@@ -16,15 +16,13 @@ import {
   View
 } from 'lucide-react';
 const CommandPalette = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
-import { ComponentLibrary } from './components/ComponentLibrary';
 import { IssueBar } from './components/IssueBar';
+const ComponentLibrary = lazy(() => import('./components/ComponentLibrary').then((m) => ({ default: m.ComponentLibrary })));
 import { RackEditor2D } from './components/RackEditor2D';
 import { ThemeToggle } from './components/ThemeToggle';
-import { sampleLayouts } from './data/sampleLayouts';
 import { useRackStore } from './store/rackStore';
 import { RackType } from './types/rack';
-import type { LifecycleViewFilter, ValidationIssue } from './types/rack';
-import { downloadWorkspaceJson, exportLayoutJson, exportMigrationPlanMarkdown, exportRackPng, importWorkspaceJson, readJsonFile } from './utils/exporters';
+import type { LifecycleViewFilter, RackLayout, ValidationIssue } from './types/rack';
 import { getFilteredLayoutByLifecycle } from './utils/migrationCalc';
 import { RACK_HEIGHT_OPTIONS, RACK_SPECS } from './utils/rackMath';
 import { getServiceabilityHighlightedDeviceIds } from './utils/serviceability';
@@ -142,6 +140,7 @@ function App() {
   const [serviceabilityFocusDeviceIds, setServiceabilityFocusDeviceIds] = useState<string[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
   const [interRackWizardOpen, setInterRackWizardOpen] = useState(false);
+  const [sampleLayouts, setSampleLayouts] = useState<RackLayout[]>([]);
 
   const issues = useMemo(() => validateRackLayout(layout), [layout]);
   const totals = useMemo(() => getRackTotals(layout), [layout]);
@@ -152,7 +151,7 @@ function App() {
   );
   const visibleSampleLayouts = useMemo(
     () => sampleLayouts.filter((sample) => !layoutUsesHiddenZeroUPdu(sample)),
-    []
+    [sampleLayouts]
   );
 
   useEffect(() => {
@@ -175,6 +174,20 @@ function App() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    void import('./data/sampleLayouts').then((module) => {
+      if (active) {
+        setSampleLayouts(module.sampleLayouts);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
   function handleIssueSelect(issue: ValidationIssue) {
     setSelectedIssueId(issue.id);
     if (issue.deviceIds?.length) selectDevice(issue.deviceIds[0]);
@@ -184,6 +197,7 @@ function App() {
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
+    const { readJsonFile } = await import('./utils/exporters');
     const imported = await readJsonFile(file);
     loadLayout(imported as typeof layout);
     event.currentTarget.value = '';
@@ -193,6 +207,7 @@ function App() {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
     try {
+      const { importWorkspaceJson } = await import('./utils/exporters');
       const text = await file.text();
       const workspace = importWorkspaceJson(text);
       if (!workspace) {
@@ -247,10 +262,38 @@ function App() {
     loadLayout(duplicated);
   }
 
+  async function handleExportLayoutJson() {
+    const { exportLayoutJson } = await import('./utils/exporters');
+    exportLayoutJson(layout);
+  }
+
+  async function handleDownloadWorkspaceJson() {
+    const { downloadWorkspaceJson } = await import('./utils/exporters');
+    downloadWorkspaceJson(workspace);
+  }
+
+  async function handleExportRackPng() {
+    const { exportRackPng } = await import('./utils/exporters');
+    exportRackPng(layout);
+  }
+
+  async function handleExportMigrationPlan() {
+    const { exportMigrationPlanMarkdown } = await import('./utils/exporters');
+    exportMigrationPlanMarkdown(layout);
+  }
+
   return (
     <div className="grid h-screen grid-cols-[320px_minmax(620px,1fr)_380px] overflow-hidden text-slate-900 dark:text-slate-100">
       <aside className="min-h-0 border-r border-slate-200 dark:border-slate-800 bg-white/82 dark:bg-slate-950/82">
-        <ComponentLibrary />
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center px-6 text-sm text-slate-500 dark:text-slate-400">
+              Loading device library...
+            </div>
+          }
+        >
+          <ComponentLibrary />
+        </Suspense>
       </aside>
 
       <main className="flex min-w-0 flex-col">
@@ -465,7 +508,7 @@ function App() {
             </button>
             <button
               className={TOOLBAR_BUTTON_CLASS}
-              onClick={() => exportLayoutJson(layout)}
+              onClick={() => void handleExportLayoutJson()}
               type="button"
             >
               <FileJson size={13} />
@@ -481,7 +524,7 @@ function App() {
             </button>
             <button
               className={TOOLBAR_BUTTON_CLASS}
-              onClick={() => downloadWorkspaceJson(workspace)}
+              onClick={() => void handleDownloadWorkspaceJson()}
               type="button"
             >
               <FileJson size={13} />
@@ -497,7 +540,7 @@ function App() {
             </button>
             <button
               className={TOOLBAR_BUTTON_CLASS}
-              onClick={() => exportRackPng(layout)}
+              onClick={() => void handleExportRackPng()}
               type="button"
             >
               <Download size={13} />
@@ -505,7 +548,7 @@ function App() {
             </button>
             <button
               className={TOOLBAR_BUTTON_CLASS}
-              onClick={() => exportMigrationPlanMarkdown(layout)}
+              onClick={() => void handleExportMigrationPlan()}
               type="button"
             >
               <Download size={13} />
