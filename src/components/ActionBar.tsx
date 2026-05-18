@@ -118,8 +118,8 @@ export function ActionBar({
             <Download size={13} />
             PNG
           </button>
-          <details className="relative">
-            <summary className={`${ACTION_BUTTON_CLASS} list-none`}>
+          <details className="relative" data-testid="more-dropdown">
+            <summary className={`${ACTION_BUTTON_CLASS} list-none`} role="button" aria-label="More options">
               <MoreHorizontal size={13} />
               More
             </summary>

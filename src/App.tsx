@@ -1034,7 +1034,7 @@ function App() {
 
         {samplePickerOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-2xl rounded-3xl border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="w-full max-w-2xl rounded-3xl border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900" data-testid="sample-picker-modal">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-lg font-semibold text-slate-900 dark:text-white">Load sample layout</div>
