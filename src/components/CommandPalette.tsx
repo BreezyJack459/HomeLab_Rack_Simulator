@@ -19,10 +19,11 @@ import { exportLayoutJson } from '../utils/exporters';
 import { validateRackLayout } from '../utils/validation';
 
 type SearchItemType = 'device' | 'cable' | 'issue' | 'action' | 'view' | 'inter-rack-cable' | 'port-alias';
+type ExtendedSearchItemType = SearchItemType | 'workspace' | 'panel' | 'quick-action';
 
-interface SearchItem {
+export interface SearchItem {
   id: string;
-  type: SearchItemType;
+  type: ExtendedSearchItemType;
   title: string;
   subtitle: string;
   icon: React.ReactNode;
@@ -296,9 +297,10 @@ export function filterItems(items: SearchItem[], query: string): SearchItem[] {
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
+  extraItems?: SearchItem[];
 }
 
-export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, extraItems = [] }: CommandPaletteProps) {
   const workspace = useRackStore((state) => state.workspace);
   const currentRackId = useRackStore((state) => state.currentRackId);
   const viewMode = useRackStore((state) => state.viewMode);
@@ -307,7 +309,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const allItems = useMemo(() => buildWorkspaceSearchItems(workspace, currentRackId), [workspace, currentRackId]);
+  const allItems = useMemo(
+    () => [...extraItems, ...buildWorkspaceSearchItems(workspace, currentRackId)],
+    [currentRackId, extraItems, workspace]
+  );
   const filtered = useMemo(() => filterItems(allItems, query), [allItems, query]);
 
   // Reset selection when query changes
