@@ -655,7 +655,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           });
         }}
       >
-        <div className="flex min-h-full min-w-full items-start justify-center p-24">
+        <div className="flex min-h-full min-w-full items-start justify-center p-4 md:p-8">
           <div
             className="relative"
             style={{
