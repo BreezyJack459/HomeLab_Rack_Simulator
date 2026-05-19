@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+async function openDeviceLibrary(page: import('@playwright/test').Page) {
+  const panel = page.getByTestId('device-library-panel');
+  if (!(await panel.isVisible().catch(() => false))) {
+    await page.getByTestId('toggle-device-library').click();
+    await expect(panel).toBeVisible();
+  }
+}
+
 async function clearLayout(page: any) {
   // Click New to clear any existing layout
   await page.getByRole('button', { name: 'New', exact: true }).click();
@@ -18,7 +26,10 @@ test.describe('Rack Simulator Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     // Reset theme to ensure consistent dark-mode default
-    await page.evaluate(() => localStorage.removeItem('rack-simulator-theme'));
+    await page.evaluate(() => {
+      localStorage.removeItem('rack-simulator-theme');
+      localStorage.removeItem('homelab-rack-simulator-layout-prefs');
+    });
     await page.reload();
     await clearLayout(page);
   });
@@ -51,7 +62,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   test('adds a device from component library', async ({ page }) => {
     await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
 
-    // Click the first device's "Add to front" button
+    await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
 
     // Verify device count increased
@@ -59,7 +70,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('cable planner shows ports after device selection', async ({ page }) => {
-    // Add two devices so cable planning is possible
+    await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await expect(page.locator('[data-testid="context-stats"]').getByText(/2 devices/)).toBeVisible();
@@ -69,7 +80,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('exports and imports layout JSON', async ({ page }) => {
-    // Add a device
+    await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
 
@@ -135,7 +146,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('undo and redo after adding device', async ({ page }) => {
-    // Add a device
+    await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
 
@@ -149,7 +160,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('deletes a selected device', async ({ page }) => {
-    // Add a device
+    await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
 

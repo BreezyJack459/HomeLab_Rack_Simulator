@@ -1,6 +1,7 @@
 import { type ChangeEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Box, Cable, FolderKanban, Monitor, Network, Settings2, Wrench } from 'lucide-react';
 import { ActionBar } from './components/ActionBar';
+import { ModelWorkspaceLayout } from './components/ModelWorkspaceLayout';
 import { AuditWorkbench } from './components/AuditWorkbench';
 import { BottomTray } from './components/BottomTray';
 import { OperateWorkbench } from './components/OperateWorkbench';
@@ -14,7 +15,6 @@ import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue, ViewMo
 import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
 import { validateDomains } from './utils/failureDomains';
 import { getFilteredLayoutByLifecycle } from './utils/migrationCalc';
-import { RACK_HEIGHT_OPTIONS, RACK_SPECS } from './utils/rackMath';
 import { getDocumentationIssues } from './utils/documentationAudit';
 import {
   getCableStrainRisks,
@@ -26,7 +26,6 @@ import { getRackTotals, validateRackLayout } from './utils/validation';
 import type { SearchItem } from './components/CommandPalette';
 
 const CommandPalette = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
-const ComponentLibrary = lazy(() => import('./components/ComponentLibrary').then((m) => ({ default: m.ComponentLibrary })));
 const RackEditor2D = lazy(() => import('./components/RackEditor2D').then((m) => ({ default: m.RackEditor2D })));
 const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
 const CableMap = lazy(() => import('./components/CableMap').then((m) => ({ default: m.CableMap })));
@@ -770,97 +769,17 @@ function App() {
 
   function renderModelWorkspace() {
     return (
-      <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-4">
-        <aside className="min-h-0 overflow-hidden rounded-3xl border border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82">
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center px-6 text-sm text-slate-500 dark:text-slate-400">
-                Loading device library...
-              </div>
-            }
-          >
-            <ComponentLibrary />
-          </Suspense>
-        </aside>
-
-        <div className="flex min-h-0 flex-col gap-4">
-          <WorkspaceHero
-            title={WORKSPACE_META.model.title}
-            description={WORKSPACE_META.model.description}
-            icon={WORKSPACE_META.model.icon}
-          >
-            <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Occupied" value={`${totals.occupiedU}/${layout.heightU}U`} />
-                <MetricCard label="Power" value={`${totals.powerW}W`} tone={totals.powerW > layout.powerBudgetW ? 'danger' : 'default'} />
-                <MetricCard label="Heat" value={`${totals.heatScore}`} tone={totals.heatScore > 18 ? 'warn' : 'default'} />
-                <MetricCard label="Issues" value={`${issues.length}`} tone={issues.some((issue) => issue.severity === 'critical') ? 'danger' : issues.length > 0 ? 'warn' : 'default'} />
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 dark:border-slate-800 dark:bg-slate-900/75">
-                <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
-                  <Settings2 size={12} />
-                  Rack controls
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Rack type
-                    <select
-                      className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      value={layout.rackType}
-                      onChange={(event) => setRackType(event.target.value as RackType)}
-                    >
-                      <option value="10in">10-inch rack</option>
-                      <option value="19in">19-inch rack</option>
-                    </select>
-                  </label>
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Height
-                    <select
-                      className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      value={layout.heightU}
-                      onChange={(event) => setRackHeight(Number(event.target.value))}
-                    >
-                      {RACK_HEIGHT_OPTIONS.map((height) => (
-                        <option key={height} value={height}>
-                          {height}U
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Lifecycle filter
-                    <select
-                      className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      value={lifecycleFilter}
-                      onChange={(event) => setLifecycleFilter(event.target.value as LifecycleViewFilter)}
-                    >
-                      <option value="all">All lifecycle</option>
-                      <option value="changes">Changes only</option>
-                      <option value="active">Active only</option>
-                      <option value="planned">Planned only</option>
-                      <option value="decommissioning">Decommissioning only</option>
-                    </select>
-                  </label>
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Power budget
-                    <input
-                      className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                      type="number"
-                      min={1}
-                      value={layout.powerBudgetW}
-                      onChange={(event) => updateRack({ powerBudgetW: Number(event.target.value) })}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-          </WorkspaceHero>
-
-          <section className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82">
-            {renderCanvas()}
-          </section>
-        </div>
-      </div>
+      <ModelWorkspaceLayout
+        layout={layout}
+        totals={totals}
+        issues={issues}
+        lifecycleFilter={lifecycleFilter}
+        onLifecycleFilterChange={setLifecycleFilter}
+        onRackTypeChange={setRackType}
+        onRackHeightChange={setRackHeight}
+        onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
+        canvas={renderCanvas()}
+      />
     );
   }
 
