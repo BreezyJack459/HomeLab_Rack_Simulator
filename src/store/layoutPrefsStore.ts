@@ -5,6 +5,7 @@ const STORAGE_KEY = 'homelab-rack-simulator-layout-prefs';
 type LayoutPrefs = {
   deviceLibraryOpen: boolean;
   rackSummaryOpen: boolean;
+  bottomTrayOpen: boolean;
 };
 
 type PersistedPrefs = Partial<LayoutPrefs>;
@@ -32,17 +33,28 @@ interface LayoutPrefsState extends LayoutPrefs {
   toggleDeviceLibrary: () => void;
   setRackSummaryOpen: (open: boolean) => void;
   toggleRackSummary: () => void;
+  setBottomTrayOpen: (open: boolean) => void;
+  toggleBottomTray: () => void;
 }
 
 const saved = readPrefs();
 
+function snapshot(state: LayoutPrefs): LayoutPrefs {
+  return {
+    deviceLibraryOpen: state.deviceLibraryOpen,
+    rackSummaryOpen: state.rackSummaryOpen,
+    bottomTrayOpen: state.bottomTrayOpen,
+  };
+}
+
 export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
   deviceLibraryOpen: saved.deviceLibraryOpen ?? false,
   rackSummaryOpen: saved.rackSummaryOpen ?? false,
+  bottomTrayOpen: saved.bottomTrayOpen ?? false,
 
   setDeviceLibraryOpen: (open) =>
     set((state) => {
-      const next = { deviceLibraryOpen: open, rackSummaryOpen: state.rackSummaryOpen };
+      const next = { ...snapshot(state), deviceLibraryOpen: open };
       writePrefs(next);
       return { deviceLibraryOpen: open };
     }),
@@ -50,14 +62,14 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
   toggleDeviceLibrary: () =>
     set((state) => {
       const open = !state.deviceLibraryOpen;
-      const next = { deviceLibraryOpen: open, rackSummaryOpen: state.rackSummaryOpen };
+      const next = { ...snapshot(state), deviceLibraryOpen: open };
       writePrefs(next);
       return { deviceLibraryOpen: open };
     }),
 
   setRackSummaryOpen: (open) =>
     set((state) => {
-      const next = { deviceLibraryOpen: state.deviceLibraryOpen, rackSummaryOpen: open };
+      const next = { ...snapshot(state), rackSummaryOpen: open };
       writePrefs(next);
       return { rackSummaryOpen: open };
     }),
@@ -65,8 +77,23 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
   toggleRackSummary: () =>
     set((state) => {
       const open = !state.rackSummaryOpen;
-      const next = { deviceLibraryOpen: state.deviceLibraryOpen, rackSummaryOpen: open };
+      const next = { ...snapshot(state), rackSummaryOpen: open };
       writePrefs(next);
       return { rackSummaryOpen: open };
+    }),
+
+  setBottomTrayOpen: (open) =>
+    set((state) => {
+      const next = { ...snapshot(state), bottomTrayOpen: open };
+      writePrefs(next);
+      return { bottomTrayOpen: open };
+    }),
+
+  toggleBottomTray: () =>
+    set((state) => {
+      const open = !state.bottomTrayOpen;
+      const next = { ...snapshot(state), bottomTrayOpen: open };
+      writePrefs(next);
+      return { bottomTrayOpen: open };
     }),
 }));

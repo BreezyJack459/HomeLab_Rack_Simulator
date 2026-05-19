@@ -778,6 +778,10 @@ function App() {
         onRackTypeChange={setRackType}
         onRackHeightChange={setRackHeight}
         onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
+        selectedIssueId={selectedIssueId}
+        statusMessage={statusMessage}
+        onIssueSelect={handleIssueSelect}
+        onOpenAudit={() => setCurrentWorkspace('audit')}
         canvas={renderCanvas()}
       />
     );
@@ -900,14 +904,16 @@ function App() {
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
               <div className="min-h-0 flex-1 overflow-hidden p-4">{renderWorkspaceMain()}</div>
-              <BottomTray
-                issues={issues}
-                selectedIssueId={selectedIssueId}
-                statusMessage={statusMessage}
-                currentWorkspace={currentWorkspace}
-                onIssueSelect={handleIssueSelect}
-                onOpenAudit={() => setCurrentWorkspace('audit')}
-              />
+              {currentWorkspace !== 'model' && (
+                <BottomTray
+                  issues={issues}
+                  selectedIssueId={selectedIssueId}
+                  statusMessage={statusMessage}
+                  currentWorkspace={currentWorkspace}
+                  onIssueSelect={handleIssueSelect}
+                  onOpenAudit={() => setCurrentWorkspace('audit')}
+                />
+              )}
             </div>
           </main>
 

@@ -7,12 +7,14 @@ describe('layoutPrefsStore', () => {
     useLayoutPrefsStore.setState({
       deviceLibraryOpen: false,
       rackSummaryOpen: false,
+      bottomTrayOpen: false,
     });
   });
 
-  it('defaults device library and rack summary to closed', () => {
+  it('defaults device library, rack summary, and bottom tray to closed', () => {
     expect(useLayoutPrefsStore.getState().deviceLibraryOpen).toBe(false);
     expect(useLayoutPrefsStore.getState().rackSummaryOpen).toBe(false);
+    expect(useLayoutPrefsStore.getState().bottomTrayOpen).toBe(false);
   });
 
   it('persists toggles to localStorage', () => {
@@ -21,6 +23,6 @@ describe('layoutPrefsStore', () => {
 
     const raw = localStorage.getItem('homelab-rack-simulator-layout-prefs');
     expect(raw).toBeTruthy();
-    expect(JSON.parse(raw!)).toEqual({ deviceLibraryOpen: true, rackSummaryOpen: true });
+    expect(JSON.parse(raw!)).toEqual({ deviceLibraryOpen: true, rackSummaryOpen: true, bottomTrayOpen: false });
   });
 });
