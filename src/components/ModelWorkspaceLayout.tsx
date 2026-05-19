@@ -1,7 +1,6 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { ActivityStatusChip } from './ActivityStatusChip';
-import { IssueBar } from './IssueBar';
 import { RackSummaryPanel } from './RackSummaryPanel';
 import { useLayoutPrefsStore } from '../store/layoutPrefsStore';
 import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue } from '../types/rack';
@@ -49,13 +48,12 @@ export function ModelWorkspaceLayout({
   canvas,
 }: ModelWorkspaceLayoutProps) {
   const deviceLibraryOpen = useLayoutPrefsStore((state) => state.deviceLibraryOpen);
-  const rackSummaryOpen = useLayoutPrefsStore((state) => state.rackSummaryOpen);
   const toggleDeviceLibrary = useLayoutPrefsStore((state) => state.toggleDeviceLibrary);
-  const toggleRackSummary = useLayoutPrefsStore((state) => state.toggleRackSummary);
+  const [rackSummaryOpen, setRackSummaryOpen] = useState(false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-start gap-2">
         <button
           type="button"
           data-testid="toggle-device-library"
@@ -73,27 +71,17 @@ export function ModelWorkspaceLayout({
         <div className="min-w-0 flex-1">
           <RackSummaryPanel
             open={rackSummaryOpen}
-            onToggle={toggleRackSummary}
+            onToggle={() => setRackSummaryOpen((value) => !value)}
             layout={layout}
             totals={totals}
             issues={issues}
+            selectedIssueId={selectedIssueId}
             lifecycleFilter={lifecycleFilter}
             onLifecycleFilterChange={onLifecycleFilterChange}
             onRackTypeChange={onRackTypeChange}
             onRackHeightChange={onRackHeightChange}
             onPowerBudgetChange={onPowerBudgetChange}
-          />
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <IssueBar
-            issues={issues}
-            selectedIssueId={selectedIssueId}
             onIssueSelect={onIssueSelect}
-            className="mt-0"
-            listMode="overlay"
           />
         </div>
         <ActivityStatusChip

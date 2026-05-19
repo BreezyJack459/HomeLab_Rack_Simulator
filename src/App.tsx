@@ -1,176 +1,377 @@
-import { type ChangeEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Box, Cable, FolderKanban, Monitor, Network, Settings2, Wrench } from 'lucide-react';
-import { ActionBar } from './components/ActionBar';
-import { ModelWorkspaceLayout } from './components/ModelWorkspaceLayout';
-import { AuditWorkbench } from './components/AuditWorkbench';
-import { BottomTray } from './components/BottomTray';
-import { OperateWorkbench } from './components/OperateWorkbench';
-import { PlanWorkbench } from './components/PlanWorkbench';
-import { PrimaryNav } from './components/PrimaryNav';
-import { RightInspectorShell } from './components/RightInspectorShell';
-import { TopContextBar } from './components/TopContextBar';
-import { useRackStore } from './store/rackStore';
-import type { AppPanelId, AppWorkspace, AuditLens, OperateLens, PlanLens, PortfolioLens, PanelPlacement, PanelRegistryItem } from './types/appShell';
-import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue, ViewMode } from './types/rack';
-import { layoutUsesHiddenZeroUPdu } from './utils/featureFlags';
-import { validateDomains } from './utils/failureDomains';
-import { getFilteredLayoutByLifecycle } from './utils/migrationCalc';
-import { getDocumentationIssues } from './utils/documentationAudit';
+import {
+  type ChangeEvent,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AlertTriangle, Box, Settings2 } from "lucide-react";
+import { ActionBar } from "./components/ActionBar";
+import { PrimaryNav } from "./components/PrimaryNav";
+import { RightInspectorShell } from "./components/RightInspectorShell";
+import { TopContextBar } from "./components/TopContextBar";
+import { MetricCard } from "./components/WorkbenchPrimitives";
+import { useRackStore } from "./store/rackStore";
+import type {
+  AppPanelId,
+  AppWorkspace,
+  AuditLens,
+  OperateLens,
+  PlanLens,
+  PortfolioLens,
+  PanelPlacement,
+  PanelRegistryItem,
+} from "./types/appShell";
+import {
+  auditPanelIdsByLens,
+  operatePanelIdsByLens,
+  PANEL_REGISTRY,
+  planPanelIdsByLens,
+  portfolioPanelIdsByLens,
+  WORKSPACE_META,
+} from "./types/panelRegistry";
+import type {
+  LifecycleViewFilter,
+  RackLayout,
+  RackType,
+  ValidationIssue,
+  ViewMode,
+} from "./types/rack";
+import { layoutUsesHiddenZeroUPdu } from "./utils/featureFlags";
+import { validateDomains } from "./utils/failureDomains";
+import {
+  getInspectorDescription,
+  getInspectorTitle,
+} from "./utils/inspectorHelpers";
+import { getFilteredLayoutByLifecycle } from "./utils/migrationCalc";
+import { getDocumentationIssues } from "./utils/documentationAudit";
 import {
   getCableStrainRisks,
   getFrontRearCollisions,
   getHeavyOverLightIssues,
   getServiceabilityHighlightedDeviceIds,
-} from './utils/serviceability';
-import { getRackTotals, validateRackLayout } from './utils/validation';
-import type { SearchItem } from './components/CommandPalette';
+} from "./utils/serviceability";
+import { getRackTotals, validateRackLayout } from "./utils/validation";
+import type { SearchItem } from "./components/CommandPalette";
 
-const CommandPalette = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
-const RackEditor2D = lazy(() => import('./components/RackEditor2D').then((m) => ({ default: m.RackEditor2D })));
-const RackViewer3D = lazy(() => import('./components/RackViewer3D').then((m) => ({ default: m.RackViewer3D })));
-const CableMap = lazy(() => import('./components/CableMap').then((m) => ({ default: m.CableMap })));
-const NetworkTopology = lazy(() => import('./components/NetworkTopology').then((m) => ({ default: m.NetworkTopology })));
-const PropertyPanel = lazy(() => import('./components/PropertyPanel').then((m) => ({ default: m.PropertyPanel })));
-const CablePlanner = lazy(() => import('./components/CablePlanner').then((m) => ({ default: m.CablePlanner })));
-const PortReservationPanel = lazy(() => import('./components/PortReservationPanel').then((m) => ({ default: m.PortReservationPanel })));
-const PortSpeedPanel = lazy(() => import('./components/PortSpeedPanel').then((m) => ({ default: m.PortSpeedPanel })));
-const RackHealthDashboard = lazy(() => import('./components/RackHealthDashboard').then((m) => ({ default: m.RackHealthDashboard })));
-const ServiceabilityPanel = lazy(() => import('./components/ServiceabilityPanel').then((m) => ({ default: m.ServiceabilityPanel })));
-const ValidationPanel = lazy(() => import('./components/ValidationPanel').then((m) => ({ default: m.ValidationPanel })));
-const DocumentationAuditPanel = lazy(() => import('./components/DocumentationAuditPanel').then((m) => ({ default: m.DocumentationAuditPanel })));
-const RackDebtPanel = lazy(() => import('./components/RackDebtPanel').then((m) => ({ default: m.RackDebtPanel })));
-const LabelDebtPanel = lazy(() => import('./components/LabelDebtPanel').then((m) => ({ default: m.LabelDebtPanel })));
-const ThermalDistributionPanel = lazy(() => import('./components/ThermalDistributionPanel').then((m) => ({ default: m.ThermalDistributionPanel })));
-const FailureDomainPanel = lazy(() => import('./components/FailureDomainPanel').then((m) => ({ default: m.FailureDomainPanel })));
-const DriftPanel = lazy(() => import('./components/DriftPanel').then((m) => ({ default: m.DriftPanel })));
-const EnvironmentPanel = lazy(() => import('./components/EnvironmentPanel').then((m) => ({ default: m.EnvironmentPanel })));
-const DeviceSensorPanel = lazy(() => import('./components/DeviceSensorPanel').then((m) => ({ default: m.DeviceSensorPanel })));
-const PowerChainPanel = lazy(() => import('./components/PowerChainPanel').then((m) => ({ default: m.PowerChainPanel })));
-const AssetRegistryPanel = lazy(() => import('./components/AssetRegistryPanel').then((m) => ({ default: m.AssetRegistryPanel })));
-const MaintenanceLogPanel = lazy(() => import('./components/MaintenanceLogPanel').then((m) => ({ default: m.MaintenanceLogPanel })));
-const BackupVerificationPanel = lazy(() => import('./components/BackupVerificationPanel').then((m) => ({ default: m.BackupVerificationPanel })));
-const FirmwareTrackerPanel = lazy(() => import('./components/FirmwareTrackerPanel').then((m) => ({ default: m.FirmwareTrackerPanel })));
-const RunbookPanel = lazy(() => import('./components/RunbookPanel').then((m) => ({ default: m.RunbookPanel })));
-const EvidenceLockerPanel = lazy(() => import('./components/EvidenceLockerPanel').then((m) => ({ default: m.EvidenceLockerPanel })));
-const PowerBillPanel = lazy(() => import('./components/PowerBillPanel').then((m) => ({ default: m.PowerBillPanel })));
-const IpAssignmentPanel = lazy(() => import('./components/IpAssignmentPanel').then((m) => ({ default: m.IpAssignmentPanel })));
-const SparePartsPanel = lazy(() => import('./components/SparePartsPanel').then((m) => ({ default: m.SparePartsPanel })));
-const CleaningSchedulePanel = lazy(() => import('./components/CleaningSchedulePanel').then((m) => ({ default: m.CleaningSchedulePanel })));
-const ScenarioPlannerPanel = lazy(() => import('./components/ScenarioPlannerPanel').then((m) => ({ default: m.ScenarioPlannerPanel })));
-const GoldenBaselinePanel = lazy(() => import('./components/GoldenBaselinePanel').then((m) => ({ default: m.GoldenBaselinePanel })));
-const RackChangeCalendar = lazy(() => import('./components/RackChangeCalendar').then((m) => ({ default: m.RackChangeCalendar })));
-const MigrationSummaryPanel = lazy(() => import('./components/MigrationSummaryPanel').then((m) => ({ default: m.MigrationSummaryPanel })));
-const CapacityForecastPanel = lazy(() => import('./components/CapacityForecastPanel').then((m) => ({ default: m.CapacityForecastPanel })));
-const ReservationPanel = lazy(() => import('./components/ReservationPanel').then((m) => ({ default: m.ReservationPanel })));
-const BuildPlanner = lazy(() => import('./components/BuildPlanner').then((m) => ({ default: m.BuildPlanner })));
-const ChangeReviewPanel = lazy(() => import('./components/ChangeReviewPanel').then((m) => ({ default: m.ChangeReviewPanel })));
-const ChangeRequestPanel = lazy(() => import('./components/ChangeRequestPanel').then((m) => ({ default: m.ChangeRequestPanel })));
-const BootSequencePanel = lazy(() => import('./components/BootSequencePanel').then((m) => ({ default: m.BootSequencePanel })));
-const ServiceMapPanel = lazy(() => import('./components/ServiceMapPanel').then((m) => ({ default: m.ServiceMapPanel })));
-const BlastRadiusPanel = lazy(() => import('./components/BlastRadiusPanel').then((m) => ({ default: m.BlastRadiusPanel })));
-const CableLengthAuditPanel = lazy(() => import('./components/CableLengthAuditPanel').then((m) => ({ default: m.CableLengthAuditPanel })));
-const ReadinessChecklist = lazy(() => import('./components/ReadinessChecklist').then((m) => ({ default: m.ReadinessChecklist })));
-const CommissioningChecklist = lazy(() => import('./components/CommissioningChecklist').then((m) => ({ default: m.CommissioningChecklist })));
-const FitCheckPanel = lazy(() => import('./components/FitCheckPanel').then((m) => ({ default: m.FitCheckPanel })));
-const TemplateQualityPanel = lazy(() => import('./components/TemplateQualityPanel').then((m) => ({ default: m.TemplateQualityPanel })));
-const WorkspaceManager = lazy(() => import('./components/WorkspaceManager').then((m) => ({ default: m.WorkspaceManager })));
-const InterRackMap = lazy(() => import('./components/InterRackMap').then((m) => ({ default: m.InterRackMap })));
-const RoomRackMapPanel = lazy(() => import('./components/RoomRackMapPanel').then((m) => ({ default: m.RoomRackMapPanel })));
-const RoomPlacementPanel = lazy(() => import('./components/RoomPlacementPanel').then((m) => ({ default: m.RoomPlacementPanel })));
-const PortfolioExportPanel = lazy(() => import('./components/PortfolioExportPanel').then((m) => ({ default: m.PortfolioExportPanel })));
-const DcimImportPanel = lazy(() => import('./components/DcimImportPanel').then((m) => ({ default: m.DcimImportPanel })));
-const RackPhotoPanel = lazy(() => import('./components/RackPhotoPanel').then((m) => ({ default: m.RackPhotoPanel })));
-const PolicyRulesPanel = lazy(() => import('./components/PolicyRulesPanel').then((m) => ({ default: m.PolicyRulesPanel })));
-const HomelabGuidePanel = lazy(() => import('./components/HomelabGuidePanel').then((m) => ({ default: m.HomelabGuidePanel })));
-const InterRackCableWizard = lazy(() => import('./components/InterRackCableWizard').then((m) => ({ default: m.InterRackCableWizard })));
-const PortfolioWorkbench = lazy(() => import('./components/PortfolioWorkbench').then((m) => ({ default: m.PortfolioWorkbench })));
+const CommandPalette = lazy(() =>
+  import("./components/CommandPalette").then((m) => ({
+    default: m.CommandPalette,
+  })),
+);
+const RackEditor2D = lazy(() =>
+  import("./components/RackEditor2D").then((m) => ({
+    default: m.RackEditor2D,
+  })),
+);
+const RackViewer3D = lazy(() =>
+  import("./components/RackViewer3D").then((m) => ({
+    default: m.RackViewer3D,
+  })),
+);
+const CableMap = lazy(() =>
+  import("./components/CableMap").then((m) => ({ default: m.CableMap })),
+);
+const NetworkTopology = lazy(() =>
+  import("./components/NetworkTopology").then((m) => ({
+    default: m.NetworkTopology,
+  })),
+);
+const ModelWorkspaceLayout = lazy(() =>
+  import("./components/ModelWorkspaceLayout").then((m) => ({
+    default: m.ModelWorkspaceLayout,
+  })),
+);
+const AuditWorkbench = lazy(() =>
+  import("./components/AuditWorkbench").then((m) => ({
+    default: m.AuditWorkbench,
+  })),
+);
+const BottomTray = lazy(() =>
+  import("./components/BottomTray").then((m) => ({ default: m.BottomTray })),
+);
+const OperateWorkbench = lazy(() =>
+  import("./components/OperateWorkbench").then((m) => ({
+    default: m.OperateWorkbench,
+  })),
+);
+const PlanWorkbench = lazy(() =>
+  import("./components/PlanWorkbench").then((m) => ({
+    default: m.PlanWorkbench,
+  })),
+);
+const PropertyPanel = lazy(() =>
+  import("./components/PropertyPanel").then((m) => ({
+    default: m.PropertyPanel,
+  })),
+);
+const CablePlanner = lazy(() =>
+  import("./components/CablePlanner").then((m) => ({
+    default: m.CablePlanner,
+  })),
+);
+const PortReservationPanel = lazy(() =>
+  import("./components/PortReservationPanel").then((m) => ({
+    default: m.PortReservationPanel,
+  })),
+);
+const PortSpeedPanel = lazy(() =>
+  import("./components/PortSpeedPanel").then((m) => ({
+    default: m.PortSpeedPanel,
+  })),
+);
+const RackHealthDashboard = lazy(() =>
+  import("./components/RackHealthDashboard").then((m) => ({
+    default: m.RackHealthDashboard,
+  })),
+);
+const ServiceabilityPanel = lazy(() =>
+  import("./components/ServiceabilityPanel").then((m) => ({
+    default: m.ServiceabilityPanel,
+  })),
+);
+const ValidationPanel = lazy(() =>
+  import("./components/ValidationPanel").then((m) => ({
+    default: m.ValidationPanel,
+  })),
+);
+const DocumentationAuditPanel = lazy(() =>
+  import("./components/DocumentationAuditPanel").then((m) => ({
+    default: m.DocumentationAuditPanel,
+  })),
+);
+const RackDebtPanel = lazy(() =>
+  import("./components/RackDebtPanel").then((m) => ({
+    default: m.RackDebtPanel,
+  })),
+);
+const LabelDebtPanel = lazy(() =>
+  import("./components/LabelDebtPanel").then((m) => ({
+    default: m.LabelDebtPanel,
+  })),
+);
+const ThermalDistributionPanel = lazy(() =>
+  import("./components/ThermalDistributionPanel").then((m) => ({
+    default: m.ThermalDistributionPanel,
+  })),
+);
+const FailureDomainPanel = lazy(() =>
+  import("./components/FailureDomainPanel").then((m) => ({
+    default: m.FailureDomainPanel,
+  })),
+);
+const DriftPanel = lazy(() =>
+  import("./components/DriftPanel").then((m) => ({ default: m.DriftPanel })),
+);
+const EnvironmentPanel = lazy(() =>
+  import("./components/EnvironmentPanel").then((m) => ({
+    default: m.EnvironmentPanel,
+  })),
+);
+const DeviceSensorPanel = lazy(() =>
+  import("./components/DeviceSensorPanel").then((m) => ({
+    default: m.DeviceSensorPanel,
+  })),
+);
+const PowerChainPanel = lazy(() =>
+  import("./components/PowerChainPanel").then((m) => ({
+    default: m.PowerChainPanel,
+  })),
+);
+const AssetRegistryPanel = lazy(() =>
+  import("./components/AssetRegistryPanel").then((m) => ({
+    default: m.AssetRegistryPanel,
+  })),
+);
+const MaintenanceLogPanel = lazy(() =>
+  import("./components/MaintenanceLogPanel").then((m) => ({
+    default: m.MaintenanceLogPanel,
+  })),
+);
+const BackupVerificationPanel = lazy(() =>
+  import("./components/BackupVerificationPanel").then((m) => ({
+    default: m.BackupVerificationPanel,
+  })),
+);
+const FirmwareTrackerPanel = lazy(() =>
+  import("./components/FirmwareTrackerPanel").then((m) => ({
+    default: m.FirmwareTrackerPanel,
+  })),
+);
+const RunbookPanel = lazy(() =>
+  import("./components/RunbookPanel").then((m) => ({
+    default: m.RunbookPanel,
+  })),
+);
+const EvidenceLockerPanel = lazy(() =>
+  import("./components/EvidenceLockerPanel").then((m) => ({
+    default: m.EvidenceLockerPanel,
+  })),
+);
+const PowerBillPanel = lazy(() =>
+  import("./components/PowerBillPanel").then((m) => ({
+    default: m.PowerBillPanel,
+  })),
+);
+const IpAssignmentPanel = lazy(() =>
+  import("./components/IpAssignmentPanel").then((m) => ({
+    default: m.IpAssignmentPanel,
+  })),
+);
+const SparePartsPanel = lazy(() =>
+  import("./components/SparePartsPanel").then((m) => ({
+    default: m.SparePartsPanel,
+  })),
+);
+const CleaningSchedulePanel = lazy(() =>
+  import("./components/CleaningSchedulePanel").then((m) => ({
+    default: m.CleaningSchedulePanel,
+  })),
+);
+const ScenarioPlannerPanel = lazy(() =>
+  import("./components/ScenarioPlannerPanel").then((m) => ({
+    default: m.ScenarioPlannerPanel,
+  })),
+);
+const GoldenBaselinePanel = lazy(() =>
+  import("./components/GoldenBaselinePanel").then((m) => ({
+    default: m.GoldenBaselinePanel,
+  })),
+);
+const RackChangeCalendar = lazy(() =>
+  import("./components/RackChangeCalendar").then((m) => ({
+    default: m.RackChangeCalendar,
+  })),
+);
+const MigrationSummaryPanel = lazy(() =>
+  import("./components/MigrationSummaryPanel").then((m) => ({
+    default: m.MigrationSummaryPanel,
+  })),
+);
+const CapacityForecastPanel = lazy(() =>
+  import("./components/CapacityForecastPanel").then((m) => ({
+    default: m.CapacityForecastPanel,
+  })),
+);
+const ReservationPanel = lazy(() =>
+  import("./components/ReservationPanel").then((m) => ({
+    default: m.ReservationPanel,
+  })),
+);
+const BuildPlanner = lazy(() =>
+  import("./components/BuildPlanner").then((m) => ({
+    default: m.BuildPlanner,
+  })),
+);
+const ChangeReviewPanel = lazy(() =>
+  import("./components/ChangeReviewPanel").then((m) => ({
+    default: m.ChangeReviewPanel,
+  })),
+);
+const ChangeRequestPanel = lazy(() =>
+  import("./components/ChangeRequestPanel").then((m) => ({
+    default: m.ChangeRequestPanel,
+  })),
+);
+const BootSequencePanel = lazy(() =>
+  import("./components/BootSequencePanel").then((m) => ({
+    default: m.BootSequencePanel,
+  })),
+);
+const ServiceMapPanel = lazy(() =>
+  import("./components/ServiceMapPanel").then((m) => ({
+    default: m.ServiceMapPanel,
+  })),
+);
+const BlastRadiusPanel = lazy(() =>
+  import("./components/BlastRadiusPanel").then((m) => ({
+    default: m.BlastRadiusPanel,
+  })),
+);
+const CableLengthAuditPanel = lazy(() =>
+  import("./components/CableLengthAuditPanel").then((m) => ({
+    default: m.CableLengthAuditPanel,
+  })),
+);
+const ReadinessChecklist = lazy(() =>
+  import("./components/ReadinessChecklist").then((m) => ({
+    default: m.ReadinessChecklist,
+  })),
+);
+const CommissioningChecklist = lazy(() =>
+  import("./components/CommissioningChecklist").then((m) => ({
+    default: m.CommissioningChecklist,
+  })),
+);
+const FitCheckPanel = lazy(() =>
+  import("./components/FitCheckPanel").then((m) => ({
+    default: m.FitCheckPanel,
+  })),
+);
+const TemplateQualityPanel = lazy(() =>
+  import("./components/TemplateQualityPanel").then((m) => ({
+    default: m.TemplateQualityPanel,
+  })),
+);
+const WorkspaceManager = lazy(() =>
+  import("./components/WorkspaceManager").then((m) => ({
+    default: m.WorkspaceManager,
+  })),
+);
+const InterRackMap = lazy(() =>
+  import("./components/InterRackMap").then((m) => ({
+    default: m.InterRackMap,
+  })),
+);
+const RoomRackMapPanel = lazy(() =>
+  import("./components/RoomRackMapPanel").then((m) => ({
+    default: m.RoomRackMapPanel,
+  })),
+);
+const RoomPlacementPanel = lazy(() =>
+  import("./components/RoomPlacementPanel").then((m) => ({
+    default: m.RoomPlacementPanel,
+  })),
+);
+const PortfolioExportPanel = lazy(() =>
+  import("./components/PortfolioExportPanel").then((m) => ({
+    default: m.PortfolioExportPanel,
+  })),
+);
+const DcimImportPanel = lazy(() =>
+  import("./components/DcimImportPanel").then((m) => ({
+    default: m.DcimImportPanel,
+  })),
+);
+const RackPhotoPanel = lazy(() =>
+  import("./components/RackPhotoPanel").then((m) => ({
+    default: m.RackPhotoPanel,
+  })),
+);
+const PolicyRulesPanel = lazy(() =>
+  import("./components/PolicyRulesPanel").then((m) => ({
+    default: m.PolicyRulesPanel,
+  })),
+);
+const HomelabGuidePanel = lazy(() =>
+  import("./components/HomelabGuidePanel").then((m) => ({
+    default: m.HomelabGuidePanel,
+  })),
+);
+const InterRackCableWizard = lazy(() =>
+  import("./components/InterRackCableWizard").then((m) => ({
+    default: m.InterRackCableWizard,
+  })),
+);
+const PortfolioWorkbench = lazy(() =>
+  import("./components/PortfolioWorkbench").then((m) => ({
+    default: m.PortfolioWorkbench,
+  })),
+);
 
-const PANEL_REGISTRY: PanelRegistryItem[] = [
-  { id: 'property', title: 'Properties', workspace: 'model', priority: 10, defaultPlacement: 'inspector' },
-  { id: 'cable-planner', title: 'Cable Planner', workspace: 'model', priority: 20, supportedViewModes: ['2d', 'cables', 'topology'], defaultPlacement: 'inspector' },
-  { id: 'port-reservation', title: 'Port Reservations', workspace: 'model', priority: 30, selectionRequired: true, defaultPlacement: 'inspector' },
-  { id: 'port-speed', title: 'Port Speeds', workspace: 'model', priority: 40, selectionRequired: true, defaultPlacement: 'inspector' },
-
-  { id: 'rack-health', title: 'Rack Health', workspace: 'audit', priority: 10, defaultPlacement: 'main' },
-  { id: 'serviceability', title: 'Serviceability', workspace: 'audit', priority: 20, defaultPlacement: 'inspector' },
-  { id: 'validation', title: 'Validation', workspace: 'audit', priority: 30, defaultPlacement: 'inspector' },
-  { id: 'documentation-audit', title: 'Documentation Audit', workspace: 'audit', priority: 40, defaultPlacement: 'main' },
-  { id: 'rack-debt', title: 'Rack Debt', workspace: 'audit', priority: 50, defaultPlacement: 'main' },
-  { id: 'label-debt', title: 'Label Debt', workspace: 'audit', priority: 60, defaultPlacement: 'main' },
-  { id: 'thermal-distribution', title: 'Thermal Distribution', workspace: 'audit', priority: 70, defaultPlacement: 'main' },
-  { id: 'failure-domain', title: 'Failure Domain', workspace: 'audit', priority: 80, defaultPlacement: 'main' },
-  { id: 'drift', title: 'Drift', workspace: 'audit', priority: 90, defaultPlacement: 'main' },
-  { id: 'environment', title: 'Environment', workspace: 'audit', priority: 100, defaultPlacement: 'main' },
-  { id: 'device-sensor', title: 'Device Sensors', workspace: 'audit', priority: 110, defaultPlacement: 'main' },
-  { id: 'power-chain', title: 'Power Chain', workspace: 'audit', priority: 120, defaultPlacement: 'main' },
-  { id: 'cable-length-audit', title: 'Cable Length Audit', workspace: 'audit', priority: 130, defaultPlacement: 'main' },
-
-  { id: 'asset-registry', title: 'Asset Registry', workspace: 'operate', priority: 10, defaultPlacement: 'main' },
-  { id: 'maintenance-log', title: 'Maintenance Log', workspace: 'operate', priority: 20, defaultPlacement: 'main' },
-  { id: 'backup-verification', title: 'Backup Verification', workspace: 'operate', priority: 30, defaultPlacement: 'main' },
-  { id: 'firmware-tracker', title: 'Firmware Tracker', workspace: 'operate', priority: 40, defaultPlacement: 'main' },
-  { id: 'runbook', title: 'Runbook', workspace: 'operate', priority: 50, defaultPlacement: 'main' },
-  { id: 'evidence-locker', title: 'Evidence Locker', workspace: 'operate', priority: 60, defaultPlacement: 'main' },
-  { id: 'boot-sequence', title: 'Boot Sequence', workspace: 'operate', priority: 65, defaultPlacement: 'main' },
-  { id: 'service-map', title: 'Service Map', workspace: 'operate', priority: 85, defaultPlacement: 'main' },
-  { id: 'blast-radius', title: 'Blast Radius', workspace: 'operate', priority: 95, selectionRequired: true, defaultPlacement: 'inspector' },
-  { id: 'power-bill', title: 'Power Bill', workspace: 'operate', priority: 70, defaultPlacement: 'main' },
-  { id: 'ip-assignment', title: 'IP Assignment', workspace: 'operate', priority: 80, defaultPlacement: 'main' },
-  { id: 'spare-parts', title: 'Spare Parts', workspace: 'operate', priority: 90, defaultPlacement: 'main' },
-  { id: 'cleaning-schedule', title: 'Cleaning Schedule', workspace: 'operate', priority: 100, defaultPlacement: 'main' },
-
-  { id: 'scenario-planner', title: 'Scenario Planner', workspace: 'plan', priority: 10, defaultPlacement: 'main' },
-  { id: 'golden-baseline', title: 'Golden Baseline', workspace: 'plan', priority: 20, defaultPlacement: 'main' },
-  { id: 'rack-change-calendar', title: 'Change Calendar', workspace: 'plan', priority: 30, defaultPlacement: 'main' },
-  { id: 'migration-summary', title: 'Migration Summary', workspace: 'plan', priority: 40, defaultPlacement: 'main' },
-  { id: 'capacity-forecast', title: 'Capacity Forecast', workspace: 'plan', priority: 50, defaultPlacement: 'main' },
-  { id: 'reservation', title: 'Reservations', workspace: 'plan', priority: 60, defaultPlacement: 'main' },
-  { id: 'build-planner', title: 'Build Planner', workspace: 'plan', priority: 70, defaultPlacement: 'main' },
-  { id: 'change-review', title: 'Change Review', workspace: 'plan', priority: 80, defaultPlacement: 'main' },
-  { id: 'change-request', title: 'Change Request', workspace: 'plan', priority: 90, defaultPlacement: 'main' },
-  { id: 'readiness-checklist', title: 'Readiness Checklist', workspace: 'plan', priority: 100, defaultPlacement: 'main' },
-  { id: 'commissioning-checklist', title: 'Commissioning Checklist', workspace: 'plan', priority: 110, defaultPlacement: 'main' },
-  { id: 'fit-check', title: 'Fit Check', workspace: 'plan', priority: 120, defaultPlacement: 'main' },
-  { id: 'template-quality', title: 'Template Quality', workspace: 'plan', priority: 130, defaultPlacement: 'main' },
-
-  { id: 'workspace-manager', title: 'Workspace Manager', workspace: 'portfolio', priority: 10, defaultPlacement: 'main' },
-  { id: 'inter-rack-map', title: 'Inter-Rack Map', workspace: 'portfolio', priority: 20, defaultPlacement: 'main' },
-  { id: 'room-rack-map', title: 'Room Rack Map', workspace: 'portfolio', priority: 30, defaultPlacement: 'main' },
-  { id: 'room-placement', title: 'Room Placement', workspace: 'portfolio', priority: 40, defaultPlacement: 'main' },
-  { id: 'portfolio-export', title: 'Portfolio Export', workspace: 'portfolio', priority: 50, defaultPlacement: 'main' },
-  { id: 'dcim-import', title: 'DCIM Import', workspace: 'portfolio', priority: 60, defaultPlacement: 'main' },
-  { id: 'rack-photo', title: 'Rack Photos', workspace: 'portfolio', priority: 70, defaultPlacement: 'inspector' },
-  { id: 'policy-rules', title: 'Policy Rules', workspace: 'portfolio', priority: 80, defaultPlacement: 'inspector' },
-  { id: 'homelab-guide', title: 'Homelab Guide', workspace: 'portfolio', priority: 90, defaultPlacement: 'inspector' },
-];
-
-const WORKSPACE_META: Record<AppWorkspace, { title: string; description: string; icon: React.ReactNode }> = {
-  model: {
-    title: 'Model workspace',
-    description: 'Edit rack geometry, inspect the current selection and keep the canvas front and center.',
-    icon: <Monitor size={16} />,
-  },
-  operate: {
-    title: 'Operate workspace',
-    description: 'Track day-to-day operational records like assets, maintenance, firmware and backup evidence.',
-    icon: <Wrench size={16} />,
-  },
-  audit: {
-    title: 'Audit workspace',
-    description: 'Review layout health, risks and validation issues without digging through one giant sidebar.',
-    icon: <AlertTriangle size={16} />,
-  },
-  plan: {
-    title: 'Plan workspace',
-    description: 'Compare scenarios, baselines and change windows from a planning-first surface.',
-    icon: <Network size={16} />,
-  },
-  portfolio: {
-    title: 'Portfolio workspace',
-    description: 'Manage workspace-wide rack context, inter-rack links, room placement and import/export flows.',
-    icon: <FolderKanban size={16} />,
-  },
-};
+// ── Workspace Hero (lightweight inline shell for audit/operate/plan/portfolio) ─
 
 function WorkspaceHero({
   title,
@@ -186,29 +387,20 @@ function WorkspaceHero({
   return (
     <section className="rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
       <div className="flex items-start gap-3">
-        <div className="rounded-2xl bg-cyan-500/12 p-3 text-cyan-700 dark:text-cyan-300">{icon}</div>
+        <div className="rounded-2xl bg-cyan-500/12 p-3 text-cyan-700 dark:text-cyan-300">
+          {icon}
+        </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {title}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {description}
+          </p>
         </div>
       </div>
       {children && <div className="mt-4">{children}</div>}
     </section>
-  );
-}
-
-function MetricCard({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'danger' | 'warn' }) {
-  const toneClass =
-    tone === 'danger'
-      ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
-      : tone === 'warn'
-        ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-        : 'border-slate-200 bg-white/80 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200';
-  return (
-    <div className={`rounded-2xl border p-4 ${toneClass}`}>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-70">{label}</div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
-    </div>
   );
 }
 
@@ -221,7 +413,9 @@ function App() {
   const currentRackId = useRackStore((state) => state.currentRackId);
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const selectedCableId = useRackStore((state) => state.selectedCableId);
-  const selectedInterRackCableId = useRackStore((state) => state.selectedInterRackCableId);
+  const selectedInterRackCableId = useRackStore(
+    (state) => state.selectedInterRackCableId,
+  );
   const viewMode = useRackStore((state) => state.viewMode);
   const statusMessage = useRackStore((state) => state.statusMessage);
   const setViewMode = useRackStore((state) => state.setViewMode);
@@ -231,7 +425,9 @@ function App() {
   const updateRack = useRackStore((state) => state.updateRack);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
-  const selectInterRackCable = useRackStore((state) => state.selectInterRackCable);
+  const selectInterRackCable = useRackStore(
+    (state) => state.selectInterRackCable,
+  );
   const saveLocal = useRackStore((state) => state.saveLocal);
   const loadLocal = useRackStore((state) => state.loadLocal);
   const newLayout = useRackStore((state) => state.newLayout);
@@ -249,27 +445,46 @@ function App() {
   const renameWorkspace = useRackStore((state) => state.renameWorkspace);
   const setWorkspace = useRackStore((state) => state.setWorkspace);
 
-  const [confirmAction, setConfirmAction] = useState<null | { type: 'new' | 'sample'; payload?: string }>(null);
+  const [confirmAction, setConfirmAction] = useState<null | {
+    type: "new" | "sample";
+    payload?: string;
+  }>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
-  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleViewFilter>('all');
-  const [serviceabilityOverlayEnabled, setServiceabilityOverlayEnabled] = useState(false);
-  const [serviceabilityFocusDeviceIds, setServiceabilityFocusDeviceIds] = useState<string[]>([]);
+  const [lifecycleFilter, setLifecycleFilter] =
+    useState<LifecycleViewFilter>("all");
+  const [serviceabilityOverlayEnabled, setServiceabilityOverlayEnabled] =
+    useState(false);
+  const [serviceabilityFocusDeviceIds, setServiceabilityFocusDeviceIds] =
+    useState<string[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
   const [interRackWizardOpen, setInterRackWizardOpen] = useState(false);
   const [sampleLayouts, setSampleLayouts] = useState<RackLayout[]>([]);
   const [samplePickerOpen, setSamplePickerOpen] = useState(false);
-  const [currentWorkspace, setCurrentWorkspace] = useState<AppWorkspace>('model');
-  const [currentAuditLens, setCurrentAuditLens] = useState<AuditLens>('overview');
-  const [currentOperateLens, setCurrentOperateLens] = useState<OperateLens>('assets');
-  const [currentPlanLens, setCurrentPlanLens] = useState<PlanLens>('scenarios');
-  const [currentPortfolioLens, setCurrentPortfolioLens] = useState<PortfolioLens>('overview');
+  const [currentWorkspace, setCurrentWorkspace] =
+    useState<AppWorkspace>("model");
+  const [currentAuditLens, setCurrentAuditLens] =
+    useState<AuditLens>("overview");
+  const [currentOperateLens, setCurrentOperateLens] =
+    useState<OperateLens>("assets");
+  const [currentPlanLens, setCurrentPlanLens] = useState<PlanLens>("scenarios");
+  const [currentPortfolioLens, setCurrentPortfolioLens] =
+    useState<PortfolioLens>("overview");
 
   const issues = useMemo(() => validateRackLayout(layout), [layout]);
   const totals = useMemo(() => getRackTotals(layout), [layout]);
-  const documentationIssues = useMemo(() => getDocumentationIssues(layout), [layout]);
+  const documentationIssues = useMemo(
+    () => getDocumentationIssues(layout),
+    [layout],
+  );
   const cableStrainRisks = useMemo(() => getCableStrainRisks(layout), [layout]);
-  const frontRearCollisions = useMemo(() => getFrontRearCollisions(layout), [layout]);
-  const heavyOverLightIssues = useMemo(() => getHeavyOverLightIssues(layout), [layout]);
+  const frontRearCollisions = useMemo(
+    () => getFrontRearCollisions(layout),
+    [layout],
+  );
+  const heavyOverLightIssues = useMemo(
+    () => getHeavyOverLightIssues(layout),
+    [layout],
+  );
   const failureDomainIssues = useMemo(
     () =>
       validateDomains(
@@ -277,33 +492,38 @@ function App() {
         layout.domainAssignments ?? [],
         layout.devices,
         layout.cables,
-        layout.services ?? []
+        layout.services ?? [],
       ),
-    [layout]
+    [layout],
   );
   const openDebtCount = useMemo(
-    () => (layout.debtItems ?? []).filter((item) => item.status === 'open' || item.status === 'planned').length,
-    [layout.debtItems]
+    () =>
+      (layout.debtItems ?? []).filter(
+        (item) => item.status === "open" || item.status === "planned",
+      ).length,
+    [layout.debtItems],
   );
   const filteredLayout = useMemo(
     () => getFilteredLayoutByLifecycle(layout, lifecycleFilter),
-    [layout, lifecycleFilter]
+    [layout, lifecycleFilter],
   );
   const serviceabilityHighlightIds = useMemo(
     () =>
       serviceabilityFocusDeviceIds.length > 0
         ? serviceabilityFocusDeviceIds
         : getServiceabilityHighlightedDeviceIds(layout),
-    [layout, serviceabilityFocusDeviceIds]
+    [layout, serviceabilityFocusDeviceIds],
   );
   const visibleSampleLayouts = useMemo(
     () => sampleLayouts.filter((sample) => !layoutUsesHiddenZeroUPdu(sample)),
-    [sampleLayouts]
+    [sampleLayouts],
   );
-  const hasSelection = Boolean(selectedDeviceId || selectedCableId || selectedInterRackCableId);
+  const hasSelection = Boolean(
+    selectedDeviceId || selectedCableId || selectedInterRackCableId,
+  );
   const selectedIssue = useMemo(
     () => issues.find((issue) => issue.id === selectedIssueId) ?? null,
-    [issues, selectedIssueId]
+    [issues, selectedIssueId],
   );
 
   useEffect(() => {
@@ -314,22 +534,26 @@ function App() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         const target = event.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
           return;
         }
         event.preventDefault();
         setCommandOpen((prev) => !prev);
       }
     }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   useEffect(() => {
     let active = true;
-    void import('./data/sampleLayouts').then((module) => {
+    void import("./data/sampleLayouts").then((module) => {
       if (active) {
         setSampleLayouts(module.sampleLayouts);
       }
@@ -341,49 +565,53 @@ function App() {
 
   function handleIssueSelect(issue: ValidationIssue) {
     setSelectedIssueId(issue.id);
-    setCurrentWorkspace('audit');
-    setCurrentAuditLens('issues');
+    setCurrentWorkspace("audit");
+    setCurrentAuditLens("issues");
     if (issue.deviceIds?.length) selectDevice(issue.deviceIds[0]);
     if (issue.cableIds?.length) {
       selectCable(issue.cableIds[0]);
-      setViewMode('cables');
+      setViewMode("cables");
     }
   }
 
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
-    const { readJsonFile } = await import('./utils/exporters');
+    const { readJsonFile } = await import("./utils/exporters");
     const imported = await readJsonFile(file);
     loadLayout(imported as typeof layout);
-    event.currentTarget.value = '';
+    event.currentTarget.value = "";
   }
 
   async function handleWorkspaceImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
     try {
-      const { importWorkspaceJson } = await import('./utils/exporters');
+      const { importWorkspaceJson } = await import("./utils/exporters");
       const text = await file.text();
       const importedWorkspace = importWorkspaceJson(text);
       if (!importedWorkspace) {
-        useRackStore.setState({ statusMessage: 'Invalid workspace JSON file.' });
-        event.currentTarget.value = '';
+        useRackStore.setState({
+          statusMessage: "Invalid workspace JSON file.",
+        });
+        event.currentTarget.value = "";
         return;
       }
       const success = setWorkspace(importedWorkspace);
       if (!success) {
-        useRackStore.setState({ statusMessage: 'Workspace has no racks.' });
+        useRackStore.setState({ statusMessage: "Workspace has no racks." });
       }
     } catch {
-      useRackStore.setState({ statusMessage: 'Failed to read workspace file.' });
+      useRackStore.setState({
+        statusMessage: "Failed to read workspace file.",
+      });
     }
-    event.currentTarget.value = '';
+    event.currentTarget.value = "";
   }
 
   function handleNewLayout() {
     if (layout.devices.length > 0 || layout.cables.length > 0) {
-      setConfirmAction({ type: 'new' });
+      setConfirmAction({ type: "new" });
       return;
     }
     newLayout(layout.rackType, layout.heightU);
@@ -392,7 +620,7 @@ function App() {
   function handleLoadSample(sampleId: string) {
     if (!sampleId) return;
     if (layout.devices.length > 0 || layout.cables.length > 0) {
-      setConfirmAction({ type: 'sample', payload: sampleId });
+      setConfirmAction({ type: "sample", payload: sampleId });
       return;
     }
     loadSample(sampleId);
@@ -400,9 +628,9 @@ function App() {
 
   function handleConfirm() {
     if (!confirmAction) return;
-    if (confirmAction.type === 'new') {
+    if (confirmAction.type === "new") {
       newLayout(layout.rackType, layout.heightU);
-    } else if (confirmAction.type === 'sample' && confirmAction.payload) {
+    } else if (confirmAction.type === "sample" && confirmAction.payload) {
       loadSample(confirmAction.payload);
     }
     setConfirmAction(null);
@@ -419,48 +647,55 @@ function App() {
   }
 
   async function handleExportLayoutJson() {
-    const { exportLayoutJson } = await import('./utils/exporters');
+    const { exportLayoutJson } = await import("./utils/exporters");
     exportLayoutJson(layout);
   }
 
   async function handleDownloadWorkspaceJson() {
-    const { downloadWorkspaceJson } = await import('./utils/exporters');
+    const { downloadWorkspaceJson } = await import("./utils/exporters");
     downloadWorkspaceJson(workspace);
   }
 
   async function handleExportRackPng() {
-    const { exportRackPng } = await import('./utils/exporters');
+    const { exportRackPng } = await import("./utils/exporters");
     exportRackPng(layout);
   }
 
   async function handleExportMigrationPlan() {
-    const { exportMigrationPlanMarkdown } = await import('./utils/exporters');
+    const { exportMigrationPlanMarkdown } = await import("./utils/exporters");
     exportMigrationPlanMarkdown(layout);
   }
 
   const visiblePanels = useMemo(
     () => (workspaceId: AppWorkspace, placement: PanelPlacement) =>
-      PANEL_REGISTRY
-        .filter((panel) => panel.workspace === workspaceId && panel.defaultPlacement === placement)
-        .filter((panel) => !panel.supportedViewModes || panel.supportedViewModes.includes(viewMode))
+      PANEL_REGISTRY.filter(
+        (panel) =>
+          panel.workspace === workspaceId &&
+          panel.defaultPlacement === placement,
+      )
+        .filter(
+          (panel) =>
+            !panel.supportedViewModes ||
+            panel.supportedViewModes.includes(viewMode),
+        )
         .filter((panel) => !panel.selectionRequired || hasSelection)
         .sort((a, b) => a.priority - b.priority),
-    [hasSelection, viewMode]
+    [hasSelection, viewMode],
   );
 
   function renderPanel(panelId: AppPanelId) {
     switch (panelId) {
-      case 'property':
+      case "property":
         return <PropertyPanel />;
-      case 'cable-planner':
+      case "cable-planner":
         return <CablePlanner />;
-      case 'port-reservation':
+      case "port-reservation":
         return <PortReservationPanel />;
-      case 'port-speed':
+      case "port-speed":
         return <PortSpeedPanel />;
-      case 'rack-health':
+      case "rack-health":
         return <RackHealthDashboard layout={layout} />;
-      case 'serviceability':
+      case "serviceability":
         return (
           <ServiceabilityPanel
             layout={layout}
@@ -469,7 +704,7 @@ function App() {
             onHighlightDevicesChange={setServiceabilityFocusDeviceIds}
           />
         );
-      case 'validation':
+      case "validation":
         return (
           <ValidationPanel
             issues={issues}
@@ -478,63 +713,63 @@ function App() {
             onIssueSelect={handleIssueSelect}
           />
         );
-      case 'documentation-audit':
+      case "documentation-audit":
         return <DocumentationAuditPanel />;
-      case 'rack-debt':
+      case "rack-debt":
         return <RackDebtPanel />;
-      case 'label-debt':
+      case "label-debt":
         return <LabelDebtPanel />;
-      case 'thermal-distribution':
+      case "thermal-distribution":
         return <ThermalDistributionPanel />;
-      case 'failure-domain':
+      case "failure-domain":
         return <FailureDomainPanel />;
-      case 'drift':
+      case "drift":
         return <DriftPanel />;
-      case 'environment':
+      case "environment":
         return <EnvironmentPanel />;
-      case 'device-sensor':
+      case "device-sensor":
         return <DeviceSensorPanel />;
-      case 'power-chain':
+      case "power-chain":
         return <PowerChainPanel />;
-      case 'asset-registry':
+      case "asset-registry":
         return <AssetRegistryPanel />;
-      case 'maintenance-log':
+      case "maintenance-log":
         return <MaintenanceLogPanel />;
-      case 'backup-verification':
+      case "backup-verification":
         return <BackupVerificationPanel />;
-      case 'firmware-tracker':
+      case "firmware-tracker":
         return <FirmwareTrackerPanel />;
-      case 'runbook':
+      case "runbook":
         return <RunbookPanel />;
-      case 'evidence-locker':
+      case "evidence-locker":
         return <EvidenceLockerPanel />;
-      case 'power-bill':
+      case "power-bill":
         return <PowerBillPanel />;
-      case 'ip-assignment':
+      case "ip-assignment":
         return <IpAssignmentPanel />;
-      case 'spare-parts':
+      case "spare-parts":
         return <SparePartsPanel />;
-      case 'cleaning-schedule':
+      case "cleaning-schedule":
         return <CleaningSchedulePanel />;
-      case 'scenario-planner':
+      case "scenario-planner":
         return <ScenarioPlannerPanel />;
-      case 'golden-baseline':
+      case "golden-baseline":
         return <GoldenBaselinePanel />;
-      case 'rack-change-calendar':
+      case "rack-change-calendar":
         return <RackChangeCalendar />;
-      case 'migration-summary':
+      case "migration-summary":
         return <MigrationSummaryPanel />;
-      case 'capacity-forecast':
+      case "capacity-forecast":
         return <CapacityForecastPanel />;
-      case 'reservation':
+      case "reservation":
         return <ReservationPanel />;
-      case 'build-planner':
+      case "build-planner":
         return <BuildPlanner />;
-      case 'change-review':
+      case "change-review":
         return <ChangeReviewPanel />;
-      case 'change-request':
+      case "change-request":
         return <ChangeRequestPanel />;
-      case 'workspace-manager':
+      case "workspace-manager":
         return (
           <WorkspaceManager
             workspace={workspace}
@@ -547,7 +782,7 @@ function App() {
             onRenameWorkspace={renameWorkspace}
           />
         );
-      case 'inter-rack-map':
+      case "inter-rack-map":
         return (
           <InterRackMap
             racks={workspace.racks}
@@ -556,49 +791,54 @@ function App() {
             onSelectCable={(cableId) => {
               selectInterRackCable(cableId);
               if (cableId) {
-                setCurrentWorkspace('portfolio');
+                setCurrentWorkspace("portfolio");
               }
             }}
             onAddCable={() => setInterRackWizardOpen(true)}
           />
         );
-      case 'room-rack-map':
+      case "room-rack-map":
         return <RoomRackMapPanel />;
-      case 'room-placement':
+      case "room-placement":
         return <RoomPlacementPanel />;
-      case 'portfolio-export':
+      case "portfolio-export":
         return <PortfolioExportPanel />;
-      case 'dcim-import':
+      case "dcim-import":
         return <DcimImportPanel />;
-      case 'rack-photo':
+      case "rack-photo":
         return <RackPhotoPanel />;
-      case 'policy-rules':
+      case "policy-rules":
         return <PolicyRulesPanel />;
-      case 'homelab-guide':
+      case "homelab-guide":
         return <HomelabGuidePanel />;
-      case 'boot-sequence':
+      case "boot-sequence":
         return <BootSequencePanel />;
-      case 'service-map':
+      case "service-map":
         return <ServiceMapPanel />;
-      case 'blast-radius':
+      case "blast-radius":
         return <BlastRadiusPanel />;
-      case 'cable-length-audit':
+      case "cable-length-audit":
         return <CableLengthAuditPanel />;
-      case 'readiness-checklist':
+      case "readiness-checklist":
         return <ReadinessChecklist />;
-      case 'commissioning-checklist':
+      case "commissioning-checklist":
         return <CommissioningChecklist />;
-      case 'fit-check':
+      case "fit-check":
         return <FitCheckPanel />;
-      case 'template-quality':
+      case "template-quality":
         return <TemplateQualityPanel />;
       default:
         return null;
     }
   }
 
-  function renderPanelGrid(workspaceId: AppWorkspace, allowedPanelIds?: AppPanelId[]) {
-    const panels = visiblePanels(workspaceId, 'main').filter((panel) => !allowedPanelIds || allowedPanelIds.includes(panel.id));
+  function renderPanelGrid(
+    workspaceId: AppWorkspace,
+    allowedPanelIds?: AppPanelId[],
+  ) {
+    const panels = visiblePanels(workspaceId, "main").filter(
+      (panel) => !allowedPanelIds || allowedPanelIds.includes(panel.id),
+    );
     return (
       <div className="grid gap-4 xl:grid-cols-2">
         {panels.map((panel) => (
@@ -610,48 +850,22 @@ function App() {
     );
   }
 
-  const auditPanelIdsByLens: Record<AuditLens, AppPanelId[]> = {
-    overview: ['rack-health', 'documentation-audit', 'rack-debt', 'label-debt', 'thermal-distribution', 'failure-domain', 'drift', 'environment', 'device-sensor', 'power-chain', 'cable-length-audit'],
-    issues: ['rack-health', 'rack-debt', 'documentation-audit', 'label-debt'],
-    serviceability: ['rack-health', 'thermal-distribution', 'power-chain'],
-    documentation: ['documentation-audit', 'label-debt', 'drift', 'rack-debt', 'cable-length-audit'],
-    thermal: ['thermal-distribution', 'environment', 'device-sensor', 'power-chain', 'rack-health'],
-    domains: ['failure-domain', 'rack-debt', 'drift', 'documentation-audit'],
-  };
+  const inspectorTitle = getInspectorTitle(currentWorkspace, selectedIssue);
 
-  const operatePanelIdsByLens: Record<OperateLens, AppPanelId[]> = {
-    assets: ['asset-registry', 'spare-parts'],
-    maintenance: ['maintenance-log', 'cleaning-schedule'],
-    firmware: ['firmware-tracker', 'boot-sequence'],
-    network: ['ip-assignment', 'service-map'],
-    evidence: ['evidence-locker', 'backup-verification'],
-    power: ['power-bill', 'runbook'],
-  };
-
-  const planPanelIdsByLens: Record<PlanLens, AppPanelId[]> = {
-    scenarios: ['scenario-planner', 'capacity-forecast'],
-    baseline: ['golden-baseline', 'migration-summary', 'template-quality'],
-    schedule: ['rack-change-calendar', 'reservation'],
-    changes: ['change-request', 'change-review'],
-    build: ['build-planner', 'readiness-checklist', 'commissioning-checklist'],
-    fit: ['fit-check'],
-  };
-
-  const portfolioPanelIdsByLens: Record<PortfolioLens, AppPanelId[]> = {
-    overview: ['workspace-manager', 'portfolio-export'],
-    rooms: ['room-rack-map', 'room-placement'],
-    interconnect: ['inter-rack-map'],
-    data: ['dcim-import'],
-    policy: ['policy-rules'],
-    guide: ['homelab-guide', 'rack-photo'],
-  };
+  const inspectorDescription = getInspectorDescription(
+    currentWorkspace,
+    currentAuditLens,
+    hasSelection,
+    selectedIssue,
+  );
 
   function renderInspectorPanels() {
-    const panels = visiblePanels(currentWorkspace, 'inspector');
+    const panels = visiblePanels(currentWorkspace, "inspector");
     if (panels.length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-400">
-          This workspace keeps most content in the main canvas. Use the command bar to jump directly to a panel.
+          This workspace keeps most content in the main canvas. Use the command
+          bar to jump directly to a panel.
         </div>
       );
     }
@@ -662,74 +876,63 @@ function App() {
     ));
   }
 
-  const inspectorTitle =
-    currentWorkspace === 'audit' && selectedIssue
-      ? selectedIssue.title
-      : WORKSPACE_META[currentWorkspace].title;
-
-  const inspectorDescription =
-    currentWorkspace === 'model'
-      ? hasSelection
-        ? 'Selection-first inspector for the current device, cable and port context.'
-        : 'Choose a device or cable to unlock focused editing controls.'
-      : currentWorkspace === 'audit'
-        ? selectedIssue
-          ? 'The audit inspector is pinned to the selected issue so validation and serviceability stay in context.'
-          : currentAuditLens === 'serviceability'
-            ? 'Use the serviceability inspector to focus pull-out blockers, collisions and maintenance access.'
-            : currentAuditLens === 'documentation'
-              ? 'Use the validation inspector to work through documentation and label drift without leaving the audit view.'
-              : currentAuditLens === 'thermal'
-                ? 'Thermal and power checks stay visible while the main area shows the broader audit evidence.'
-                : currentAuditLens === 'domains'
-                  ? 'Track redundancy and assignment gaps while keeping validation close at hand.'
-                  : 'Review layout health, risks and validation issues without digging through one giant sidebar.'
-        : WORKSPACE_META[currentWorkspace].description;
-
   const commandItems = useMemo<SearchItem[]>(() => {
-    const workspaceItems: SearchItem[] = (Object.keys(WORKSPACE_META) as AppWorkspace[]).map((workspaceId) => ({
+    const workspaceItems: SearchItem[] = (
+      Object.keys(WORKSPACE_META) as AppWorkspace[]
+    ).map((workspaceId) => ({
       id: `workspace-${workspaceId}`,
-      type: 'workspace',
+      type: "workspace",
       title: WORKSPACE_META[workspaceId].title,
       subtitle: WORKSPACE_META[workspaceId].description,
-      icon: <span className="text-cyan-600 dark:text-cyan-300">{WORKSPACE_META[workspaceId].icon}</span>,
+      icon: (
+        <span className="text-cyan-600 dark:text-cyan-300">
+          {WORKSPACE_META[workspaceId].icon}
+        </span>
+      ),
       action: () => setCurrentWorkspace(workspaceId),
-      category: 'Workspaces',
+      category: "Workspaces",
     }));
 
     const panelItems: SearchItem[] = PANEL_REGISTRY.map((panel) => ({
       id: `panel-${panel.id}`,
-      type: 'panel',
+      type: "panel",
       title: panel.title,
       subtitle: `${panel.workspace} workspace`,
-      icon: <Settings2 size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: (
+        <Settings2 size={16} className="text-slate-500 dark:text-slate-400" />
+      ),
       action: () => {
         setCurrentWorkspace(panel.workspace);
         if (panel.supportedViewModes?.length) {
           setViewMode(panel.supportedViewModes[0]);
         }
       },
-      category: 'Panels',
+      category: "Panels",
     }));
 
     const quickActions: SearchItem[] = [
       {
-        id: 'quick-open-sample',
-        type: 'quick-action',
-        title: 'Open sample picker',
-        subtitle: 'Load a sample layout into the current rack',
+        id: "quick-open-sample",
+        type: "quick-action",
+        title: "Open sample picker",
+        subtitle: "Load a sample layout into the current rack",
         icon: <Box size={16} className="text-slate-500 dark:text-slate-400" />,
         action: () => setSamplePickerOpen(true),
-        category: 'Quick Actions',
+        category: "Quick Actions",
       },
       {
-        id: 'quick-show-issues',
-        type: 'quick-action',
-        title: 'Jump to audit issues',
-        subtitle: 'Open the audit workspace and inspect validation issues',
-        icon: <AlertTriangle size={16} className="text-slate-500 dark:text-slate-400" />,
-        action: () => setCurrentWorkspace('audit'),
-        category: 'Quick Actions',
+        id: "quick-show-issues",
+        type: "quick-action",
+        title: "Jump to audit issues",
+        subtitle: "Open the audit workspace and inspect validation issues",
+        icon: (
+          <AlertTriangle
+            size={16}
+            className="text-slate-500 dark:text-slate-400"
+          />
+        ),
+        action: () => setCurrentWorkspace("audit"),
+        category: "Quick Actions",
       },
     ];
 
@@ -737,7 +940,7 @@ function App() {
   }, [setViewMode]);
 
   function renderCanvas() {
-    if (viewMode === '2d') {
+    if (viewMode === "2d") {
       return (
         <RackEditor2D
           layoutOverride={filteredLayout}
@@ -746,22 +949,40 @@ function App() {
         />
       );
     }
-    if (viewMode === '3d') {
+    if (viewMode === "3d") {
       return (
-        <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading 3D…</div>}>
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+              Loading 3D…
+            </div>
+          }
+        >
           <RackViewer3D layout={filteredLayout} />
         </Suspense>
       );
     }
-    if (viewMode === 'cables') {
+    if (viewMode === "cables") {
       return (
-        <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading cable map...</div>}>
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+              Loading cable map...
+            </div>
+          }
+        >
           <CableMap layout={filteredLayout} />
         </Suspense>
       );
     }
     return (
-      <Suspense fallback={<div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">Loading topology...</div>}>
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+            Loading topology...
+          </div>
+        }
+      >
         <NetworkTopology layout={filteredLayout} />
       </Suspense>
     );
@@ -769,51 +990,105 @@ function App() {
 
   function renderModelWorkspace() {
     return (
-      <ModelWorkspaceLayout
-        layout={layout}
-        totals={totals}
-        issues={issues}
-        lifecycleFilter={lifecycleFilter}
-        onLifecycleFilterChange={setLifecycleFilter}
-        onRackTypeChange={setRackType}
-        onRackHeightChange={setRackHeight}
-        onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
-        selectedIssueId={selectedIssueId}
-        statusMessage={statusMessage}
-        onIssueSelect={handleIssueSelect}
-        onOpenAudit={() => setCurrentWorkspace('audit')}
-        canvas={renderCanvas()}
-      />
+      <Suspense fallback={null}>
+        <ModelWorkspaceLayout
+          layout={layout}
+          totals={totals}
+          issues={issues}
+          lifecycleFilter={lifecycleFilter}
+          onLifecycleFilterChange={setLifecycleFilter}
+          onRackTypeChange={setRackType}
+          onRackHeightChange={setRackHeight}
+          onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
+          selectedIssueId={selectedIssueId}
+          statusMessage={statusMessage}
+          onIssueSelect={handleIssueSelect}
+          onOpenAudit={() => setCurrentWorkspace("audit")}
+          canvas={renderCanvas()}
+        />
+      </Suspense>
     );
   }
 
   function renderAuditWorkspace() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
-        <WorkspaceHero title={WORKSPACE_META.audit.title} description={WORKSPACE_META.audit.description} icon={WORKSPACE_META.audit.icon}>
+        <WorkspaceHero
+          title={WORKSPACE_META.audit.title}
+          description={WORKSPACE_META.audit.description}
+          icon={WORKSPACE_META.audit.icon}
+        >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-            <MetricCard label="Critical" value={`${issues.filter((issue) => issue.severity === 'critical').length}`} tone={issues.some((issue) => issue.severity === 'critical') ? 'danger' : 'default'} />
-            <MetricCard label="Warnings" value={`${issues.filter((issue) => issue.severity === 'warning').length}`} tone={issues.some((issue) => issue.severity === 'warning') ? 'warn' : 'default'} />
-            <MetricCard label="Power headroom" value={`${Math.max(layout.powerBudgetW - totals.powerW, 0)}W`} tone={totals.powerW > layout.powerBudgetW ? 'danger' : 'default'} />
-            <MetricCard label="Heat score" value={`${totals.heatScore}`} tone={totals.heatScore > 18 ? 'warn' : 'default'} />
-            <MetricCard label="Doc gaps" value={`${documentationIssues.length}`} tone={documentationIssues.some((issue) => issue.severity === 'warning') ? 'warn' : 'default'} />
-            <MetricCard label="Open debt" value={`${openDebtCount}`} tone={openDebtCount > 0 ? 'warn' : 'default'} />
+            <MetricCard
+              label="Critical"
+              value={`${issues.filter((issue) => issue.severity === "critical").length}`}
+              tone={
+                issues.some((issue) => issue.severity === "critical")
+                  ? "danger"
+                  : "default"
+              }
+            />
+            <MetricCard
+              label="Warnings"
+              value={`${issues.filter((issue) => issue.severity === "warning").length}`}
+              tone={
+                issues.some((issue) => issue.severity === "warning")
+                  ? "warn"
+                  : "default"
+              }
+            />
+            <MetricCard
+              label="Power headroom"
+              value={`${Math.max(layout.powerBudgetW - totals.powerW, 0)}W`}
+              tone={totals.powerW > layout.powerBudgetW ? "danger" : "default"}
+            />
+            <MetricCard
+              label="Heat score"
+              value={`${totals.heatScore}`}
+              tone={totals.heatScore > 18 ? "warn" : "default"}
+            />
+            <MetricCard
+              label="Doc gaps"
+              value={`${documentationIssues.length}`}
+              tone={
+                documentationIssues.some(
+                  (issue) => issue.severity === "warning",
+                )
+                  ? "warn"
+                  : "default"
+              }
+            />
+            <MetricCard
+              label="Open debt"
+              value={`${openDebtCount}`}
+              tone={openDebtCount > 0 ? "warn" : "default"}
+            />
           </div>
         </WorkspaceHero>
-        <AuditWorkbench
-          layout={layout}
-          issues={issues}
-          totals={{ powerW: totals.powerW, heatScore: totals.heatScore, occupiedU: totals.occupiedU }}
-          selectedIssueId={selectedIssueId}
-          documentationIssueCount={documentationIssues.length}
-          serviceabilityIssueCount={cableStrainRisks.length + frontRearCollisions.length + heavyOverLightIssues.length}
-          failureDomainIssueCount={failureDomainIssues.length}
-          openDebtCount={openDebtCount}
-          currentLens={currentAuditLens}
-          onSelectLens={setCurrentAuditLens}
-          onIssueSelect={handleIssueSelect}
-        />
-        {renderPanelGrid('audit', auditPanelIdsByLens[currentAuditLens])}
+        <Suspense fallback={null}>
+          <AuditWorkbench
+            layout={layout}
+            issues={issues}
+            totals={{
+              powerW: totals.powerW,
+              heatScore: totals.heatScore,
+              occupiedU: totals.occupiedU,
+            }}
+            selectedIssueId={selectedIssueId}
+            documentationIssueCount={documentationIssues.length}
+            serviceabilityIssueCount={
+              cableStrainRisks.length +
+              frontRearCollisions.length +
+              heavyOverLightIssues.length
+            }
+            failureDomainIssueCount={failureDomainIssues.length}
+            openDebtCount={openDebtCount}
+            currentLens={currentAuditLens}
+            onSelectLens={setCurrentAuditLens}
+            onIssueSelect={handleIssueSelect}
+          />
+        </Suspense>
+        {renderPanelGrid("audit", auditPanelIdsByLens[currentAuditLens])}
       </div>
     );
   }
@@ -821,9 +1096,19 @@ function App() {
   function renderOperateWorkspace() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
-        <WorkspaceHero title={WORKSPACE_META.operate.title} description={WORKSPACE_META.operate.description} icon={WORKSPACE_META.operate.icon} />
-        <OperateWorkbench layout={layout} currentLens={currentOperateLens} onSelectLens={setCurrentOperateLens} />
-        {renderPanelGrid('operate', operatePanelIdsByLens[currentOperateLens])}
+        <WorkspaceHero
+          title={WORKSPACE_META.operate.title}
+          description={WORKSPACE_META.operate.description}
+          icon={WORKSPACE_META.operate.icon}
+        />
+        <Suspense fallback={null}>
+          <OperateWorkbench
+            layout={layout}
+            currentLens={currentOperateLens}
+            onSelectLens={setCurrentOperateLens}
+          />
+        </Suspense>
+        {renderPanelGrid("operate", operatePanelIdsByLens[currentOperateLens])}
       </div>
     );
   }
@@ -831,9 +1116,19 @@ function App() {
   function renderPlanWorkspace() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
-        <WorkspaceHero title={WORKSPACE_META.plan.title} description={WORKSPACE_META.plan.description} icon={WORKSPACE_META.plan.icon} />
-        <PlanWorkbench layout={layout} currentLens={currentPlanLens} onSelectLens={setCurrentPlanLens} />
-        {renderPanelGrid('plan', planPanelIdsByLens[currentPlanLens])}
+        <WorkspaceHero
+          title={WORKSPACE_META.plan.title}
+          description={WORKSPACE_META.plan.description}
+          icon={WORKSPACE_META.plan.icon}
+        />
+        <Suspense fallback={null}>
+          <PlanWorkbench
+            layout={layout}
+            currentLens={currentPlanLens}
+            onSelectLens={setCurrentPlanLens}
+          />
+        </Suspense>
+        {renderPanelGrid("plan", planPanelIdsByLens[currentPlanLens])}
       </div>
     );
   }
@@ -841,7 +1136,11 @@ function App() {
   function renderPortfolioWorkspace() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
-        <WorkspaceHero title={WORKSPACE_META.portfolio.title} description={WORKSPACE_META.portfolio.description} icon={WORKSPACE_META.portfolio.icon} />
+        <WorkspaceHero
+          title={WORKSPACE_META.portfolio.title}
+          description={WORKSPACE_META.portfolio.description}
+          icon={WORKSPACE_META.portfolio.icon}
+        />
         <Suspense fallback={null}>
           <PortfolioWorkbench
             workspace={workspace}
@@ -850,22 +1149,28 @@ function App() {
             onSelectLens={setCurrentPortfolioLens}
           />
         </Suspense>
-        {renderPanelGrid('portfolio', portfolioPanelIdsByLens[currentPortfolioLens])}
+        {renderPanelGrid(
+          "portfolio",
+          portfolioPanelIdsByLens[currentPortfolioLens],
+        )}
       </div>
     );
   }
 
   function renderWorkspaceMain() {
-    if (currentWorkspace === 'model') return renderModelWorkspace();
-    if (currentWorkspace === 'audit') return renderAuditWorkspace();
-    if (currentWorkspace === 'operate') return renderOperateWorkspace();
-    if (currentWorkspace === 'plan') return renderPlanWorkspace();
+    if (currentWorkspace === "model") return renderModelWorkspace();
+    if (currentWorkspace === "audit") return renderAuditWorkspace();
+    if (currentWorkspace === "operate") return renderOperateWorkspace();
+    if (currentWorkspace === "plan") return renderPlanWorkspace();
     return renderPortfolioWorkspace();
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <PrimaryNav currentWorkspace={currentWorkspace} onSelectWorkspace={setCurrentWorkspace} />
+      <PrimaryNav
+        currentWorkspace={currentWorkspace}
+        onSelectWorkspace={setCurrentWorkspace}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopContextBar
@@ -897,22 +1202,38 @@ function App() {
           onAddInterRackCable={() => setInterRackWizardOpen(true)}
         />
 
-        <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />
-        <input ref={workspaceFileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleWorkspaceImport} />
+        <input
+          ref={fileInputRef}
+          className="hidden"
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImport}
+        />
+        <input
+          ref={workspaceFileInputRef}
+          className="hidden"
+          type="file"
+          accept="application/json,.json"
+          onChange={handleWorkspaceImport}
+        />
 
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">{renderWorkspaceMain()}</div>
-              {currentWorkspace !== 'model' && (
-                <BottomTray
-                  issues={issues}
-                  selectedIssueId={selectedIssueId}
-                  statusMessage={statusMessage}
-                  currentWorkspace={currentWorkspace}
-                  onIssueSelect={handleIssueSelect}
-                  onOpenAudit={() => setCurrentWorkspace('audit')}
-                />
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+                {renderWorkspaceMain()}
+              </div>
+              {currentWorkspace !== "model" && (
+                <Suspense fallback={null}>
+                  <BottomTray
+                    issues={issues}
+                    selectedIssueId={selectedIssueId}
+                    statusMessage={statusMessage}
+                    currentWorkspace={currentWorkspace}
+                    onIssueSelect={handleIssueSelect}
+                    onOpenAudit={() => setCurrentWorkspace("audit")}
+                  />
+                </Suspense>
               )}
             </div>
           </main>
@@ -929,13 +1250,13 @@ function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="w-80 rounded-lg border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
               <div className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
-                {confirmAction.type === 'new' && 'Start a new layout?'}
-                {confirmAction.type === 'sample' && 'Load sample layout?'}
+                {confirmAction.type === "new" && "Start a new layout?"}
+                {confirmAction.type === "sample" && "Load sample layout?"}
               </div>
               <div className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-                {confirmAction.type === 'new'
-                  ? 'This will clear all devices and cables.'
-                  : 'This will replace your current rack with the selected sample.'}
+                {confirmAction.type === "new"
+                  ? "This will clear all devices and cables."
+                  : "This will replace your current rack with the selected sample."}
               </div>
               <div className="flex gap-2">
                 <button
@@ -959,11 +1280,18 @@ function App() {
 
         {samplePickerOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-2xl rounded-3xl border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900" data-testid="sample-picker-modal">
+            <div
+              className="w-full max-w-2xl rounded-3xl border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+              data-testid="sample-picker-modal"
+            >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-lg font-semibold text-slate-900 dark:text-white">Load sample layout</div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">Choose a sample to seed the current rack.</div>
+                  <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Load sample layout
+                  </div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    Choose a sample to seed the current rack.
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -984,9 +1312,12 @@ function App() {
                     }}
                     className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-left hover:border-cyan-300 hover:bg-cyan-50/60 dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-cyan-700 dark:hover:bg-cyan-950/20"
                   >
-                    <div className="font-medium text-slate-900 dark:text-white">{sample.name}</div>
+                    <div className="font-medium text-slate-900 dark:text-white">
+                      {sample.name}
+                    </div>
                     <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      {sample.devices.length} devices • {sample.cables.length} cables • {sample.heightU}U
+                      {sample.devices.length} devices • {sample.cables.length}{" "}
+                      cables • {sample.heightU}U
                     </div>
                   </button>
                 ))}
@@ -997,10 +1328,17 @@ function App() {
       </div>
 
       <Suspense fallback={null}>
-        <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} extraItems={commandItems} />
+        <CommandPalette
+          open={commandOpen}
+          onClose={() => setCommandOpen(false)}
+          extraItems={commandItems}
+        />
       </Suspense>
       <Suspense fallback={null}>
-        <InterRackCableWizard open={interRackWizardOpen} onClose={() => setInterRackWizardOpen(false)} />
+        <InterRackCableWizard
+          open={interRackWizardOpen}
+          onClose={() => setInterRackWizardOpen(false)}
+        />
       </Suspense>
     </div>
   );
