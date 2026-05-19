@@ -903,7 +903,7 @@ function App() {
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="min-h-0 flex-1 overflow-hidden p-4">{renderWorkspaceMain()}</div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">{renderWorkspaceMain()}</div>
               {currentWorkspace !== 'model' && (
                 <BottomTray
                   issues={issues}
