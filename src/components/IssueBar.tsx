@@ -7,9 +7,17 @@ interface IssueBarProps {
   issues: ValidationIssue[];
   selectedIssueId: string | null;
   onIssueSelect: (issue: ValidationIssue) => void;
+  className?: string;
+  listMode?: 'inline' | 'overlay';
 }
 
-export function IssueBar({ issues, selectedIssueId, onIssueSelect }: IssueBarProps) {
+export function IssueBar({
+  issues,
+  selectedIssueId,
+  onIssueSelect,
+  className,
+  listMode = 'inline',
+}: IssueBarProps) {
   const [open, setOpen] = useState(false);
 
   const counts = {
@@ -18,9 +26,14 @@ export function IssueBar({ issues, selectedIssueId, onIssueSelect }: IssueBarPro
     info: issues.filter((i) => i.severity === 'info').length,
   };
 
+  const listClassName =
+    listMode === 'overlay'
+      ? 'absolute left-0 right-0 top-full z-50 mt-1 grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-xl thin-scrollbar dark:border-slate-800 dark:bg-slate-950 md:grid-cols-2'
+      : 'mt-2 grid max-h-40 gap-2 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2';
+
   return (
     <div
-      className={`mt-2 rounded-lg border px-2.5 py-1.5 ${
+      className={`${listMode === 'overlay' ? 'relative' : ''} ${className ?? 'mt-2'} rounded-lg border px-2.5 py-1.5 ${
         issues.length
           ? 'border-sky-500/35 bg-sky-500/10'
           : 'border-emerald-500/30 bg-emerald-500/10'
@@ -60,7 +73,7 @@ export function IssueBar({ issues, selectedIssueId, onIssueSelect }: IssueBarPro
       </div>
 
       {open && issues.length > 0 && (
-        <div className="mt-2 grid max-h-40 gap-2 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2">
+        <div className={listClassName}>
           {issues.map((issue) => (
             <button
               key={issue.id}

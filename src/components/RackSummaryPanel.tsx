@@ -135,9 +135,10 @@ export function RackSummaryPanel({
                   <option value="19in">19-inch rack</option>
                 </select>
               </label>
-              <label className="text-xs text-slate-500 dark:text-slate-400">
+              <label className="text-xs text-slate-500 dark:text-slate-400" htmlFor="rack-height-select">
                 Height
                 <select
+                  id="rack-height-select"
                   className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   value={layout.heightU}
                   onChange={(event) => onRackHeightChange(Number(event.target.value))}

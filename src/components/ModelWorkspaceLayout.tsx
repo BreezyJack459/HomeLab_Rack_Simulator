@@ -1,5 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ActivityStatusChip } from './ActivityStatusChip';
+import { IssueBar } from './IssueBar';
 import { RackSummaryPanel } from './RackSummaryPanel';
 import { useLayoutPrefsStore } from '../store/layoutPrefsStore';
 import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue } from '../types/rack';
@@ -21,6 +23,10 @@ interface ModelWorkspaceLayoutProps {
   onRackTypeChange: (rackType: RackType) => void;
   onRackHeightChange: (heightU: number) => void;
   onPowerBudgetChange: (powerBudgetW: number) => void;
+  selectedIssueId: string | null;
+  statusMessage: string | null;
+  onIssueSelect: (issue: ValidationIssue) => void;
+  onOpenAudit: () => void;
   canvas: ReactNode;
 }
 
@@ -36,6 +42,10 @@ export function ModelWorkspaceLayout({
   onRackTypeChange,
   onRackHeightChange,
   onPowerBudgetChange,
+  selectedIssueId,
+  statusMessage,
+  onIssueSelect,
+  onOpenAudit,
   canvas,
 }: ModelWorkspaceLayoutProps) {
   const deviceLibraryOpen = useLayoutPrefsStore((state) => state.deviceLibraryOpen);
@@ -74,6 +84,24 @@ export function ModelWorkspaceLayout({
             onPowerBudgetChange={onPowerBudgetChange}
           />
         </div>
+      </div>
+
+      <div className="flex shrink-0 items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <IssueBar
+            issues={issues}
+            selectedIssueId={selectedIssueId}
+            onIssueSelect={onIssueSelect}
+            className="mt-0"
+            listMode="overlay"
+          />
+        </div>
+        <ActivityStatusChip
+          statusMessage={statusMessage}
+          issues={issues}
+          showOpenAudit
+          onOpenAudit={onOpenAudit}
+        />
       </div>
 
       <div

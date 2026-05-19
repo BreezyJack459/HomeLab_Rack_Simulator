@@ -191,7 +191,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
     // Verify devices loaded
     await expect(page.locator('[data-testid="context-stats"]').getByText(/devices/)).not.toHaveText('0 devices');
 
-    // Reduce rack height to trigger overflow validation
+    await page.locator('[data-testid="rack-summary"] button').first().click();
     await page.getByLabel('Height').selectOption('6');
 
     // Verify validation alerts appear (not "Layout clear")
