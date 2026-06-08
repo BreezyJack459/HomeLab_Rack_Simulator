@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { ActivityStatusChip } from './ActivityStatusChip';
 import { RackSummaryPanel } from './RackSummaryPanel';
@@ -48,8 +48,9 @@ export function ModelWorkspaceLayout({
   canvas,
 }: ModelWorkspaceLayoutProps) {
   const deviceLibraryOpen = useLayoutPrefsStore((state) => state.deviceLibraryOpen);
+  const rackSummaryOpen = useLayoutPrefsStore((state) => state.rackSummaryOpen);
   const toggleDeviceLibrary = useLayoutPrefsStore((state) => state.toggleDeviceLibrary);
-  const [rackSummaryOpen, setRackSummaryOpen] = useState(false);
+  const toggleRackSummary = useLayoutPrefsStore((state) => state.toggleRackSummary);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -71,7 +72,7 @@ export function ModelWorkspaceLayout({
         <div className="min-w-0 flex-1">
           <RackSummaryPanel
             open={rackSummaryOpen}
-            onToggle={() => setRackSummaryOpen((value) => !value)}
+            onToggle={toggleRackSummary}
             layout={layout}
             totals={totals}
             issues={issues}

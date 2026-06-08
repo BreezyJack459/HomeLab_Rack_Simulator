@@ -410,7 +410,7 @@ export function CommandPalette({ open, onClose, extraItems = [] }: CommandPalett
             ref={inputRef}
             type="text"
             className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-            placeholder="Search devices, cables, issues, views..."
+            placeholder="Search tasks, devices, cables, settings..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search"

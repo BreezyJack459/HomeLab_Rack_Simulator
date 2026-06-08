@@ -368,7 +368,7 @@ describe('CommandPalette component', () => {
   it('renders when open', () => {
     render(<CommandPalette open={true} onClose={() => {}} />);
     expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Search devices, cables, issues, views...')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Search tasks, devices, cables, settings...')).toBeTruthy();
   });
 
   it('does not render when closed', () => {
@@ -385,7 +385,7 @@ describe('CommandPalette component', () => {
 
   it('filters results when typing', () => {
     render(<CommandPalette open={true} onClose={() => {}} />);
-    const input = screen.getByPlaceholderText('Search devices, cables, issues, views...');
+    const input = screen.getByPlaceholderText('Search tasks, devices, cables, settings...');
     fireEvent.change(input, { target: { value: 'Core' } });
     expect(screen.getByText('Core Switch')).toBeTruthy();
     expect(screen.queryByText('Web Server')).toBeNull();
@@ -404,7 +404,7 @@ describe('CommandPalette component', () => {
 
   it('shows no results message for non-matching query', () => {
     render(<CommandPalette open={true} onClose={() => {}} />);
-    const input = screen.getByPlaceholderText('Search devices, cables, issues, views...');
+    const input = screen.getByPlaceholderText('Search tasks, devices, cables, settings...');
     fireEvent.change(input, { target: { value: 'xyznonexistent' } });
     expect(screen.getByText('No results found')).toBeTruthy();
   });

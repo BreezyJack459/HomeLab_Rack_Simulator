@@ -1,4 +1,4 @@
-import { Box, Cable, Command, Monitor, Network, Search, Sparkles } from 'lucide-react';
+import { Box, Cable, Command, Monitor, Network, Search } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import type { AppWorkspace } from '../types/appShell';
 import type { RackLayout, ViewMode, Workspace } from '../types/rack';
@@ -9,6 +9,14 @@ const viewMeta: Record<ViewMode, { label: string; icon: React.ReactNode }> = {
   '3d': { label: '3D', icon: <Box size={14} /> },
   cables: { label: 'Cables', icon: <Cable size={14} /> },
   topology: { label: 'Topology', icon: <Network size={14} /> },
+};
+
+const workspaceLabel: Record<AppWorkspace, string> = {
+  model: 'Build',
+  audit: 'Check',
+  operate: 'Run',
+  plan: 'Plan',
+  portfolio: 'Fleet',
 };
 
 interface TopContextBarProps {
@@ -34,10 +42,10 @@ export function TopContextBar({
 }: TopContextBarProps) {
   return (
     <div className="border-b border-slate-200 bg-white/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
-            <span>{currentWorkspace}</span>
+            <span>{workspaceLabel[currentWorkspace]}</span>
             <span>•</span>
             <span>{workspace.name}</span>
             <span>•</span>
@@ -46,7 +54,7 @@ export function TopContextBar({
             <span>{layout.heightU}U</span>
           </div>
           <input
-            className="w-full min-w-[18rem] bg-transparent text-xl font-semibold tracking-tight text-slate-900 outline-none placeholder:text-slate-500 dark:text-white dark:placeholder:text-slate-500"
+            className="w-full min-w-0 bg-transparent text-xl font-semibold tracking-tight text-slate-900 outline-none placeholder:text-slate-500 dark:text-white dark:placeholder:text-slate-500"
             value={layout.name}
             onChange={(event) => onRenameLayout(event.target.value)}
             aria-label="Layout name"
@@ -62,8 +70,8 @@ export function TopContextBar({
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-3">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full flex-col items-start gap-3 xl:w-auto xl:items-end">
+          <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
             {Object.entries(viewMeta).map(([mode, meta]) => {
               const active = viewMode === mode;
               return (
@@ -85,7 +93,7 @@ export function TopContextBar({
             <ThemeToggle />
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
             <button
               type="button"
               onClick={() => onSetViewSide('front')}
@@ -120,10 +128,6 @@ export function TopContextBar({
                 K
               </span>
             </button>
-            <div className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300">
-              <Sparkles size={12} />
-              Operator workspace
-            </div>
           </div>
         </div>
       </div>

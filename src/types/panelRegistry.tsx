@@ -72,27 +72,27 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
 
 export const WORKSPACE_META: Record<AppWorkspace, { title: string; description: string; icon: ReactNode }> = {
   model: {
-    title: 'Model workspace',
-    description: 'Edit rack geometry, inspect the current selection and keep the canvas front and center.',
+    title: 'Build rack',
+    description: 'Place devices, connect cables and keep the rack canvas front and center.',
     icon: <Monitor size={16} />,
   },
   operate: {
-    title: 'Operate workspace',
+    title: 'Run operations',
     description: 'Track day-to-day operational records like assets, maintenance, firmware and backup evidence.',
     icon: <Wrench size={16} />,
   },
   audit: {
-    title: 'Audit workspace',
-    description: 'Review layout health, risks and validation issues without digging through one giant sidebar.',
+    title: 'Check health',
+    description: 'Work the issue queue and review rack risk without digging through one giant sidebar.',
     icon: <AlertTriangle size={16} />,
   },
   plan: {
-    title: 'Plan workspace',
+    title: 'Plan changes',
     description: 'Compare scenarios, baselines and change windows from a planning-first surface.',
     icon: <Network size={16} />,
   },
   portfolio: {
-    title: 'Portfolio workspace',
+    title: 'Manage fleet',
     description: 'Manage workspace-wide rack context, inter-rack links, room placement and import/export flows.',
     icon: <FolderKanban size={16} />,
   },
@@ -101,7 +101,7 @@ export const WORKSPACE_META: Record<AppWorkspace, { title: string; description: 
 // ── Lens → Panel ID Mappings ────────────────────────────────────────────────
 
 export const auditPanelIdsByLens: Record<AuditLens, AppPanelId[]> = {
-  overview: ['rack-health', 'documentation-audit', 'rack-debt', 'label-debt', 'thermal-distribution', 'failure-domain', 'drift', 'environment', 'device-sensor', 'power-chain', 'cable-length-audit'],
+  overview: [],
   issues: ['rack-health', 'rack-debt', 'documentation-audit', 'label-debt'],
   serviceability: ['rack-health', 'thermal-distribution', 'power-chain'],
   documentation: ['documentation-audit', 'label-debt', 'drift', 'rack-debt', 'cable-length-audit'],
