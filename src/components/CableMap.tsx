@@ -1,4 +1,4 @@
-import { Box, Cable, Eye, EyeOff, Map as MapIcon, Network, X } from 'lucide-react';
+import { Box, Cable, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { CablePlan, CableRoute, CableType, PlacedDevice, PortLayout, RackLayout } from '../types/rack';
@@ -6,6 +6,7 @@ import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from '../utils/cableColors
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
 import { formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { CableTable } from './CableTable';
 const CableViewer3D = lazy(() => import('./CableViewer3D').then((m) => ({ default: m.CableViewer3D })));
 
 const UNIT_HEIGHT = 40;
@@ -18,7 +19,7 @@ const MUTED_CABLE_COLOR = '#64748b';
 
 type CableFocusMode = 'dim' | 'hide';
 type CableTypeFilter = CableType | 'all';
-type CableMapView = '2d' | '3d';
+type CableMapView = '2d' | '3d' | 'table';
 
 const cableMeta: Record<CableType, { color: string; label: string; lane: number }> = {
   ethernet: { color: DEFAULT_CABLE_COLORS.ethernet, label: 'Ethernet', lane: 0 },
@@ -43,7 +44,7 @@ function cablePortLabel(cable: CableRoute) {
   return parts.length ? parts.join(' ') : undefined;
 }
 
-interface CablePath {
+export interface CablePath {
   cable: CableRoute;
   plan: CablePlan;
   from: PlacedDevice;
@@ -260,6 +261,15 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
   const [typeFilter, setTypeFilter] = useState<CableTypeFilter>('all');
   const [mapView, setMapView] = useState<CableMapView>('2d');
 
+  const activeCableTypes = useMemo(
+    () => (typeFilter === 'all' ? new Set<CableType>() : new Set<CableType>([typeFilter as CableType])),
+    [typeFilter]
+  );
+
+  function toggleCableType(type: CableType) {
+    handleSetTypeFilter(type);
+  }
+
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * UNIT_HEIGHT;
   const laneStartX = RACK_X + rackWidth + LANE_START_OFFSET;
@@ -348,6 +358,16 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
               <Box size={15} />
               3D routing
             </button>
+            <button
+              className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+                mapView === 'table' ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              }`}
+              onClick={() => setMapView('table')}
+              type="button"
+            >
+              <Table2 size={15} />
+              Table
+            </button>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white/80 px-4 py-3 text-right dark:border-slate-800 dark:bg-slate-900/80">
             <div className="text-2xl font-semibold text-slate-900 dark:text-white">{routeSummary}</div>
@@ -421,7 +441,16 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
         </div>
       </div>
 
-      {mapView === '3d' ? (
+      {mapView === 'table' ? (
+        <CableTable
+          activeCableTypes={activeCableTypes}
+          cablePaths={cablePaths}
+          layout={layout}
+          onCableTypeToggle={toggleCableType}
+          onSelectCable={selectCable}
+          selectedCableId={selectedCableId}
+        />
+      ) : mapView === '3d' ? (
         <Suspense fallback={<div className="flex h-96 items-center justify-center text-slate-500 dark:text-slate-400">Loading 3D cable routing…</div>}>
           <CableViewer3D typeFilter={typeFilter} focusMode={focusMode} />
         </Suspense>
