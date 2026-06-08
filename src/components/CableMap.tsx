@@ -1,11 +1,11 @@
-import { Box, Cable, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
+import { Box, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { CablePlan, CableRoute, CableType, PlacedDevice, PortLayout, RackLayout } from '../types/rack';
 import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from '../utils/cableColors';
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
-import { calculateCablePlan, pathDescription } from '../utils/routing';
-import { formatCableLength, getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { calculateCablePlan } from '../utils/routing';
+import { getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { CableTable } from './CableTable';
 const CableViewer3D = lazy(() => import('./CableViewer3D').then((m) => ({ default: m.CableViewer3D })));
 
@@ -14,7 +14,6 @@ const RACK_X = 76;
 const RACK_Y = 66;
 const LANE_START_OFFSET = 92;
 const LANE_SPACING = 30;
-const CARD_WIDTH = 320;
 const MUTED_CABLE_COLOR = '#64748b';
 
 type CableFocusMode = 'dim' | 'hide';
@@ -33,16 +32,6 @@ const cableMeta: Record<CableType, { color: string; label: string; lane: number 
   patch: { color: DEFAULT_CABLE_COLORS.patch, label: 'Patch', lane: 0 }
 };
 
-function cablePortLabel(cable: CableRoute) {
-  const parts: string[] = [];
-  if (cable.fromPort) {
-    parts.push(`${cable.fromPort.type} ${cable.fromPort.index + 1}`);
-  }
-  if (cable.toPort) {
-    parts.push(`→ ${cable.toPort.type} ${cable.toPort.index + 1}`);
-  }
-  return parts.length ? parts.join(' ') : undefined;
-}
 
 export interface CablePath {
   cable: CableRoute;
@@ -273,8 +262,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * UNIT_HEIGHT;
   const laneStartX = RACK_X + rackWidth + LANE_START_OFFSET;
-  const routeListX = laneStartX + LANE_SPACING * 7 + 54;
-  const mapWidth = routeListX + CARD_WIDTH + 70;
+  const mapWidth = laneStartX + LANE_SPACING * 8 + 30;
   const mapHeight = Math.max(620, RACK_Y * 2 + rackHeight);
   const selectedCableIds = useMemo(
     () => getPatchPanelLinkedCableIds(layout, selectedCableId),
@@ -641,9 +629,6 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
               <g key={type}>
                 <rect fill={meta.color} height={rackHeight} opacity="0.08" rx="8" width="18" x={laneX - 9} y={RACK_Y} />
                 <line stroke={meta.color} strokeDasharray="4 6" strokeLinecap="round" strokeOpacity="0.4" strokeWidth="2" x1={laneX} x2={laneX} y1={RACK_Y} y2={RACK_Y + rackHeight} />
-                <text fill="#94a3b8" fontSize="10" textAnchor="middle" transform={`rotate(-90 ${laneX} ${RACK_Y - 16})`} x={laneX} y={RACK_Y - 16}>
-                  {meta.label}
-                </text>
               </g>
             );
           })}
@@ -745,66 +730,6 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             );
           })}
         </svg>
-
-        <div className="absolute top-20" style={{ left: routeListX, width: CARD_WIDTH }}>
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-            <Cable size={14} />
-            Route List
-          </div>
-          <div className="max-h-[calc(100vh-260px)] space-y-2 overflow-y-auto pr-1 thin-scrollbar">
-            {cablePaths.length === 0 && (
-              <div className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/78 dark:text-slate-400">
-                {typeFilter === 'all' ? 'No cable routes yet.' : `No ${cableMeta[typeFilter].label.toLowerCase()} cable routes.`}
-              </div>
-            )}
-            {cablePaths.map(({ cable, plan, from, to, color }) => {
-              const selected = selectedCableIds.has(cable.id);
-              const muted = hasSelectedCable && !selected;
-              const typeMuted = !hasSelectedCable && typeFilter === 'all' && cable.type === 'structured';
-              const isMuted = muted || typeMuted;
-              return (
-                <button
-                  key={cable.id}
-                  className={`w-full rounded-lg border p-3 text-left transition ${
-                    selected
-                      ? 'border-cyan-500 bg-cyan-500/10 dark:border-cyan-300 dark:bg-cyan-300/10'
-                      : isMuted
-                        ? 'border-slate-200 bg-slate-100/70 opacity-70 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:border-slate-700'
-                        : 'border-slate-200 bg-slate-100/82 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/82 dark:hover:border-slate-700'
-                  }`}
-                  data-cable-map-card={cable.id}
-                  data-cable-map-card-state={selected ? 'selected' : isMuted ? 'muted' : 'normal'}
-                  onClick={() => selectCable(cable.id)}
-                  type="button"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: isMuted ? MUTED_CABLE_COLOR : color }} />
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{cableMeta[cable.type].label}</span>
-                  </div>
-                  <div className={`mt-2 text-sm font-medium ${isMuted ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>
-                    {from.name} <span className="text-slate-400 dark:text-slate-500">to</span> {to.name}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                    {pathDescription(cable, plan.nodes, layout, plan)}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-                    <span>U{from.positionU} to U{to.positionU}</span>
-                    <span>·</span>
-                    <span>{formatCableLength(plan.standardLengthMm)} std</span>
-                    <span>·</span>
-                    <span>{plan.discipline} / {plan.rail ? `${plan.rail} tray` : 'front manager'}</span>
-                    {cablePortLabel(cable) && (
-                      <>
-                        <span>·</span>
-                        <span>{cablePortLabel(cable)}</span>
-                      </>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
       )}
     </div>
