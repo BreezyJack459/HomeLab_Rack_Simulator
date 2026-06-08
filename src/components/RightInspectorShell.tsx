@@ -6,7 +6,7 @@ interface RightInspectorShellProps {
 
 export function RightInspectorShell({ title, description, children }: RightInspectorShellProps) {
   return (
-    <aside className="min-h-0 overflow-y-auto border-l border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82">
+    <aside className="hidden min-h-0 overflow-y-auto border-l border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82 xl:block">
       <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/92 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/92">
         <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
           Inspector

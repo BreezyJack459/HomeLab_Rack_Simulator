@@ -18,36 +18,36 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   {
     id: 'model',
-    label: 'Model',
-    shortLabel: 'Build',
+    label: 'Build',
+    shortLabel: 'Rack',
     description: 'Edit rack layout, cables and ports',
     icon: <Monitor size={18} />,
   },
   {
-    id: 'operate',
-    label: 'Operate',
-    shortLabel: 'Run',
-    description: 'Track asset, maintenance and backup data',
-    icon: <Briefcase size={18} />,
-  },
-  {
     id: 'audit',
-    label: 'Audit',
-    shortLabel: 'Check',
+    label: 'Check',
+    shortLabel: 'Health',
     description: 'Review health, risks and validation',
     icon: <AlertTriangle size={18} />,
   },
   {
+    id: 'operate',
+    label: 'Run',
+    shortLabel: 'Ops',
+    description: 'Track asset, maintenance and backup data',
+    icon: <Briefcase size={18} />,
+  },
+  {
     id: 'plan',
     label: 'Plan',
-    shortLabel: 'Plan',
+    shortLabel: 'Changes',
     description: 'Compare scenarios and upcoming changes',
     icon: <Network size={18} />,
   },
   {
     id: 'portfolio',
-    label: 'Portfolio',
-    shortLabel: 'Fleet',
+    label: 'Fleet',
+    shortLabel: 'Rooms',
     description: 'Manage workspace, rooms and inter-rack links',
     icon: <FolderKanban size={18} />,
   },
@@ -63,7 +63,7 @@ export function PrimaryNav({ currentWorkspace, onSelectWorkspace }: PrimaryNavPr
     <aside className="flex w-24 shrink-0 flex-col border-r border-slate-200 bg-slate-100/85 p-3 dark:border-slate-800 dark:bg-slate-950/82">
       <div className="mb-4 px-2">
         <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
-          Workspaces
+          Tasks
         </div>
       </div>
       <nav className="flex flex-1 flex-col gap-2">

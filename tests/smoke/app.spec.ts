@@ -8,9 +8,14 @@ async function openDeviceLibrary(page: import('@playwright/test').Page) {
   }
 }
 
+async function openFileMenu(page: import('@playwright/test').Page) {
+  await page.locator('[data-testid="more-dropdown"] summary').click();
+}
+
 async function clearLayout(page: any) {
   // Click New to clear any existing layout
-  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await openFileMenu(page);
+  await page.getByRole('button', { name: 'New rack layout' }).click();
 
   // Handle confirmation dialog if it appears (layout had devices)
   const confirmButton = page.getByRole('button', { name: 'Confirm' });
@@ -87,7 +92,10 @@ test.describe('Rack Simulator Smoke Tests', () => {
     // Export JSON
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      page.getByRole('button', { name: 'JSON' }).click(),
+      (async () => {
+        await openFileMenu(page);
+        await page.getByRole('button', { name: 'Export rack JSON' }).click();
+      })(),
     ]);
 
     const downloadPath = await download.path();
@@ -126,9 +134,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
   test('loads a sample layout', async ({ page }) => {
     await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
 
-    // Open the "More" dropdown and click "Load sample layout"
-    await page.locator('[data-testid="more-dropdown"] summary').click();
-    await page.getByRole('button', { name: 'Load sample layout' }).click();
+    await page.getByRole('button', { name: 'Load sample' }).click();
 
     // Select the first sample from the modal
     await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
@@ -176,8 +182,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
   test('shows validation alerts when rack constraints are exceeded', async ({ page }) => {
     // Load a sample layout with devices
-    await page.locator('[data-testid="more-dropdown"] summary').click();
-    await page.getByRole('button', { name: 'Load sample layout' }).click();
+    await page.getByRole('button', { name: 'Load sample' }).click();
 
     // Select the first sample from the modal
     await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
@@ -191,11 +196,11 @@ test.describe('Rack Simulator Smoke Tests', () => {
     // Verify devices loaded
     await expect(page.locator('[data-testid="context-stats"]').getByText(/devices/)).not.toHaveText('0 devices');
 
-    await page.locator('[data-testid="rack-summary"] button').first().click();
+    await page.getByRole('button', { name: 'Tune' }).click();
     await page.getByLabel('Height').selectOption('6');
 
     // Verify validation alerts appear (not "Layout clear")
     await expect(page.getByText('Layout clear')).not.toBeVisible();
-    await expect(page.getByText(/\d+ layout alerts?/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open alerts' })).toBeVisible();
   });
 });

@@ -7,12 +7,21 @@ import {
   useRef,
   useState,
 } from "react";
-import { AlertTriangle, Box, Settings2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Box,
+  Cable,
+  HardDrive,
+  Settings2,
+  SlidersHorizontal,
+  Upload,
+  Wrench,
+} from "lucide-react";
 import { ActionBar } from "./components/ActionBar";
 import { PrimaryNav } from "./components/PrimaryNav";
 import { RightInspectorShell } from "./components/RightInspectorShell";
 import { TopContextBar } from "./components/TopContextBar";
-import { MetricCard } from "./components/WorkbenchPrimitives";
+import { useLayoutPrefsStore } from "./store/layoutPrefsStore";
 import { useRackStore } from "./store/rackStore";
 import type {
   AppPanelId,
@@ -55,6 +64,12 @@ import {
 } from "./utils/serviceability";
 import { getRackTotals, validateRackLayout } from "./utils/validation";
 import type { SearchItem } from "./components/CommandPalette";
+
+const issueSeverityRank: Record<ValidationIssue["severity"], number> = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
 
 const CommandPalette = lazy(() =>
   import("./components/CommandPalette").then((m) => ({
@@ -444,6 +459,12 @@ function App() {
   const renameRack = useRackStore((state) => state.renameRack);
   const renameWorkspace = useRackStore((state) => state.renameWorkspace);
   const setWorkspace = useRackStore((state) => state.setWorkspace);
+  const setDeviceLibraryOpen = useLayoutPrefsStore(
+    (state) => state.setDeviceLibraryOpen,
+  );
+  const setRackSummaryOpen = useLayoutPrefsStore(
+    (state) => state.setRackSummaryOpen,
+  );
 
   const [confirmAction, setConfirmAction] = useState<null | {
     type: "new" | "sample";
@@ -524,6 +545,15 @@ function App() {
   const selectedIssue = useMemo(
     () => issues.find((issue) => issue.id === selectedIssueId) ?? null,
     [issues, selectedIssueId],
+  );
+  const topIssue = useMemo(
+    () =>
+      [...issues].sort(
+        (a, b) =>
+          issueSeverityRank[a.severity] - issueSeverityRank[b.severity] ||
+          a.title.localeCompare(b.title),
+      )[0] ?? null,
+    [issues],
   );
 
   useEffect(() => {
@@ -664,6 +694,30 @@ function App() {
   async function handleExportMigrationPlan() {
     const { exportMigrationPlanMarkdown } = await import("./utils/exporters");
     exportMigrationPlanMarkdown(layout);
+  }
+
+  function handleAddDeviceTask() {
+    setCurrentWorkspace("model");
+    setViewMode("2d");
+    setDeviceLibraryOpen(true);
+  }
+
+  function handleAddCableTask() {
+    setCurrentWorkspace("model");
+    setViewMode("cables");
+  }
+
+  function handleFixAlertsTask() {
+    setCurrentWorkspace("audit");
+    setCurrentAuditLens("issues");
+    if (topIssue) {
+      handleIssueSelect(topIssue);
+    }
+  }
+
+  function handleOpenRackSettingsTask() {
+    setCurrentWorkspace("model");
+    setRackSummaryOpen(true);
   }
 
   const visiblePanels = useMemo(
@@ -839,6 +893,7 @@ function App() {
     const panels = visiblePanels(workspaceId, "main").filter(
       (panel) => !allowedPanelIds || allowedPanelIds.includes(panel.id),
     );
+    if (panels.length === 0) return null;
     return (
       <div className="grid gap-4 xl:grid-cols-2">
         {panels.map((panel) => (
@@ -861,11 +916,58 @@ function App() {
 
   function renderInspectorPanels() {
     const panels = visiblePanels(currentWorkspace, "inspector");
+    if (currentWorkspace === "model" && !hasSelection) {
+      const helpfulPanels = panels.filter(
+        (panel) => panel.id !== "property" && !panel.selectionRequired,
+      );
+      return (
+        <>
+          <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/10 p-4 text-sm text-cyan-900 dark:text-cyan-100">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
+              Next step
+            </div>
+            <div className="mt-2 font-semibold">Start with the rack, not the settings.</div>
+            <p className="mt-1 text-xs leading-5 text-cyan-800/80 dark:text-cyan-100/75">
+              Add a device, connect existing gear, or open rack settings when
+              you need to change size, power budget, or filters.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <button
+                type="button"
+                onClick={handleAddDeviceTask}
+                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+              >
+                Add device
+              </button>
+              <button
+                type="button"
+                onClick={handleAddCableTask}
+                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+              >
+                Connect cable
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenRackSettingsTask}
+                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+              >
+                Rack settings
+              </button>
+            </div>
+          </div>
+          {helpfulPanels.map((panel) => (
+            <Suspense fallback={null} key={panel.id}>
+              {renderPanel(panel.id)}
+            </Suspense>
+          ))}
+        </>
+      );
+    }
     if (panels.length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-400">
-          This workspace keeps most content in the main canvas. Use the command
-          bar to jump directly to a panel.
+          Use Search to jump to a task, or choose a lens in the main workspace
+          to show the related controls here.
         </div>
       );
     }
@@ -877,6 +979,113 @@ function App() {
   }
 
   const commandItems = useMemo<SearchItem[]>(() => {
+    const quickActions: SearchItem[] = [
+      {
+        id: "task-add-device",
+        type: "quick-action",
+        title: "Add device",
+        subtitle: "Open the device library and place hardware in the rack",
+        icon: <Box size={16} className="text-cyan-600 dark:text-cyan-300" />,
+        action: handleAddDeviceTask,
+        category: "Quick tasks",
+      },
+      {
+        id: "task-connect-cable",
+        type: "quick-action",
+        title: "Connect cable",
+        subtitle: "Switch to cable view and use the cable planner",
+        icon: (
+          <Cable size={16} className="text-cyan-600 dark:text-cyan-300" />
+        ),
+        action: handleAddCableTask,
+        category: "Quick tasks",
+      },
+      {
+        id: "task-fix-top-issue",
+        type: "quick-action",
+        title: topIssue ? "Fix top issue" : "Check alerts",
+        subtitle: topIssue
+          ? `${topIssue.severity}: ${topIssue.title}`
+          : "Open the audit workspace and review rack health",
+        icon: (
+          <AlertTriangle
+            size={16}
+            className="text-cyan-600 dark:text-cyan-300"
+          />
+        ),
+        action: handleFixAlertsTask,
+        category: "Quick tasks",
+      },
+      {
+        id: "task-open-rack-settings",
+        type: "quick-action",
+        title: "Open rack settings",
+        subtitle: "Change rack size, view filters and power budget",
+        icon: (
+          <SlidersHorizontal
+            size={16}
+            className="text-cyan-600 dark:text-cyan-300"
+          />
+        ),
+        action: handleOpenRackSettingsTask,
+        category: "Quick tasks",
+      },
+      {
+        id: "task-load-sample",
+        type: "quick-action",
+        title: "Load sample",
+        subtitle: "Seed the current rack with a working sample layout",
+        icon: <Box size={16} className="text-slate-500 dark:text-slate-400" />,
+        action: () => setSamplePickerOpen(true),
+        category: "Quick tasks",
+      },
+      {
+        id: "task-import-rack",
+        type: "quick-action",
+        title: "Import rack",
+        subtitle: "Import an existing rack JSON file",
+        icon: (
+          <Upload size={16} className="text-slate-500 dark:text-slate-400" />
+        ),
+        action: () => fileInputRef.current?.click(),
+        category: "Quick tasks",
+      },
+      {
+        id: "task-review-power",
+        type: "quick-action",
+        title: "Review power health",
+        subtitle: "Open audit checks for power headroom, UPS and thermal risk",
+        icon: (
+          <Settings2
+            size={16}
+            className="text-slate-500 dark:text-slate-400"
+          />
+        ),
+        action: () => {
+          setCurrentWorkspace("audit");
+          setCurrentAuditLens("thermal");
+        },
+        category: "Quick tasks",
+      },
+      {
+        id: "task-update-firmware",
+        type: "quick-action",
+        title: "Update firmware records",
+        subtitle: "Open operational firmware tracking for devices",
+        icon: (
+          <HardDrive
+            size={16}
+            className="text-slate-500 dark:text-slate-400"
+          />
+        ),
+        action: () => {
+          setCurrentWorkspace("operate");
+          setCurrentOperateLens("firmware");
+        },
+        category: "Quick tasks",
+      },
+    ];
+
     const workspaceItems: SearchItem[] = (
       Object.keys(WORKSPACE_META) as AppWorkspace[]
     ).map((workspaceId) => ({
@@ -907,37 +1116,11 @@ function App() {
           setViewMode(panel.supportedViewModes[0]);
         }
       },
-      category: "Panels",
+      category: "Advanced panels",
     }));
 
-    const quickActions: SearchItem[] = [
-      {
-        id: "quick-open-sample",
-        type: "quick-action",
-        title: "Open sample picker",
-        subtitle: "Load a sample layout into the current rack",
-        icon: <Box size={16} className="text-slate-500 dark:text-slate-400" />,
-        action: () => setSamplePickerOpen(true),
-        category: "Quick Actions",
-      },
-      {
-        id: "quick-show-issues",
-        type: "quick-action",
-        title: "Jump to audit issues",
-        subtitle: "Open the audit workspace and inspect validation issues",
-        icon: (
-          <AlertTriangle
-            size={16}
-            className="text-slate-500 dark:text-slate-400"
-          />
-        ),
-        action: () => setCurrentWorkspace("audit"),
-        category: "Quick Actions",
-      },
-    ];
-
-    return [...workspaceItems, ...panelItems, ...quickActions];
-  }, [setViewMode]);
+    return [...quickActions, ...workspaceItems, ...panelItems];
+  }, [setViewMode, topIssue]);
 
   function renderCanvas() {
     if (viewMode === "2d") {
@@ -1013,58 +1196,6 @@ function App() {
   function renderAuditWorkspace() {
     return (
       <div className="space-y-4 overflow-y-auto p-4">
-        <WorkspaceHero
-          title={WORKSPACE_META.audit.title}
-          description={WORKSPACE_META.audit.description}
-          icon={WORKSPACE_META.audit.icon}
-        >
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-            <MetricCard
-              label="Critical"
-              value={`${issues.filter((issue) => issue.severity === "critical").length}`}
-              tone={
-                issues.some((issue) => issue.severity === "critical")
-                  ? "danger"
-                  : "default"
-              }
-            />
-            <MetricCard
-              label="Warnings"
-              value={`${issues.filter((issue) => issue.severity === "warning").length}`}
-              tone={
-                issues.some((issue) => issue.severity === "warning")
-                  ? "warn"
-                  : "default"
-              }
-            />
-            <MetricCard
-              label="Power headroom"
-              value={`${Math.max(layout.powerBudgetW - totals.powerW, 0)}W`}
-              tone={totals.powerW > layout.powerBudgetW ? "danger" : "default"}
-            />
-            <MetricCard
-              label="Heat score"
-              value={`${totals.heatScore}`}
-              tone={totals.heatScore > 18 ? "warn" : "default"}
-            />
-            <MetricCard
-              label="Doc gaps"
-              value={`${documentationIssues.length}`}
-              tone={
-                documentationIssues.some(
-                  (issue) => issue.severity === "warning",
-                )
-                  ? "warn"
-                  : "default"
-              }
-            />
-            <MetricCard
-              label="Open debt"
-              value={`${openDebtCount}`}
-              tone={openDebtCount > 0 ? "warn" : "default"}
-            />
-          </div>
-        </WorkspaceHero>
         <Suspense fallback={null}>
           <AuditWorkbench
             layout={layout}
@@ -1166,13 +1297,13 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-screen w-screen max-w-full overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <PrimaryNav
         currentWorkspace={currentWorkspace}
         onSelectWorkspace={setCurrentWorkspace}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 w-0 flex-1 flex-col">
         <TopContextBar
           workspace={workspace}
           layout={layout}
@@ -1186,6 +1317,11 @@ function App() {
         <ActionBar
           canUndo={canUndo()}
           canRedo={canRedo()}
+          issueCount={issues.length}
+          onAddDevice={handleAddDeviceTask}
+          onAddCable={handleAddCableTask}
+          onFixAlerts={handleFixAlertsTask}
+          onOpenSearch={() => setCommandOpen(true)}
           onNewLayout={handleNewLayout}
           onDuplicate={handleDuplicate}
           onUndo={undo}
@@ -1217,7 +1353,7 @@ function App() {
           onChange={handleWorkspaceImport}
         />
 
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px]">
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">

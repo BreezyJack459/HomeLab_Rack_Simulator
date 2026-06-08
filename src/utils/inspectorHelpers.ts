@@ -21,12 +21,12 @@ export function getInspectorDescription(
   if (currentWorkspace === 'model') {
     return hasSelection
       ? 'Selection-first inspector for the current device, cable and port context.'
-      : 'Choose a device or cable to unlock focused editing controls.';
+      : 'Pick a next step, or select a device or cable to show detailed settings.';
   }
 
   if (currentWorkspace === 'audit') {
     if (selectedIssue) {
-      return 'The audit inspector is pinned to the selected issue so validation and serviceability stay in context.';
+      return 'Focused on the selected issue, with validation and serviceability controls kept nearby.';
     }
     if (currentAuditLens === 'serviceability') {
       return 'Use the serviceability inspector to focus pull-out blockers, collisions and maintenance access.';
@@ -40,7 +40,7 @@ export function getInspectorDescription(
     if (currentAuditLens === 'domains') {
       return 'Track redundancy and assignment gaps while keeping validation close at hand.';
     }
-    return 'Review layout health, risks and validation issues without digging through one giant sidebar.';
+    return 'Start with the issue queue, then open deeper checks only when you need them.';
   }
 
   return WORKSPACE_META[currentWorkspace].description;
