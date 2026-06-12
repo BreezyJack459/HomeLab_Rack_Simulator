@@ -66,7 +66,8 @@ export type AppPanelId =
   | 'dcim-import'
   | 'rack-photo'
   | 'policy-rules'
-  | 'homelab-guide';
+  | 'homelab-guide'
+  | 'depth-compatibility';
 
 export type PanelRegistryItem = {
   id: AppPanelId;

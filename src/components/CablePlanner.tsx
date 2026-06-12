@@ -607,11 +607,11 @@ export function CablePlanner() {
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-2xl border border-slate-200 bg-slate-100/78 p-3.5 dark:border-slate-800 dark:bg-slate-900/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <div className="flex items-center gap-2">
           <Cable size={15} />
@@ -628,41 +628,78 @@ export function CablePlanner() {
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden space-y-3">
-          <div className="flex items-center gap-2">
-            <button
-              className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md bg-cyan-500 text-sm font-semibold text-white hover:bg-cyan-400 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
-              onClick={() => startPairing()}
-              type="button"
-            >
-              <Link2 size={15} />
-              {stage === 'idle' ? 'Add cable' : isSelectingDest(stage) ? 'Pick destination' : 'Pick source'}
-            </button>
-            {lastSourceDeviceId && stage === 'idle' && (
+          <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 via-white/80 to-white/40 p-3 shadow-sm dark:from-cyan-500/10 dark:via-slate-950/70 dark:to-slate-950/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                  Cable flow
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {stage === 'idle'
+                    ? 'Start a new cable route'
+                    : isSelectingDest(stage)
+                      ? 'Pick a destination port'
+                      : 'Pick a source port'}
+                </div>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                  Quick connect for speed, or expand a device to pick an exact port face.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-full border border-slate-200 bg-white/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-400">
+                {stage === 'idle' ? 'Ready' : isSelectingDest(stage) ? 'Step 2' : 'Step 1'}
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
               <button
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-3 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
-                onClick={() => startPairing(lastSourceDeviceId)}
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl bg-cyan-500 text-sm font-semibold text-white shadow-lg shadow-cyan-500/15 hover:bg-cyan-400 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                onClick={() => startPairing()}
                 type="button"
               >
-                <RotateCcw size={13} />
-                Same device
+                <Link2 size={15} />
+                {stage === 'idle' ? 'Add cable' : isSelectingDest(stage) ? 'Pick destination' : 'Pick source'}
               </button>
-            )}
+              {lastSourceDeviceId && stage === 'idle' && (
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-white/80 px-3 text-xs font-medium text-slate-600 shadow-sm hover:bg-white dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:bg-slate-900"
+                  onClick={() => startPairing(lastSourceDeviceId)}
+                  type="button"
+                >
+                  <RotateCcw size={13} />
+                  Same device
+                </button>
+              )}
+            </div>
           </div>
 
-          <DeviceListPicker
-            layout={layout}
-            expandedDeviceId={expandedDeviceId}
-            source={source}
-            stage={stage}
-            onDeviceClick={handleDeviceClick}
-            onAutoConnect={handleAutoConnect}
-            onHoverDevice={setHoveredDeviceId}
-          />
+          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                  Quick pick
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  Devices with free compatible ports
+                </div>
+              </div>
+              <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                {layout.devices.filter((d) => d.category !== 'blank').length} devices
+              </div>
+            </div>
+            <DeviceListPicker
+              layout={layout}
+              expandedDeviceId={expandedDeviceId}
+              source={source}
+              stage={stage}
+              onDeviceClick={handleDeviceClick}
+              onAutoConnect={handleAutoConnect}
+              onHoverDevice={setHoveredDeviceId}
+            />
+          </div>
 
-          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950 px-3 py-2">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950/70">
             <div>
-              <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">Ghost preview</div>
-              <div className="text-[11px] text-slate-400 dark:text-slate-500">Show a provisional route while hovering a destination.</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Ghost preview</div>
+              <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">Show a provisional route before you commit.</div>
             </div>
             <button
               type="button"
@@ -680,16 +717,21 @@ export function CablePlanner() {
           </div>
 
           {expandedDevice && (
-            <DeviceFaceCard
-              device={expandedDevice}
-              layout={layout}
-              source={source}
-              stage={stage}
-              hoveredChoiceKey={hoveredChoiceKey}
-              deviceMap={deviceMap}
-              onHoverChoice={setHoveredChoice}
-              onSelectChoice={handleSelectChoice}
-            />
+            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                Exact port picker
+              </div>
+              <DeviceFaceCard
+                device={expandedDevice}
+                layout={layout}
+                source={source}
+                stage={stage}
+                hoveredChoiceKey={hoveredChoiceKey}
+                deviceMap={deviceMap}
+                onHoverChoice={setHoveredChoice}
+                onSelectChoice={handleSelectChoice}
+              />
+            </div>
           )}
 
           <PairingStatusBar
@@ -701,10 +743,13 @@ export function CablePlanner() {
           />
 
           {layout.cables.length > 0 && (
-            <div className="space-y-1.5">
+            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                Bill of materials
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
                   onClick={() => exportBomCsv(layout)}
                   type="button"
                 >
@@ -712,7 +757,7 @@ export function CablePlanner() {
                   BOM CSV
                 </button>
                 <button
-                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
                   onClick={() => exportBomText(layout)}
                   type="button"
                 >
@@ -720,26 +765,30 @@ export function CablePlanner() {
                   BOM Text
                 </button>
               </div>
-              <div className="text-[10px] text-slate-400 dark:text-slate-500">
-                BOM lengths now include technician slack, service-loop allowance, and bend-radius notes.
+              <div className="mt-2 text-[10px] leading-5 text-slate-400 dark:text-slate-500">
+                BOM lengths include slack, service-loop allowance and bend-radius notes.
               </div>
             </div>
           )}
 
           {/* ── Cable filter bar ── */}
           {layout.cables.length > 0 && (
-            <div className="flex gap-1.5">
+            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                Route library
+              </div>
+              <div className="flex gap-1.5">
               <input
                 type="text"
                 placeholder="Filter cables…"
                 value={cableFilter}
                 onChange={(e) => setCableFilter(e.target.value)}
-                className="h-7 min-w-0 flex-1 rounded-md border border-slate-300 bg-slate-100 px-2 text-[11px] text-slate-700 placeholder-slate-400 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-600"
+                className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-100 px-2.5 text-[11px] text-slate-700 placeholder-slate-400 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-600"
               />
               <select
                 value={cableTypeFilter}
                 onChange={(e) => setCableTypeFilter(e.target.value as CableType | 'all')}
-                className="h-7 rounded-md border border-slate-300 bg-slate-100 px-1.5 text-[11px] text-slate-600 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                className="h-8 rounded-xl border border-slate-300 bg-slate-100 px-2 text-[11px] text-slate-600 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
               >
                 <option value="all">All types</option>
                 {Array.from(new Set(layout.cables.map((c) => c.type))).sort().map((t) => (
@@ -747,12 +796,13 @@ export function CablePlanner() {
                 ))}
               </select>
             </div>
+            </div>
           )}
 
           {/* ── Grouped compact cable list ── */}
           <div className="space-y-1.5">
             {filteredCables.length === 0 && layout.cables.length > 0 && (
-              <div className="rounded-md border border-dashed border-slate-200 bg-slate-100/60 p-3 text-center text-[11px] text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-100/60 p-3 text-center text-[11px] text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:text-slate-500">
                 No cables match the filter.
               </div>
             )}
@@ -771,12 +821,12 @@ export function CablePlanner() {
                 const groupColor = getCableDisplayColor(type as CableType, undefined);
 
                 return (
-                  <div key={type} className="rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950">
+                  <div key={type} className="rounded-2xl border border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-950/70">
                     {/* Group header */}
                     <button
                       type="button"
                       onClick={toggleGroup}
-                      className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
                     >
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: groupColor }} />
                       <span className="flex-1 text-[11px] font-semibold capitalize tracking-[0.1em] text-slate-500 dark:text-slate-400">
@@ -791,7 +841,7 @@ export function CablePlanner() {
 
                     {/* Compact cable rows */}
                     {isGroupOpen && (
-                      <div className="border-t border-slate-200/60 px-1 pb-1 pt-0.5 space-y-0.5 dark:border-slate-800/60">
+                      <div className="border-t border-slate-200/60 px-1.5 pb-1.5 pt-1 space-y-1 dark:border-slate-800/60">
                         {routes.map((route) => {
                           const from = deviceMap.get(route.fromDeviceId);
                           const to = deviceMap.get(route.toDeviceId);
@@ -809,7 +859,7 @@ export function CablePlanner() {
                           return (
                             <div
                               key={route.id}
-                              className={`group cursor-pointer rounded px-1.5 py-1 text-[11px] transition ${
+                              className={`group cursor-pointer rounded-xl px-2 py-1.5 text-[11px] transition ${
                                 selected
                                   ? 'bg-cyan-300/10 text-cyan-800 dark:text-cyan-100'
                                   : muted

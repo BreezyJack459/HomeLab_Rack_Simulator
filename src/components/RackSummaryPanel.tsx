@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Settings2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, Rows3, Settings2 } from 'lucide-react';
 import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue } from '../types/rack';
 
 type RackTotals = {
@@ -39,6 +39,7 @@ function SummaryChip({
 }
 
 interface RackSummaryPanelProps {
+  embedded?: boolean;
   open: boolean;
   onToggle: () => void;
   layout: RackLayout;
@@ -49,11 +50,16 @@ interface RackSummaryPanelProps {
   onLifecycleFilterChange: (filter: LifecycleViewFilter) => void;
   onRackTypeChange: (rackType: RackType) => void;
   onRackHeightChange: (heightU: number) => void;
+  onRackDepthChange: (rackDepthMm: number) => void;
+  onFrontDoorClearanceChange: (frontDoorClearanceMm: number) => void;
+  onRearDoorClearanceChange: (rearDoorClearanceMm: number) => void;
+  onRearCableClearanceChange: (rearCableClearanceMm: number) => void;
   onPowerBudgetChange: (powerBudgetW: number) => void;
   onIssueSelect: (issue: ValidationIssue) => void;
 }
 
 export function RackSummaryPanel({
+  embedded = false,
   open,
   onToggle,
   layout,
@@ -64,13 +70,16 @@ export function RackSummaryPanel({
   onLifecycleFilterChange,
   onRackTypeChange,
   onRackHeightChange,
+  onRackDepthChange,
+  onFrontDoorClearanceChange,
+  onRearDoorClearanceChange,
+  onRearCableClearanceChange,
   onPowerBudgetChange,
   onIssueSelect,
 }: RackSummaryPanelProps) {
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const rootRef = useRef<HTMLElement>(null);
-  const powerTone = totals.powerW > layout.powerBudgetW ? 'danger' : 'default';
-  const heatTone = totals.heatScore > 18 ? 'warn' : 'default';
   const issueTone = issues.some((issue) => issue.severity === 'critical')
     ? 'danger'
     : issues.length > 0
@@ -80,6 +89,7 @@ export function RackSummaryPanel({
     function handlePointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setAlertsOpen(false);
+        setInfoOpen(false);
         if (open) onToggle();
       }
     }
@@ -91,20 +101,71 @@ export function RackSummaryPanel({
   return (
     <section
       ref={rootRef}
-      className="relative shrink-0 rounded-2xl border border-slate-200 bg-white/80 dark:border-slate-800 dark:bg-slate-900/70"
+      className={`relative shrink-0 ${
+        embedded
+          ? ''
+          : 'rounded-2xl border border-slate-200 bg-white/72 dark:border-slate-800 dark:bg-slate-900/55'
+      }`}
       data-testid="rack-summary"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-            {layout.name}
-          </span>
+      <div className={`flex flex-wrap items-center justify-between gap-2 min-[1180px]:flex-nowrap ${embedded ? '' : 'px-3 py-2'}`}>
+        <div className="relative min-[1180px]:hidden">
+          <button
+            type="button"
+            aria-expanded={infoOpen}
+            onClick={() => {
+              if (alertsOpen) setAlertsOpen(false);
+              if (open) onToggle();
+              setInfoOpen((value) => !value);
+            }}
+            className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-cyan-300 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+          >
+            <Rows3 size={14} />
+            Rack info
+            <ChevronDown
+              size={14}
+              className={`shrink-0 text-slate-400 transition ${infoOpen ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+
+          {infoOpen && (
+            <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                Rack summary
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <SummaryChip label="Rack" value={`${layout.rackType === '10in' ? '10"' : '19"'} ${layout.viewSide}`} />
+                <SummaryChip label="U" value={`${totals.occupiedU}/${layout.heightU}`} />
+                <SummaryChip label="Devices" value={`${layout.devices.length}`} />
+                <SummaryChip label="Cables" value={`${layout.cables.length}`} />
+              </div>
+              <label className="mt-3 inline-flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/55 dark:text-slate-300">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Lifecycle
+                </span>
+                <select
+                  className="min-w-0 flex-1 bg-transparent text-right text-xs font-medium text-slate-700 outline-none dark:text-slate-200"
+                  value={lifecycleFilter}
+                  onChange={(event) => onLifecycleFilterChange(event.target.value as LifecycleViewFilter)}
+                >
+                  <option value="all">All</option>
+                  <option value="changes">Changes</option>
+                  <option value="active">Active</option>
+                  <option value="planned">Planned</option>
+                  <option value="decommissioning">Decommissioning</option>
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+
+        <div className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pr-2 min-[1180px]:flex min-[1180px]:flex-nowrap">
           <SummaryChip label="Rack" value={`${layout.rackType === '10in' ? '10"' : '19"'} ${layout.viewSide}`} />
           <SummaryChip label="U" value={`${totals.occupiedU}/${layout.heightU}`} />
-          <SummaryChip label="Power" value={`${totals.powerW}W`} tone={powerTone} />
-          <SummaryChip label="Heat" value={`${totals.heatScore}`} tone={heatTone} />
-          <SummaryChip label="Alerts" value={`${issues.length}`} tone={issueTone} />
-          <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-3 py-1 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+          <SummaryChip label="Devices" value={`${layout.devices.length}`} />
+          <SummaryChip label="Cables" value={`${layout.cables.length}`} />
+          <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/55 dark:text-slate-300">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Lifecycle
             </span>
@@ -122,10 +183,11 @@ export function RackSummaryPanel({
           </label>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
           <button
             type="button"
             onClick={() => {
+              if (infoOpen) setInfoOpen(false);
               if (open) onToggle();
               setAlertsOpen((value) => !value);
             }}
@@ -137,12 +199,13 @@ export function RackSummaryPanel({
             }`}
           >
             {issues.length ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-            {issues.length ? 'Open alerts' : 'Layout clear'}
+            {issues.length ? `${issues.length}` : '0'}
           </button>
           <div className="relative">
             <button
               type="button"
               onClick={() => {
+                if (infoOpen) setInfoOpen(false);
                 if (alertsOpen) setAlertsOpen(false);
                 onToggle();
               }}
@@ -166,6 +229,10 @@ export function RackSummaryPanel({
                   onLifecycleFilterChange={onLifecycleFilterChange}
                   onRackTypeChange={onRackTypeChange}
                   onRackHeightChange={onRackHeightChange}
+                  onRackDepthChange={onRackDepthChange}
+                  onFrontDoorClearanceChange={onFrontDoorClearanceChange}
+                  onRearDoorClearanceChange={onRearDoorClearanceChange}
+                  onRearCableClearanceChange={onRearCableClearanceChange}
                   onPowerBudgetChange={onPowerBudgetChange}
                 />
               </Suspense>

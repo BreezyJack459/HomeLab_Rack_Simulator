@@ -61,9 +61,10 @@ export function getDeviceWorldBox(
   const rackDeviceWidth = rackWidth * Math.min(1, Math.max(0.08, range.width / usableWidth));
   const isRearRail0U = isZeroU && device.mountType !== 'side-rail';
   const width = isZeroU ? (isRearRail0U ? ZERO_U_REAR_WIDTH : ZERO_U_SIDE_WIDTH) : rackDeviceWidth;
+  const depthScale = layout.rackDepthMm > 0 ? rackDepth / layout.rackDepthMm : rackDepth;
   const depth = isZeroU
     ? (isRearRail0U ? ZERO_U_REAR_DEPTH : Math.min(rackDepth * 0.72, ZERO_U_SIDE_DEPTH))
-    : Math.max(0.12, Math.min(rackDepth - 0.08, (device.depthMm / layout.rackDepthMm) * rackDepth));
+    : Math.max(0.12, device.depthMm * depthScale);
 
   let x: number;
   let z: number;

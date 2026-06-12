@@ -118,11 +118,11 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-2xl border border-slate-200 bg-slate-100/78 p-3.5 dark:border-slate-800 dark:bg-slate-900/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <div className="flex items-center gap-2">
           <AlertTriangle size={15} />
@@ -140,26 +140,26 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
-          <div className="mb-4 grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-800 dark:bg-slate-950">
-          <div className="text-slate-400 dark:text-slate-500">Weight</div>
-          <div className="mt-1 font-semibold text-slate-900 dark:text-white">{totals.weightKg.toFixed(1)}kg</div>
-        </div>
-        <div className="rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-800 dark:bg-slate-950">
-          <div className="text-slate-400 dark:text-slate-500">Power</div>
-          <div className="mt-1 font-semibold text-slate-900 dark:text-white">{totals.powerW}W</div>
-        </div>
-        <div className="rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-800 dark:bg-slate-950">
-          <div className="text-slate-400 dark:text-slate-500">Used U</div>
-          <div className="mt-1 font-semibold text-slate-900 dark:text-white">
-            {totals.occupiedU}
-            {totals.reservedU ? <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400"> +{totals.reservedU}r</span> : null}
+          <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
+              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Weight</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{totals.weightKg.toFixed(1)}kg</span>
+            </div>
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
+              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Power</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{totals.powerW}W</span>
+            </div>
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
+              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Used U</span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {totals.occupiedU}
+                {totals.reservedU ? <span className="ml-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">+{totals.reservedU}r</span> : null}
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
 
       {issues.length === 0 ? (
-        <div className="flex items-start gap-3 rounded-md border border-emerald-500/35 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-100">
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/35 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-100">
           <CheckCircle2 className="mt-0.5 shrink-0" size={17} />
           <p>No blocking rack layout problems detected.</p>
         </div>
@@ -171,7 +171,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
             return (
               <div
                 key={issue.id}
-                className={`rounded-md border p-3 text-sm transition hover:brightness-110 ${
+                className={`rounded-2xl border p-3 text-sm transition hover:-translate-y-0.5 hover:shadow-sm hover:shadow-black/5 ${
                   selectedIssueId === issue.id ? 'ring-2 ring-cyan-600/70 dark:ring-cyan-300/70' : ''
                 } ${severityStyle[issue.severity]}`}
               >

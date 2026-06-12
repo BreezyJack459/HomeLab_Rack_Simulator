@@ -4,6 +4,7 @@ const STORAGE_KEY = 'homelab-rack-simulator-layout-prefs';
 
 type LayoutPrefs = {
   deviceLibraryOpen: boolean;
+  inspectorOpen: boolean;
   rackSummaryOpen: boolean;
   bottomTrayOpen: boolean;
 };
@@ -31,6 +32,8 @@ function writePrefs(prefs: LayoutPrefs) {
 interface LayoutPrefsState extends LayoutPrefs {
   setDeviceLibraryOpen: (open: boolean) => void;
   toggleDeviceLibrary: () => void;
+  setInspectorOpen: (open: boolean) => void;
+  toggleInspector: () => void;
   setRackSummaryOpen: (open: boolean) => void;
   toggleRackSummary: () => void;
   setBottomTrayOpen: (open: boolean) => void;
@@ -42,6 +45,7 @@ const saved = readPrefs();
 function snapshot(state: LayoutPrefs): LayoutPrefs {
   return {
     deviceLibraryOpen: state.deviceLibraryOpen,
+    inspectorOpen: state.inspectorOpen,
     rackSummaryOpen: state.rackSummaryOpen,
     bottomTrayOpen: state.bottomTrayOpen,
   };
@@ -49,6 +53,7 @@ function snapshot(state: LayoutPrefs): LayoutPrefs {
 
 export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
   deviceLibraryOpen: saved.deviceLibraryOpen ?? false,
+  inspectorOpen: saved.inspectorOpen ?? true,
   rackSummaryOpen: saved.rackSummaryOpen ?? false,
   bottomTrayOpen: saved.bottomTrayOpen ?? false,
 
@@ -65,6 +70,21 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
       const next = { ...snapshot(state), deviceLibraryOpen: open };
       writePrefs(next);
       return { deviceLibraryOpen: open };
+    }),
+
+  setInspectorOpen: (open) =>
+    set((state) => {
+      const next = { ...snapshot(state), inspectorOpen: open };
+      writePrefs(next);
+      return { inspectorOpen: open };
+    }),
+
+  toggleInspector: () =>
+    set((state) => {
+      const open = !state.inspectorOpen;
+      const next = { ...snapshot(state), inspectorOpen: open };
+      writePrefs(next);
+      return { inspectorOpen: open };
     }),
 
   setRackSummaryOpen: (open) =>

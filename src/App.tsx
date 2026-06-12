@@ -12,6 +12,8 @@ import {
   Box,
   Cable,
   HardDrive,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings2,
   SlidersHorizontal,
   Upload,
@@ -19,6 +21,7 @@ import {
 } from "lucide-react";
 import { ActionBar } from "./components/ActionBar";
 import { PrimaryNav } from "./components/PrimaryNav";
+import { RackSummaryPanel } from "./components/RackSummaryPanel";
 import { RightInspectorShell } from "./components/RightInspectorShell";
 import { TopContextBar } from "./components/TopContextBar";
 import { useLayoutPrefsStore } from "./store/layoutPrefsStore";
@@ -330,6 +333,11 @@ const TemplateQualityPanel = lazy(() =>
     default: m.TemplateQualityPanel,
   })),
 );
+const DepthCompatibilityPanel = lazy(() =>
+  import("./components/DepthCompatibilityPanel").then((m) => ({
+    default: m.DepthCompatibilityPanel,
+  })),
+);
 const WorkspaceManager = lazy(() =>
   import("./components/WorkspaceManager").then((m) => ({
     default: m.WorkspaceManager,
@@ -419,6 +427,79 @@ function WorkspaceHero({
   );
 }
 
+function WorkspaceActionPanel({
+  badge,
+  title,
+  description,
+  metrics,
+  actions,
+}: {
+  badge: string;
+  title: string;
+  description: string;
+  metrics?: Array<{ label: string; value: string }>;
+  actions: Array<{
+    label: string;
+    detail: string;
+    onClick: () => void;
+    primary?: boolean;
+  }>;
+}) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white/85 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/75">
+      <div>
+        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+          {badge}
+        </div>
+        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-slate-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          {description}
+        </p>
+      </div>
+
+      {metrics && metrics.length > 0 && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {metrics.map((metric) => (
+            <div
+              key={metric.label}
+              className="rounded-2xl border border-slate-200 bg-white/75 px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-950/70"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                {metric.label}
+              </div>
+              <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                {metric.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-2">
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={action.onClick}
+            className={`rounded-2xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${
+              action.primary
+                ? 'border-cyan-500/35 bg-cyan-500/12 text-cyan-800 shadow-cyan-500/10 dark:text-cyan-200'
+                : 'border-slate-200 bg-white/80 text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200'
+            }`}
+          >
+            <div className="text-sm font-medium">{action.label}</div>
+            <div className="mt-1 text-[11px] leading-5 opacity-80">
+              {action.detail}
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const workspaceFileInputRef = useRef<HTMLInputElement>(null);
@@ -462,14 +543,27 @@ function App() {
   const setDeviceLibraryOpen = useLayoutPrefsStore(
     (state) => state.setDeviceLibraryOpen,
   );
+  const deviceLibraryOpen = useLayoutPrefsStore(
+    (state) => state.deviceLibraryOpen,
+  );
+  const toggleDeviceLibrary = useLayoutPrefsStore(
+    (state) => state.toggleDeviceLibrary,
+  );
+  const rackSummaryOpen = useLayoutPrefsStore((state) => state.rackSummaryOpen);
   const setRackSummaryOpen = useLayoutPrefsStore(
     (state) => state.setRackSummaryOpen,
+  );
+  const toggleRackSummary = useLayoutPrefsStore(
+    (state) => state.toggleRackSummary,
   );
 
   const [confirmAction, setConfirmAction] = useState<null | {
     type: "new" | "sample";
     payload?: string;
   }>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(
+    () => useLayoutPrefsStore.getState().inspectorOpen,
+  );
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [lifecycleFilter, setLifecycleFilter] =
     useState<LifecycleViewFilter>("all");
@@ -524,6 +618,27 @@ function App() {
       ).length,
     [layout.debtItems],
   );
+  const pendingChangeRequests = useMemo(
+    () =>
+      (layout.changeRequests ?? []).filter(
+        (request) => request.status === "pending",
+      ).length,
+    [layout.changeRequests],
+  );
+  const buildItemsRemaining = useMemo(
+    () =>
+      (layout.procurementItems ?? []).filter(
+        (item) => item.status === "need-to-buy" || item.status === "ordered",
+      ).length,
+    [layout.procurementItems],
+  );
+  const reservationCount = layout.reservations?.length ?? 0;
+  const workspaceDeviceCount = useMemo(
+    () => workspace.racks.reduce((sum, rack) => sum + rack.devices.length, 0),
+    [workspace.racks],
+  );
+  const workspaceInterRackCount = workspace.interRackCables?.length ?? 0;
+  const workspacePhotoCount = layout.photos?.length ?? 0;
   const filteredLayout = useMemo(
     () => getFilteredLayoutByLifecycle(layout, lifecycleFilter),
     [layout, lifecycleFilter],
@@ -881,6 +996,8 @@ function App() {
         return <FitCheckPanel />;
       case "template-quality":
         return <TemplateQualityPanel />;
+      case "depth-compatibility":
+        return <DepthCompatibilityPanel />;
       default:
         return null;
     }
@@ -961,6 +1078,177 @@ function App() {
             </Suspense>
           ))}
         </>
+      );
+    }
+    if (currentWorkspace === "audit") {
+      if (currentAuditLens === "serviceability") {
+        return (
+          <Suspense fallback={null}>
+            <ServiceabilityPanel
+              layout={layout}
+              overlayEnabled={serviceabilityOverlayEnabled}
+              onOverlayEnabledChange={setServiceabilityOverlayEnabled}
+              onHighlightDevicesChange={setServiceabilityFocusDeviceIds}
+            />
+          </Suspense>
+        );
+      }
+      if (selectedIssue || currentAuditLens === "issues") {
+        return (
+          <ValidationPanel
+            issues={issues}
+            totals={totals}
+            selectedIssueId={selectedIssueId}
+            onIssueSelect={handleIssueSelect}
+          />
+        );
+      }
+      return (
+        <WorkspaceActionPanel
+          badge="Check shortcuts"
+          title="Keep audit work lightweight"
+          description="Use the inspector for fast jumps into the issue queue and deeper lenses, without repeating the dashboard cards already on the main canvas."
+          metrics={[
+            { label: "Issues", value: `${issues.length}` },
+            {
+              label: "Serviceability",
+              value: `${cableStrainRisks.length + frontRearCollisions.length + heavyOverLightIssues.length}`,
+            },
+            { label: "Domains", value: `${failureDomainIssues.length}` },
+          ]}
+          actions={[
+            {
+              label: "Open issue queue",
+              detail: "Jump to the validation queue and focus the top alert.",
+              onClick: handleFixAlertsTask,
+              primary: true,
+            },
+            {
+              label: "Serviceability lens",
+              detail: "Pull-out clearance, collisions and maintenance access.",
+              onClick: () => setCurrentAuditLens("serviceability"),
+            },
+            {
+              label: "Documentation lens",
+              detail: "Review labels, evidence and drift together.",
+              onClick: () => setCurrentAuditLens("documentation"),
+            },
+            {
+              label: "Thermal lens",
+              detail: "Check heat, power headroom and environmental pressure.",
+              onClick: () => setCurrentAuditLens("thermal"),
+            },
+            {
+              label: "Domains lens",
+              detail: "Inspect redundancy and assignment gaps.",
+              onClick: () => setCurrentAuditLens("domains"),
+            },
+          ]}
+        />
+      );
+    }
+    if (currentWorkspace === "plan") {
+      return (
+        <WorkspaceActionPanel
+          badge="Plan shortcuts"
+          title="Keep planning focused"
+          description="Switch lenses from here so the inspector stays a quick control surface instead of a second dashboard."
+          metrics={[
+            { label: "Pending", value: `${pendingChangeRequests}` },
+            { label: "Reservations", value: `${reservationCount}` },
+            { label: "Build", value: `${buildItemsRemaining}` },
+          ]}
+          actions={[
+            {
+              label: "Scenario lens",
+              detail: "Compare what-if changes and capacity headroom.",
+              onClick: () => setCurrentPlanLens("scenarios"),
+              primary: true,
+            },
+            {
+              label: "Baseline lens",
+              detail: "Review golden snapshots and migration status.",
+              onClick: () => setCurrentPlanLens("baseline"),
+            },
+            {
+              label: "Schedule lens",
+              detail: "Coordinate windows, reservations and timing.",
+              onClick: () => setCurrentPlanLens("schedule"),
+            },
+            {
+              label: "Changes lens",
+              detail: "Review requests and approval flow.",
+              onClick: () => setCurrentPlanLens("changes"),
+            },
+            {
+              label: "Build lens",
+              detail: "Track readiness, procurement and commissioning.",
+              onClick: () => setCurrentPlanLens("build"),
+            },
+            {
+              label: "Fit lens",
+              detail: "Check device depth and rack fit before purchase.",
+              onClick: () => setCurrentPlanLens("fit"),
+            },
+          ]}
+        />
+      );
+    }
+    if (currentWorkspace === "portfolio") {
+      return (
+        <WorkspaceActionPanel
+          badge="Fleet shortcuts"
+          title="Keep fleet tools lean"
+          description="Use the inspector for navigation and workspace-wide actions, while the main area holds the broader fleet overview."
+          metrics={[
+            { label: "Racks", value: `${workspace.racks.length}` },
+            { label: "Devices", value: `${workspaceDeviceCount}` },
+            { label: "Links", value: `${workspaceInterRackCount}` },
+          ]}
+          actions={[
+            {
+              label: "Overview lens",
+              detail: "Jump back to the workspace overview.",
+              onClick: () => setCurrentPortfolioLens("overview"),
+              primary: true,
+            },
+            {
+              label: "Rooms lens",
+              detail: "Place racks in physical room layouts.",
+              onClick: () => setCurrentPortfolioLens("rooms"),
+            },
+            {
+              label: "Interconnect lens",
+              detail: "Map cross-rack cabling and trunk links.",
+              onClick: () => setCurrentPortfolioLens("interconnect"),
+            },
+            {
+              label: "Data lens",
+              detail: "Import or export DCIM data.",
+              onClick: () => setCurrentPortfolioLens("data"),
+            },
+            {
+              label: "Policy lens",
+              detail: "Review naming, compliance and standards.",
+              onClick: () => setCurrentPortfolioLens("policy"),
+            },
+            {
+              label: "Guide lens",
+              detail: "Open guide and photo documentation tools.",
+              onClick: () => setCurrentPortfolioLens("guide"),
+            },
+            {
+              label: "Add inter-rack cable",
+              detail: "Open the wizard for a new cross-rack link.",
+              onClick: () => setInterRackWizardOpen(true),
+            },
+            {
+              label: "Export workspace",
+              detail: "Download the current workspace JSON snapshot.",
+              onClick: () => void handleDownloadWorkspaceJson(),
+            },
+          ]}
+        />
       );
     }
     if (panels.length === 0) {
@@ -1174,21 +1462,7 @@ function App() {
   function renderModelWorkspace() {
     return (
       <Suspense fallback={null}>
-        <ModelWorkspaceLayout
-          layout={layout}
-          totals={totals}
-          issues={issues}
-          lifecycleFilter={lifecycleFilter}
-          onLifecycleFilterChange={setLifecycleFilter}
-          onRackTypeChange={setRackType}
-          onRackHeightChange={setRackHeight}
-          onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
-          selectedIssueId={selectedIssueId}
-          statusMessage={statusMessage}
-          onIssueSelect={handleIssueSelect}
-          onOpenAudit={() => setCurrentWorkspace("audit")}
-          canvas={renderCanvas()}
-        />
+        <ModelWorkspaceLayout layout={layout} canvas={renderCanvas()} />
       </Suspense>
     );
   }
@@ -1317,6 +1591,55 @@ function App() {
         <ActionBar
           canUndo={canUndo()}
           canRedo={canRedo()}
+          contextContent={
+            currentWorkspace === "model" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="toggle-device-library"
+                  aria-expanded={deviceLibraryOpen}
+                  onClick={toggleDeviceLibrary}
+                  className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
+                    deviceLibraryOpen
+                      ? "border-cyan-500/40 bg-cyan-500/12 text-cyan-700 dark:text-cyan-300"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+                  }`}
+                >
+                  {deviceLibraryOpen ? (
+                    <PanelLeftClose size={14} />
+                  ) : (
+                    <PanelLeftOpen size={14} />
+                  )}
+                  Device library
+                </button>
+                <RackSummaryPanel
+                  embedded
+                  open={rackSummaryOpen}
+                  onToggle={toggleRackSummary}
+                  layout={layout}
+                  totals={totals}
+                  issues={issues}
+                  selectedIssueId={selectedIssueId}
+                  lifecycleFilter={lifecycleFilter}
+                  onLifecycleFilterChange={setLifecycleFilter}
+                  onRackTypeChange={setRackType}
+                  onRackHeightChange={setRackHeight}
+                  onRackDepthChange={(rackDepthMm) => updateRack({ rackDepthMm })}
+                  onFrontDoorClearanceChange={(frontDoorClearanceMm) =>
+                    updateRack({ frontDoorClearanceMm })
+                  }
+                  onRearDoorClearanceChange={(rearDoorClearanceMm) =>
+                    updateRack({ rearDoorClearanceMm })
+                  }
+                  onRearCableClearanceChange={(rearClearanceMm) =>
+                    updateRack({ rearClearanceMm })
+                  }
+                  onPowerBudgetChange={(powerBudgetW) => updateRack({ powerBudgetW })}
+                  onIssueSelect={handleIssueSelect}
+                />
+              </div>
+            ) : null
+          }
           issueCount={issues.length}
           onAddDevice={handleAddDeviceTask}
           onAddCable={handleAddCableTask}
@@ -1353,7 +1676,13 @@ function App() {
           onChange={handleWorkspaceImport}
         />
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div
+          className={`grid min-h-0 flex-1 grid-cols-1 ${
+            inspectorOpen
+              ? "xl:grid-cols-[minmax(0,1fr)_380px]"
+              : "xl:grid-cols-[minmax(0,1fr)_72px]"
+          }`}
+        >
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
@@ -1377,6 +1706,12 @@ function App() {
           <RightInspectorShell
             title={inspectorTitle}
             description={inspectorDescription}
+            open={inspectorOpen}
+            onToggle={() => {
+              const nextOpen = !inspectorOpen;
+              setInspectorOpen(nextOpen);
+              useLayoutPrefsStore.getState().setInspectorOpen(nextOpen);
+            }}
           >
             {renderInspectorPanels()}
           </RightInspectorShell>
