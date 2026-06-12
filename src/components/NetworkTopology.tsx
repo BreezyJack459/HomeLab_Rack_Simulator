@@ -253,7 +253,7 @@ export function NetworkTopology({ layout }: Props) {
                   opacity={isSelected ? 1 : 0.7}
                 />
                 {vlan !== null && (
-                  <g transform={`translate(${(source.x + target.x) / 2}, ${(source.y + target.y) / 2} - 14)`}>
+                  <g transform={`translate(${(source.x + target.x) / 2}, ${(source.y + target.y) / 2 - 14})`}>
                     <rect x="-14" y="-9" width="28" height="18" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="1" />
                     <text y="1" textAnchor="middle" fill="#94a3b8" fontSize="10" fontFamily="ui-monospace, monospace">
                       V{vlan}

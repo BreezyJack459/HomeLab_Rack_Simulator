@@ -586,24 +586,26 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
 
   return (
     <div className="relative h-full overflow-hidden bg-slate-200 dark:bg-slate-950/55">
-      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/90 p-2 shadow-panel dark:border-slate-800 dark:bg-slate-950/90">
-        <button
-          className={EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS}
-          onClick={() => setEditorZoom(editorZoom - 0.1)}
-          type="button"
-          title="Zoom out"
-        >
-          <ZoomOut size={15} />
-          {Math.round(editorZoom * 100)}%
-        </button>
-        <button
-          className={EDITOR_TOOL_BUTTON_CLASS}
-          onClick={() => setEditorZoom(editorZoom + 0.1)}
-          type="button"
-          title="Zoom in"
-        >
-          <ZoomIn size={15} />
-        </button>
+      <div className="absolute left-4 top-16 z-20 flex w-40 flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-2 shadow-panel dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="flex items-center gap-2">
+          <button
+            className={`${EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS} flex-1 justify-between`}
+            onClick={() => setEditorZoom(editorZoom - 0.1)}
+            type="button"
+            title="Zoom out"
+          >
+            <span>{Math.round(editorZoom * 100)}%</span>
+            <ZoomOut size={15} />
+          </button>
+          <button
+            className={EDITOR_TOOL_BUTTON_CLASS}
+            onClick={() => setEditorZoom(editorZoom + 0.1)}
+            type="button"
+            title="Zoom in"
+          >
+            <ZoomIn size={15} />
+          </button>
+        </div>
         <button
           className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm ${
             panMode
@@ -617,30 +619,31 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           <Move size={15} />
           Pan
         </button>
-        <button
-          className={EDITOR_TOOL_BUTTON_CLASS}
-          onClick={() => {
-            setEditorZoom(1);
-            setEditorPan({ x: 0, y: 0 });
-          }}
-          type="button"
-          title="Reset view"
-        >
-          <RotateCcw size={15} />
-        </button>
-        <button
-          className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm ${
-            debugMode
-              ? 'bg-amber-500 text-slate-950 dark:bg-amber-400 dark:text-slate-950'
-              : EDITOR_TOGGLE_INACTIVE_CLASS
-          }`}
-          onClick={toggleDebugMode}
-          type="button"
-          title="Toggle debug mode"
-        >
-          <Bug size={15} />
-          Debug
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            className={EDITOR_TOOL_BUTTON_CLASS}
+            onClick={() => {
+              setEditorZoom(1);
+              setEditorPan({ x: 0, y: 0 });
+            }}
+            type="button"
+            title="Reset view"
+          >
+            <RotateCcw size={15} />
+          </button>
+          <button
+            className={`inline-flex h-9 items-center justify-center rounded-md px-3 text-sm ${
+              debugMode
+                ? 'bg-amber-500 text-slate-950 dark:bg-amber-400 dark:text-slate-950'
+                : EDITOR_TOGGLE_INACTIVE_CLASS
+            }`}
+            onClick={toggleDebugMode}
+            type="button"
+            title="Toggle debug mode"
+          >
+            <Bug size={15} />
+          </button>
+        </div>
       </div>
 
       <div

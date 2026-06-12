@@ -14,6 +14,7 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
   // Audit
   { id: 'rack-health', title: 'Rack Health', workspace: 'audit', priority: 10, defaultPlacement: 'main' },
   { id: 'serviceability', title: 'Serviceability', workspace: 'audit', priority: 20, defaultPlacement: 'inspector' },
+  { id: 'depth-compatibility', title: 'Depth Compatibility', workspace: 'audit', priority: 25, defaultPlacement: 'inspector' },
   { id: 'validation', title: 'Validation', workspace: 'audit', priority: 30, defaultPlacement: 'inspector' },
   { id: 'documentation-audit', title: 'Documentation Audit', workspace: 'audit', priority: 40, defaultPlacement: 'main' },
   { id: 'rack-debt', title: 'Rack Debt', workspace: 'audit', priority: 50, defaultPlacement: 'main' },
@@ -103,7 +104,7 @@ export const WORKSPACE_META: Record<AppWorkspace, { title: string; description: 
 export const auditPanelIdsByLens: Record<AuditLens, AppPanelId[]> = {
   overview: [],
   issues: ['rack-health', 'rack-debt', 'documentation-audit', 'label-debt'],
-  serviceability: ['rack-health', 'thermal-distribution', 'power-chain'],
+  serviceability: ['rack-health', 'depth-compatibility', 'thermal-distribution', 'power-chain'],
   documentation: ['documentation-audit', 'label-debt', 'drift', 'rack-debt', 'cable-length-audit'],
   thermal: ['thermal-distribution', 'environment', 'device-sensor', 'power-chain', 'rack-health'],
   domains: ['failure-domain', 'rack-debt', 'drift', 'documentation-audit'],

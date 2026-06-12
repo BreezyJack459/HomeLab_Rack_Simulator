@@ -15,10 +15,10 @@ export function LensChip<T extends string>({ lens, active, onClick, meta }: Lens
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+      className={`inline-flex items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-[11px] font-medium transition ${
         active
-          ? 'border-cyan-500/40 bg-cyan-500/12 text-cyan-700 dark:text-cyan-300'
-          : 'border-slate-200 bg-white/80 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800'
+          ? 'border-cyan-500/45 bg-cyan-500/12 text-cyan-700 shadow-sm shadow-cyan-500/10 dark:text-cyan-300'
+          : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800'
       }`}
     >
       {data.icon}
@@ -49,11 +49,11 @@ export function SnapshotCard({ title, value, detail, tone = 'default', onClick }
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border p-4 text-left transition hover:brightness-95 dark:hover:brightness-110 ${toneClass}`}
+      className={`rounded-2xl border p-3.5 text-left transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-black/5 dark:hover:shadow-black/20 ${toneClass}`}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-70">{title}</div>
-      <div className="mt-2 text-2xl font-semibold">{value}</div>
-      <div className="mt-1 text-xs opacity-80">{detail}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-70">{title}</div>
+      <div className="mt-1.5 text-xl font-semibold leading-none">{value}</div>
+      <div className="mt-1 text-[11px] leading-5 opacity-80">{detail}</div>
     </button>
   );
 }
@@ -103,15 +103,15 @@ export function WorkbenchHeader<T extends string>({
   lensMeta,
 }: WorkbenchHeaderProps<T>) {
   return (
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
       <div>
         <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
           {badge}
         </div>
-        <h3 className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
-        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">{description}</p>
+        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {lenses.map((lens) => (
           <LensChip key={lens} lens={lens} active={lens === currentLens} onClick={() => onSelectLens(lens)} meta={lensMeta} />
         ))}

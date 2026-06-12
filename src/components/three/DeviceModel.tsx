@@ -231,6 +231,10 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
     }
   );
   const { x, y, z, width, depth, height, isZeroU, isRearRail0U, isRearMounted } = box;
+  const overflowDepth = !isZeroU ? Math.max(0, depth - rackDepth) : 0;
+  const overflowCenterZ = isRearMounted
+    ? depth / 2 - overflowDepth / 2
+    : -depth / 2 + overflowDepth / 2;
   const zone = getDeviceSpatialZone(device);
   const earSide = isZeroU ? getZeroUEarSide(device) : 'right';
   const isZeroULeft = earSide === 'left';
@@ -305,6 +309,21 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
           roughness={isZeroU ? 0.45 : 0.58}
         />
       </mesh>
+
+      {overflowDepth > 0 && (
+        <mesh position={[0, 0, overflowCenterZ]} castShadow receiveShadow>
+          <boxGeometry args={[width + 0.012, height + 0.012, overflowDepth]} />
+          <meshStandardMaterial
+            color="#ef4444"
+            emissive="#b91c1c"
+            emissiveIntensity={selected ? 0.58 : 0.4}
+            transparent
+            opacity={0.72}
+            metalness={0.16}
+            roughness={0.42}
+          />
+        </mesh>
+      )}
 
       {/* Selection highlight */}
       {selected && (
