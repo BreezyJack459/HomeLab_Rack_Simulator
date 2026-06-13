@@ -223,6 +223,7 @@ interface RackState {
   selectCable: (cableId: string | null) => void;
   selectInterRackCable: (cableId: string | null) => void;
   addCable: (route: Omit<CableRoute, 'id'>) => void;
+  addCables: (routes: Omit<CableRoute, 'id'>[]) => void;
   updateCable: (cableId: string, patch: Partial<CableRoute>) => void;
   removeCable: (cableId: string) => void;
   addReservation: (reservation: Omit<RackReservation, 'id'>) => void;
@@ -533,6 +534,40 @@ export const useRackStore = create<RackState>((set, get) => ({
       selectedCableId: cable.id,
       selectedDeviceId: null,
       statusMessage: 'Cable route added.'
+    });
+  },
+
+  addCables: (routes) => {
+    const layout = get().layout;
+    const newCables: CableRoute[] = [];
+    const changedIds = new Set<string>();
+
+    for (const route of routes) {
+      if (route.fromDeviceId === route.toDeviceId) continue;
+      const from = layout.devices.find((d) => d.id === route.fromDeviceId);
+      const to = layout.devices.find((d) => d.id === route.toDeviceId);
+      if (!from || !to) continue;
+      const cableId = newId('cable');
+      const cable: CableRoute = {
+        ...route,
+        id: cableId,
+        nodes: calculateCableNodes({ ...route, id: cableId }, layout)
+      };
+      newCables.push(cable);
+      changedIds.add(route.fromDeviceId);
+      changedIds.add(route.toDeviceId);
+    }
+
+    if (newCables.length === 0) {
+      set({ statusMessage: 'Auto-wire found no new cables to add.' });
+      return;
+    }
+
+    set({
+      layout: touch({ ...layout, cables: [...layout.cables, ...newCables] }, changedIds),
+      selectedCableId: newCables[newCables.length - 1].id,
+      selectedDeviceId: null,
+      statusMessage: `Auto-wired ${newCables.length} cable route(s).`
     });
   },
 

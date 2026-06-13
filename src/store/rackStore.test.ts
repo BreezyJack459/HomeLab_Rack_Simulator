@@ -294,6 +294,37 @@ describe('rackStore store operations', () => {
     expect(useRackStore.getState().layout.cables.length).toBe(0);
   });
 
+  it('addCables creates multiple cables and undoes in one step', () => {
+    useRackStore.getState().loadLayout(testLayout);
+    const beforeCableCount = useRackStore.getState().layout.cables.length;
+
+    useRackStore.getState().addCables([
+      {
+        fromDeviceId: 'dev-a',
+        toDeviceId: 'dev-c',
+        fromPort: { type: 'ethernet', index: 1 },
+        toPort: { type: 'ethernet', index: 1 },
+        type: 'ethernet',
+        color: '#0ea5e9'
+      },
+      {
+        fromDeviceId: 'dev-b',
+        toDeviceId: 'dev-d',
+        fromPort: { type: 'ethernet', index: 1 },
+        toPort: { type: 'ethernet', index: 1 },
+        type: 'ethernet',
+        color: '#0ea5e9'
+      }
+    ]);
+
+    const afterAdd = useRackStore.getState();
+    expect(afterAdd.layout.cables.length).toBe(beforeCableCount + 2);
+    expect(afterAdd.selectedCableId).toBe(afterAdd.layout.cables[afterAdd.layout.cables.length - 1].id);
+
+    useRackStore.getState().undo();
+    expect(useRackStore.getState().layout.cables.length).toBe(beforeCableCount);
+  });
+
   it('removeCable deletes cable and clears selection', () => {
     useRackStore.getState().loadLayout(testLayout);
     useRackStore.getState().selectCable('cable-ab');
