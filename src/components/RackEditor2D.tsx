@@ -19,6 +19,7 @@ const COMPACT_SIDE_PORT_MIN_WIDTH = 310;
 const FIXED_PORT_CELL_WIDTH = 18;
 const SIDE_STRIP_WIDTH = 110;
 const SIDE_STRIP_GAP = 16;
+const RACK_FRAME_BORDER_PX = 16;
 const EDITOR_TOOL_BUTTON_CLASS = 're-tb';
 const EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS = 're-tbl';
 const EDITOR_TOGGLE_INACTIVE_CLASS = 're-ti';
@@ -274,6 +275,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   }, [layout, selectedCableId]);
 
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
+  const rackOuterWidth = rackWidth + RACK_FRAME_BORDER_PX * 2;
   const rackHeight = layout.heightU * BASE_UNIT_HEIGHT;
   const rackUsable = RACK_SPECS[layout.rackType].usableWidthMm;
   const cg = useMemo(() => getCenterOfGravityU(layout), [layout]);
@@ -385,8 +387,8 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   function xFromClientX(clientX: number, device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU'>, offsetX = 0) {
     const rackRect = rackRef.current?.getBoundingClientRect();
     if (!rackRect) return 0;
-    const rawLeft = clientX - rackRect.left - offsetX;
-    return clampDeviceX(layout, device, (rawLeft / rackRect.width) * rackUsable);
+    const rawLeft = clientX - rackRect.left - RACK_FRAME_BORDER_PX - offsetX;
+    return clampDeviceX(layout, device, (rawLeft / rackWidth) * rackUsable);
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
@@ -396,7 +398,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     const template = deviceCatalog.find((item) => item.id === templateId);
     if (!template) return;
     const positionU = positionFromClientY(event.clientY, template.defaultU);
-    const templateWidthPx = (Math.min(getDeviceWidthMm(template), rackUsable) / rackUsable) * (rackRef.current?.getBoundingClientRect().width ?? rackWidth);
+    const templateWidthPx = (Math.min(getDeviceWidthMm(template), rackUsable) / rackUsable) * rackWidth;
     const xMm = xFromClientX(event.clientX, { widthType: template.widthType, customWidthMm: template.customWidthMm, sizeU: template.defaultU }, templateWidthPx / 2);
     addDeviceFromTemplate(templateId, positionU, xMm);
   }
@@ -672,8 +674,9 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
             </div>
             <div
               ref={rackRef}
+              data-testid="rack-frame"
               className="relative border-x-[16px] border-slate-400 bg-white shadow-panel dark:border-slate-700 dark:bg-slate-950"
-              style={{ width: rackWidth, height: rackHeight }}
+              style={{ width: rackOuterWidth, height: rackHeight }}
               onDragOver={(event) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'copy';
