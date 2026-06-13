@@ -18,6 +18,7 @@ import { calculateCablePlan, estimateCableLength, getCableSlackBudget, pathDescr
 import { formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
 import { exportBomCsv, exportBomText } from '../utils/exporters';
 import { getPatchPanelLinkedCableIds, patchPanelRouteLabel } from '../utils/patchPanel';
+import { autoWireLayout } from '../utils/autoWire';
 import {
   autoResolveCable,
   getFreePortSummary,
@@ -378,6 +379,7 @@ function portRefFromChoice(choice: PortChoice): PortRef {
 export function CablePlanner() {
   const layout = useRackStore((state) => state.layout);
   const addCable = useRackStore((state) => state.addCable);
+  const addCables = useRackStore((state) => state.addCables);
   const removeCable = useRackStore((state) => state.removeCable);
   const updateCable = useRackStore((state) => state.updateCable);
   const selectCable = useRackStore((state) => state.selectCable);
@@ -568,6 +570,11 @@ export function CablePlanner() {
     setStage('idle');
   }
 
+  function handleAutoWire() {
+    const result = autoWireLayout(layout);
+    addCables(result.cables);
+  }
+
   function handleSelectChoice(choice: PortChoice) {
     // Manual port pick from DeviceFaceCard
     if (!isSelectingDest(stage)) {
@@ -658,6 +665,16 @@ export function CablePlanner() {
                 <Link2 size={15} />
                 {stage === 'idle' ? 'Add cable' : isSelectingDest(stage) ? 'Pick destination' : 'Pick source'}
               </button>
+              {stage === 'idle' && (
+                <button
+                  type="button"
+                  onClick={handleAutoWire}
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl border border-cyan-500 bg-white/80 px-3 text-sm font-semibold text-cyan-600 shadow-sm hover:bg-cyan-50 dark:border-cyan-400 dark:bg-slate-950/70 dark:text-cyan-300 dark:hover:bg-slate-900"
+                >
+                  <Cable size={15} />
+                  Auto-wire
+                </button>
+              )}
               {lastSourceDeviceId && stage === 'idle' && (
                 <button
                   className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-white/80 px-3 text-xs font-medium text-slate-600 shadow-sm hover:bg-white dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:bg-slate-900"
