@@ -4,7 +4,7 @@ import type { DeviceTemplate, ViewSide } from '../types/rack';
 import { getFaceplateArtifact, getFaceplateSvg } from '../utils/faceplateSvg';
 import { getDeviceFaceSizeMm } from '../utils/rackMath';
 
-const DISPLAY_WIDTH = 400;
+const MAX_DISPLAY_WIDTH = 400;
 
 export function FaceplateGallery() {
   return (
@@ -23,11 +23,11 @@ export function FaceplateGallery() {
               customWidthMm: template.customWidthMm,
               sizeU: template.defaultU,
             });
-            const displayHeight = Math.max(28, DISPLAY_WIDTH * (height / width));
+            const aspectRatio = width > 0 ? width / height : 1;
             return (
               <div
                 key={template.id}
-                className="rounded border border-slate-700 bg-slate-900 p-4"
+                className="min-w-0 rounded border border-slate-700 bg-slate-900 p-4"
               >
                 <h2 className="mb-3 text-sm font-semibold">{template.name}</h2>
                 <div className="flex flex-col gap-3">
@@ -42,7 +42,7 @@ export function FaceplateGallery() {
                         <FaceplatePreview
                           template={template}
                           face={face}
-                          displayHeight={displayHeight}
+                          aspectRatio={aspectRatio}
                         />
                       </div>
                     );
@@ -59,11 +59,11 @@ export function FaceplateGallery() {
 function FaceplatePreview({
   template,
   face,
-  displayHeight,
+  aspectRatio,
 }: {
   template: DeviceTemplate;
   face: ViewSide;
-  displayHeight: number;
+  aspectRatio: number;
 }) {
   const artifact = getFaceplateArtifact(template, face);
   const [failed, setFailed] = useState(false);
@@ -73,8 +73,12 @@ function FaceplatePreview({
       <img
         src={artifact.path}
         alt={`${template.name} ${face}`}
-        className="border border-slate-700 bg-black object-contain"
-        style={{ width: DISPLAY_WIDTH, height: displayHeight }}
+        className="block w-full max-w-full rounded border border-slate-700 bg-black object-contain"
+        style={{
+          maxWidth: `${MAX_DISPLAY_WIDTH}px`,
+          aspectRatio,
+          height: 'auto',
+        }}
         onError={() => setFailed(true)}
       />
     );
@@ -83,9 +87,12 @@ function FaceplatePreview({
   const svg = getFaceplateSvg(template, face);
   return (
     <div
-      className="border border-slate-700 bg-black"
+      className="w-full max-w-full overflow-hidden rounded border border-slate-700 bg-black [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full [&>svg]:!w-full]"
       dangerouslySetInnerHTML={{ __html: svg }}
-      style={{ width: DISPLAY_WIDTH, height: displayHeight }}
+      style={{
+        maxWidth: `${MAX_DISPLAY_WIDTH}px`,
+        aspectRatio,
+      }}
       aria-label={`${template.name} ${face} generated faceplate`}
     />
   );
