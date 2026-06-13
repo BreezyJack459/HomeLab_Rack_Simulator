@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Cable, Command, Monitor, Network, Search } from 'lucide-react';
+import { Box, Cable, Command, LayoutGrid, Monitor, Network, Search } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import type { AppWorkspace } from '../types/appShell';
 import type { RackLayout, ViewMode, Workspace } from '../types/rack';
@@ -10,7 +10,12 @@ const viewMeta: Record<ViewMode, { label: string; icon: ReactNode }> = {
   '3d': { label: '3D', icon: <Box size={14} /> },
   cables: { label: 'Cables', icon: <Cable size={14} /> },
   topology: { label: 'Topology', icon: <Network size={14} /> },
+  gallery: { label: 'Gallery', icon: <LayoutGrid size={14} /> },
 };
+
+const visibleViewModes: ViewMode[] = import.meta.env.DEV
+  ? ['2d', '3d', 'cables', 'topology', 'gallery']
+  : ['2d', '3d', 'cables', 'topology'];
 
 const workspaceLabel: Record<AppWorkspace, string> = {
   model: 'Build',
@@ -74,13 +79,14 @@ export function TopContextBar({
 
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-              {Object.entries(viewMeta).map(([mode, meta]) => {
+              {visibleViewModes.map((mode) => {
+                const meta = viewMeta[mode];
                 const active = viewMode === mode;
                 return (
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => onToggleViewMode(mode as ViewMode)}
+                    onClick={() => onToggleViewMode(mode)}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
                       active
                         ? 'bg-cyan-500 text-white shadow-sm'

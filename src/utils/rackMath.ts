@@ -229,6 +229,14 @@ const STANDARD_U_MM = 44.45;
 const CABLE_SLACK_MM = 300;
 const STANDARD_LENGTHS_MM = [500, 1000, 1500, 2000, 3000, 4000, 5000, 7000, 10000];
 
+export function getDeviceFaceSizeMm(
+  device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU'>
+): { width: number; height: number } {
+  const width = getDeviceWidthMm(device);
+  const height = Math.max(device.sizeU, 1) * STANDARD_U_MM;
+  return { width, height };
+}
+
 export function standardCableLength(estimatedMm: number): number {
   for (const length of STANDARD_LENGTHS_MM) {
     if (estimatedMm <= length) return length;

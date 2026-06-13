@@ -1,13 +1,14 @@
 import { Bug, Move, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { DragEvent, PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { deviceCatalog } from '../data/deviceCatalog';
+import { getTemplateById, templateFromDevice } from '../data/deviceCatalog';
 import { useRackStore } from '../store/rackStore';
-import type { DeviceCategory, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
-import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import type { DeviceCategory, DeviceTemplate, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
+import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceFaceSizeMm, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { getPortFaceMap, type PortSlot } from '../utils/portLayout';
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { getReservationXRange } from '../utils/reservations';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
+import { getFaceplateArtifact, getHitRegions, type PortHitRegion } from '../utils/faceplateSvg';
 
 const BASE_UNIT_HEIGHT = 34;
 const SIDE_LABEL_OFFSET = 78;
@@ -186,21 +187,6 @@ function PortStrip({ ports, compact }: { ports?: PortLayout; compact: boolean })
   );
 }
 
-function RearFaceHint({ compact }: { compact: boolean }) {
-  return (
-    <div
-      className={`grid shrink-0 grid-cols-3 gap-1 rounded border border-slate-400 bg-slate-200 p-1 dark:border-slate-700 dark:bg-slate-950/28 ${
-        compact ? 'w-14' : 'w-20'
-      }`}
-      title="Rear chassis ventilation"
-    >
-      {Array.from({ length: compact ? 9 : 12 }, (_, index) => (
-        <span key={index} className="h-1 rounded-full bg-slate-300 dark:bg-slate-400/25" />
-      ))}
-    </div>
-  );
-}
-
 function deviceVisual(layout: RackLayout, device: PlacedDevice, rackWidth: number) {
   const rackUsable = RACK_SPECS[layout.rackType].usableWidthMm;
   const range = getDeviceXRange(layout, device);
@@ -372,6 +358,19 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
       });
   }, [layout, rackWidth, rackDevices]);
 
+  const hitRegionMap = useMemo(() => {
+    const map = new Map<string, PortHitRegion[]>();
+    for (const device of rackDevices) {
+      if (isZeroU(device)) continue;
+      const template = getTemplateById(device.templateId) ?? templateFromDevice(device);
+      const key = `${template.id}:${layout.viewSide}`;
+      if (!map.has(key)) {
+        map.set(key, getHitRegions(template, layout.viewSide));
+      }
+    }
+    return map;
+  }, [rackDevices, layout.viewSide]);
+
   function positionFromClientY(clientY: number, sizeU: number, offsetY = 0) {
     const rackRect = rackRef.current?.getBoundingClientRect();
     if (!rackRect) return 1;
@@ -393,7 +392,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     event.preventDefault();
     const templateId = event.dataTransfer.getData('application/x-rack-template');
     if (!templateId) return;
-    const template = deviceCatalog.find((item) => item.id === templateId);
+    const template = getTemplateById(templateId);
     if (!template) return;
     const positionU = positionFromClientY(event.clientY, template.defaultU);
     const templateWidthPx = (Math.min(getDeviceWidthMm(template), rackUsable) / rackUsable) * (rackRef.current?.getBoundingClientRect().width ?? rackWidth);
@@ -802,10 +801,12 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   : visual.left;
                 const selected = selectedDeviceId === device.id;
                 const compact = !deviceIsZeroU && height <= 42;
-                const visiblePorts = portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, isZeroU(device));
-                const hasVisiblePorts = portItems(visiblePorts).length > 0;
-                const useSidePorts = compact && hasVisiblePorts && width < COMPACT_SIDE_PORT_MIN_WIDTH;
                 const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
+                const template = getTemplateById(device.templateId) ?? templateFromDevice(device);
+                const artifact = getFaceplateArtifact(template, layout.viewSide);
+                const hitRegions = hitRegionMap.get(`${template.id}:${layout.viewSide}`) ?? [];
+                const { width: faceWidthMm, height: faceHeightMm } = getDeviceFaceSizeMm(device);
+                const faceAspect = faceWidthMm / faceHeightMm;
                 return (
                   <div
                     key={device.id}
@@ -847,16 +848,50 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   >
                     {selected && !deviceIsZeroU && (
                       <div
-                        className="absolute bottom-0 left-1/2 z-10 h-1.5 w-8 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-slate-500 dark:border-slate-600 bg-slate-400 dark:bg-slate-600 hover:bg-cyan-500 dark:hover:bg-cyan-300"
+                        className="absolute bottom-0 left-1/2 z-30 h-1.5 w-8 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-slate-500 dark:border-slate-600 bg-slate-400 dark:bg-slate-600 hover:bg-cyan-500 dark:hover:bg-cyan-300"
                         onPointerDown={(event) => startResize(event, device)}
                       />
                     )}
+                    <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+                      <div
+                        className="relative h-full"
+                        style={{ aspectRatio: faceAspect }}
+                      >
+                        {artifact.kind === 'image' ? (
+                          <img src={artifact.path} alt="" className="pointer-events-none h-full w-full object-contain" />
+                        ) : (
+                          <div
+                            className="pointer-events-none h-full w-full"
+                            dangerouslySetInnerHTML={{ __html: artifact.svg }}
+                          />
+                        )}
+                        {hitRegions.length > 0 && (
+                          <>
+                            {hitRegions.map((r) => (
+                              <div
+                                key={`${r.type}-${r.index}`}
+                                title={r.label ? r.label : `${r.type} ${r.index + 1}`}
+                                aria-label={r.label ? r.label : `${r.type} ${r.index + 1}`}
+                                role="img"
+                                className="absolute z-20 hover:bg-white/20"
+                                style={{
+                                  left: `${(r.x / faceWidthMm) * 100}%`,
+                                  top: `${(r.y / faceHeightMm) * 100}%`,
+                                  width: `${(r.width / faceWidthMm) * 100}%`,
+                                  height: `${(r.height / faceHeightMm) * 100}%`
+                                }}
+                              />
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
                     <div
-                      className={`flex h-full min-h-0 gap-2 overflow-hidden ${
-                        useSidePorts ? 'flex-row items-center justify-between' : compact ? 'flex-col justify-center' : 'flex-col justify-between'
+                      className={`relative z-10 flex h-full min-h-0 gap-2 overflow-hidden ${
+                        compact ? 'flex-col justify-center' : 'flex-col justify-between'
                       }`}
                     >
-                      <div className={`min-w-0 ${useSidePorts ? 'flex-1' : ''}`}>
+                      <div className="min-w-0">
                         <div className={`rd-n truncate font-semibold ${compact ? 'text-xs leading-4' : 'text-sm'}`}>
                           {device.label || device.name}
                         </div>
@@ -876,15 +911,6 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                           </div>
                         )}
                       </div>
-                      {useSidePorts ? (
-                        <div className="ml-auto w-[46%] min-w-[76px] shrink-0">
-                          <PortStrip ports={visiblePorts} compact />
-                        </div>
-                      ) : (
-                        <PortStrip ports={visiblePorts} compact={compact} />
-                      )}
-                      {layout.viewSide === 'rear' && !hasVisiblePorts && <RearFaceHint compact={compact} />}
-                      {layout.viewSide === 'rear' && !compact && <RearFaceHint compact={false} />}
                       {selected && device.ports && (
                         <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                           {(

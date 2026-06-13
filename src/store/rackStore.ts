@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { deviceCatalog } from '../data/deviceCatalog';
+import { getTemplateById } from '../data/deviceCatalog';
 import { sampleLayouts } from '../data/sampleLayouts';
 import type { CableRoute, DeviceTemplate, PlacedDevice, RackDebtItem, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable, PortRef } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
@@ -59,6 +59,7 @@ function templateToDevice(template: DeviceTemplate, positionU: number, xMm?: num
     ports: template.ports,
     portFaceOverrides: template.portFaceOverrides,
     portLayouts: template.portLayouts,
+    faceplate: template.faceplate,
     mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
     mountSide0U: template.mountSide0U,
     outletFacing: template.outletFacing,
@@ -356,7 +357,7 @@ export const useRackStore = create<RackState>((set, get) => ({
   canRedo: () => get().historyIndex < get().history.length - 1,
 
   addDeviceFromTemplate: (templateId, requestedPositionU, requestedXMm) => {
-    const template = deviceCatalog.find((item) => item.id === templateId);
+    const template = getTemplateById(templateId);
     if (!template) return false;
     if (shouldHideDevice(template)) {
       set({ statusMessage: `${template.name} is hidden until 0U PDU support is redesigned.` });

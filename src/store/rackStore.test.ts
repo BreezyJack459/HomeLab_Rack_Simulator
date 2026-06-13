@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useRackStore } from './rackStore';
+import { deviceCatalog } from '../data/deviceCatalog';
 import type { RackLayout } from '../types/rack';
 
 const testLayout: RackLayout = {
@@ -224,6 +225,18 @@ describe('rackStore incremental cable recompute', () => {
 describe('rackStore store operations', () => {
   beforeEach(() => {
     useRackStore.getState().newLayout('19in', 12);
+  });
+
+  it('addDeviceFromTemplate preserves faceplate, portLayouts, and portFaceOverrides', () => {
+    const template = deviceCatalog.find((t) => t.id === 'apc-gaming-ups')!;
+
+    const added = useRackStore.getState().addDeviceFromTemplate('apc-gaming-ups', 1);
+
+    expect(added).toBe(true);
+    const device = useRackStore.getState().layout.devices[0];
+    expect(device.faceplate).toEqual(template.faceplate);
+    expect(device.portLayouts).toEqual(template.portLayouts);
+    expect(device.portFaceOverrides).toEqual(template.portFaceOverrides);
   });
 
   it('addDeviceFromTemplate adds device and selects it', () => {
