@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RackEditor2D } from './RackEditor2D';
@@ -60,9 +61,11 @@ describe('RackEditor2D frame sizing', () => {
 
     const rackFrame = screen.getByTestId('rack-frame');
     const device = screen.getByText('Full-width Server').closest('[data-device-id]');
+    if (!(device instanceof HTMLElement)) {
+      throw new Error('Expected full-width device card to render');
+    }
 
     expect(rackFrame).toHaveStyle({ width: '592px' });
-    expect(device).not.toBeNull();
     expect(device).toHaveStyle({ left: '0px', width: '560px' });
   });
 });
