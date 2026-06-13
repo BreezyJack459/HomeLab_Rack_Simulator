@@ -64,7 +64,7 @@ function ActionMenu({
   testId?: string;
 }) {
   return (
-    <details ref={menuRef} className="relative" data-testid={testId}>
+    <details ref={menuRef as React.LegacyRef<HTMLDetailsElement>} className="relative" data-testid={testId}>
       <summary className={`${MENU_TRIGGER_CLASS} list-none`} role="button" aria-label={label}>
         {summary}
         <ChevronDown size={13} />
