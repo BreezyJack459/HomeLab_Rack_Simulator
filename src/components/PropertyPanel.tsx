@@ -112,31 +112,33 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
           const override = device.portFaceOverrides?.[pt.key];
           const currentFace = override ?? defaultFace;
           return (
-            <div key={pt.key} className="flex items-center gap-2">
-              <span className="w-16 text-xs text-slate-500 dark:text-slate-400">{pt.label}</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-600">default {defaultFace}</span>
-              <select
-                className="ml-auto h-7 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                value={override ?? ''}
-                onChange={(event) => {
-                  const value = event.target.value as 'front' | 'rear' | '';
-                  const next = { ...(device.portFaceOverrides ?? {}) };
-                  if (value === '') {
-                    delete next[pt.key];
-                  } else {
-                    next[pt.key] = value;
-                  }
-                  patch({ portFaceOverrides: Object.keys(next).length > 0 ? next : undefined });
-                }}
-              >
-                <option value="">Default ({defaultFace})</option>
-                <option value="front">Front</option>
-                <option value="rear">Rear</option>
-              </select>
-              <span
-                className={`h-2 w-2 rounded-full ${currentFace === 'front' ? 'bg-cyan-400' : 'bg-orange-400'}`}
-                title={currentFace}
-              />
+            <div key={pt.key} className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-2">
+              <span className="pt-1 text-xs text-slate-500 dark:text-slate-400">{pt.label}</span>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="text-[10px] text-slate-400 dark:text-slate-600">default {defaultFace}</span>
+                <select
+                  className="h-7 min-w-0 flex-1 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  value={override ?? ''}
+                  onChange={(event) => {
+                    const value = event.target.value as 'front' | 'rear' | '';
+                    const next = { ...(device.portFaceOverrides ?? {}) };
+                    if (value === '') {
+                      delete next[pt.key];
+                    } else {
+                      next[pt.key] = value;
+                    }
+                    patch({ portFaceOverrides: Object.keys(next).length > 0 ? next : undefined });
+                  }}
+                >
+                  <option value="">Default ({defaultFace})</option>
+                  <option value="front">Front</option>
+                  <option value="rear">Rear</option>
+                </select>
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${currentFace === 'front' ? 'bg-cyan-400' : 'bg-orange-400'}`}
+                  title={currentFace}
+                />
+              </div>
             </div>
           );
         })}
@@ -187,12 +189,12 @@ function renderPortAliases(
             <div className="mb-2 space-y-1">
               {Object.entries(aliases).map(([key, alias]) => (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{key}</span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500">→</span>
-                  <span className="flex-1 text-xs text-slate-700 dark:text-slate-200">{alias}</span>
+                  <span className="shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">{key}</span>
+                  <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">→</span>
+                  <span className="min-w-0 flex-1 break-words text-xs text-slate-700 dark:text-slate-200">{alias}</span>
                   <button
                     type="button"
-                    className="inline-flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
+                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
                     onClick={() => {
                       const next = { ...aliases };
                       delete next[key];
@@ -205,9 +207,9 @@ function renderPortAliases(
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2">
+          <div className="grid gap-2">
             <select
-              className="h-7 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className="h-8 min-w-0 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               value={selectedAliasKey}
               onChange={(event) => setSelectedAliasKey(event.target.value)}
             >
@@ -222,14 +224,14 @@ function renderPortAliases(
             </select>
             <input
               type="text"
-              className="h-7 flex-1 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              className="h-8 min-w-0 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               placeholder="Alias name"
               value={aliasInput}
               onChange={(event) => setAliasInput(event.target.value)}
             />
             <button
               type="button"
-              className="inline-flex h-7 items-center rounded-md border border-slate-300 bg-slate-200 px-2 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-slate-300 bg-slate-200 px-2 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
               onClick={() => {
                 if (!selectedAliasKey || !aliasInput.trim()) return;
                 patch({
@@ -390,7 +392,7 @@ export function PropertyPanel() {
               </div>
 
               <PropertySection title="Overview">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3">
                 <label className="text-xs text-slate-500 dark:text-slate-400">
                   Name
                   <input
@@ -408,7 +410,7 @@ export function PropertyPanel() {
                     placeholder="Optional front label"
                   />
                 </label>
-                <label className="text-xs text-slate-500 dark:text-slate-400 md:col-span-2">
+                <label className="text-xs text-slate-500 dark:text-slate-400">
                   Description
                   <textarea
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
@@ -422,8 +424,8 @@ export function PropertyPanel() {
               </PropertySection>
 
               <PropertySection title="Physical">
-                <div className="grid gap-3 md:grid-cols-2">
-                <label className="text-xs text-slate-500 dark:text-slate-400 md:col-span-2">
+                <div className="space-y-3">
+                <label className="block text-xs text-slate-500 dark:text-slate-400">
                   Mount side
                   <select
                     className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
@@ -436,11 +438,11 @@ export function PropertyPanel() {
                 </label>
 
                 {ENABLE_ZERO_U_PDU && device.sizeU === 0 && (
-                  <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
                     <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                       0U Mount
                     </div>
-                    <div className="grid gap-2 md:grid-cols-2">
+                    <div className="grid gap-2">
                       <label className="text-xs text-slate-500 dark:text-slate-400">
                         Mount type
                         <select
@@ -479,7 +481,7 @@ export function PropertyPanel() {
                   </div>
                 )}
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3">
                   <NumberField label="Position U" min={1} max={layout.heightU} value={device.positionU} onChange={(value) => patch({ positionU: value })} />
                   <NumberField
                     label="X offset mm"
@@ -494,7 +496,7 @@ export function PropertyPanel() {
                   <NumberField label="Weight kg" min={0} step={0.1} value={device.weightKg} onChange={(value) => patch({ weightKg: value })} />
                 </div>
 
-                <div className="grid grid-cols-[minmax(0,1fr)_92px] gap-3">
+                <div className="grid gap-3 [grid-template-columns:minmax(0,1fr)_92px]">
                   <label className="text-xs text-slate-500 dark:text-slate-400">
                     Width type
                     <select
@@ -520,18 +522,20 @@ export function PropertyPanel() {
                 </div>
 
                 {(device.widthType === 'custom' || device.widthType === 'shelf') && (
-                  <NumberField
-                    label="Custom width mm"
-                    min={40}
-                    value={device.customWidthMm ?? 220}
-                    onChange={(value) => patch({ customWidthMm: value })}
-                  />
+                  <div className="max-w-full">
+                    <NumberField
+                      label="Custom width mm"
+                      min={40}
+                      value={device.customWidthMm ?? 220}
+                      onChange={(value) => patch({ customWidthMm: value })}
+                    />
+                  </div>
                 )}
                 </div>
               </PropertySection>
 
               <PropertySection title="Power & Lifecycle">
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3">
                   <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
                   <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                     Heat
@@ -577,8 +581,8 @@ export function PropertyPanel() {
                 )}
 
                 {canSetShutdownPriority(device) && (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400 md:col-span-2">
+                  <div className="grid gap-3">
+                    <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                       Boot depends on
                       <select
                         multiple
@@ -632,7 +636,7 @@ export function PropertyPanel() {
 
               <PropertySection title="Ports & Connectivity">
                 <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2">
                     <NumberField label="ETH" min={0} value={device.ports?.ethernet ?? 0} onChange={(value) => patchPort('ethernet', value)} />
                     <NumberField label="Fiber" min={0} value={device.ports?.fiber ?? 0} onChange={(value) => patchPort('fiber', value)} />
                     <NumberField label="USB" min={0} value={device.ports?.usb ?? 0} onChange={(value) => patchPort('usb', value)} />
