@@ -13,9 +13,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.indexOf('node_modules/three') !== -1 || id.indexOf('node_modules/@react-three') !== -1) {
-            return 'vendor-three';
-          }
           if (
             id.indexOf('node_modules/react') !== -1 ||
             id.indexOf('node_modules/react-dom') !== -1 ||

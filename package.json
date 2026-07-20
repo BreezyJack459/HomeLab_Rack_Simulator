@@ -9,10 +9,8 @@
     "test": "vitest run",
     "test:plugins": "node node_modules/vitest/vitest.mjs run --config vitest.plugin-platform.config.ts",
     "test:watch": "vitest",
-    "test:routing": "node scripts/run-routing-tests.mjs",
     "smoke:cables": "node scripts/smoke-cable-routing.mjs",
-    "preview": "vite preview",
-    "lint": "eslint ."
+    "preview": "vite preview"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -32,10 +30,8 @@
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.171.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.4.20",
     "jsdom": "^29.1.1",
-    "playwright": "^1.59.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.22.4",

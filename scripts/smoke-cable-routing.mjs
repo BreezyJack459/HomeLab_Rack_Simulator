@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 
 const baseUrl = process.env.SMOKE_URL ?? 'http://127.0.0.1:5173';
 const outDir = resolve('artifacts/smoke');

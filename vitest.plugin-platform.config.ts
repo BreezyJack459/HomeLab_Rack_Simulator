@@ -6,7 +6,6 @@ export default defineConfig({
     environment: 'node',
     fileParallelism: false,
     maxWorkers: 1,
-    minWorkers: 1,
     include: [
       'src/plugins/pluginHost.test.ts',
       'src/plugins/pluginCatalog.test.ts',

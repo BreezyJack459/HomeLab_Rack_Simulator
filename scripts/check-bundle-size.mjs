@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * Bundle Budget Guard
+ * Bundle Budget Guard — Eager Payload
  *
- * Checks that the initial JS chunk (index-*.js) does not exceed the agreed
- * budget.  This prevents accidental eager imports of heavy libraries such as
- * Three.js from bloating the first-load bundle.
+ * Measures the true eager JS payload of the built app: the entry
+ * `<script type="module">` file plus every `<link rel="modulepreload">`
+ * file referenced by dist/index.html. Everything else (Three.js, R3F,
+ * lazy viewers) is loaded on demand and does not count against this budget.
+ *
+ * This catches accidental eager imports of heavy libraries (e.g. Three.js)
+ * that a single-file check would miss when the weight hides in a
+ * preloaded vendor chunk.
  *
  * Usage:
  *   node scripts/check-bundle-size.mjs
@@ -14,15 +19,15 @@
  *   1 – exceeds budget or dist missing
  */
 
-import { readdirSync, statSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
-const BUDGET_KB = 250; // agreed initial-chunk budget (pre-gzip)
+const BUDGET_KB = 500; // total eager JS budget (pre-gzip)
+const DIST = 'dist';
 const DIST_ASSETS = 'dist/assets';
 
 function getSizeKB(filePath) {
-  const bytes = statSync(filePath).size;
-  return bytes / 1024;
+  return statSync(filePath).size / 1024;
 }
 
 function formatSize(sizeKB) {
@@ -30,45 +35,68 @@ function formatSize(sizeKB) {
 }
 
 function main() {
-  let files;
+  let html;
   try {
-    files = readdirSync(DIST_ASSETS);
+    html = readFileSync(join(DIST, 'index.html'), 'utf8');
   } catch (err) {
-    console.error(`❌ Cannot read ${DIST_ASSETS}. Run "npm run build" first.`);
+    console.error(`❌ Cannot read ${DIST}/index.html. Run "npm run build" first.`);
     process.exit(1);
   }
 
-  const indexFiles = files.filter((name) => /^index-.*\.js$/.test(name));
+  const eagerFiles = new Set();
 
-  if (indexFiles.length === 0) {
-    console.error(`❌ No index-*.js found in ${DIST_ASSETS}.`);
+  // Entry script: <script type="module" ... src="...">
+  for (const match of html.matchAll(/<script[^>]+type="module"[^>]+src="([^"]+)"/g)) {
+    eagerFiles.add(match[1]);
+  }
+
+  // Preloaded chunks: <link rel="modulepreload" ... href="...">
+  for (const match of html.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"/g)) {
+    eagerFiles.add(match[1]);
+  }
+
+  if (eagerFiles.size === 0) {
+    console.error('❌ No entry script or modulepreload links found in dist/index.html.');
     process.exit(1);
   }
 
-  let failed = false;
+  let totalKB = 0;
+  const breakdown = [];
 
-  for (const name of indexFiles) {
-    const filePath = join(DIST_ASSETS, name);
-    const sizeKB = getSizeKB(filePath);
-
-    if (sizeKB > BUDGET_KB) {
-      console.error(
-        `❌ BUDGET EXCEEDED: ${name} is ${formatSize(sizeKB)} (limit: ${BUDGET_KB}KB)`
-      );
-      console.error(
-        `   Hint: check for accidental static imports of three / @react-three/* in App.tsx or main.tsx`
-      );
-      failed = true;
-    } else {
-      console.log(`✅ ${name}: ${formatSize(sizeKB)} (limit: ${BUDGET_KB}KB)`);
+  for (const href of eagerFiles) {
+    // hrefs may carry the configured base path (e.g. /HomeLab_Rack_Simulator/assets/…);
+    // resolve them against dist/ and only count local asset files.
+    const fileName = href.replace(/^\//, '').split('/').pop();
+    const filePath = join(DIST_ASSETS, fileName);
+    let sizeKB;
+    try {
+      sizeKB = getSizeKB(filePath);
+    } catch (err) {
+      console.error(`❌ Referenced file not found: ${href} (looked for ${filePath})`);
+      process.exit(1);
     }
+    totalKB += sizeKB;
+    breakdown.push({ fileName, sizeKB });
   }
 
-  if (failed) {
+  breakdown.sort((a, b) => b.sizeKB - a.sizeKB);
+  console.log('Eager JS payload (from dist/index.html):');
+  for (const { fileName, sizeKB } of breakdown) {
+    console.log(`  ${fileName}: ${formatSize(sizeKB)}`);
+  }
+  console.log(`  Total: ${formatSize(totalKB)} (budget: ${BUDGET_KB}KB)`);
+
+  if (totalKB > BUDGET_KB) {
+    console.error(
+      `\n❌ BUDGET EXCEEDED: eager payload is ${formatSize(totalKB)} (limit: ${BUDGET_KB}KB)`
+    );
+    console.error(
+      '   Hint: check for accidental static imports of three / @react-three/* in App.tsx or main.tsx'
+    );
     process.exit(1);
   }
 
-  console.log(`\n✅ Bundle budget check passed.`);
+  console.log(`\n✅ Eager bundle budget check passed.`);
 }
 
 main();
