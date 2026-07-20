@@ -72,6 +72,51 @@ function insertGravitySag(points: Vector3[], amount: number, realistic: boolean)
   return result;
 }
 
+function pushFrontPatchLoopPoints(
+  points: Vector3[],
+  fromPort: Vector3,
+  toPort: Vector3,
+  frontPlaneZ: number,
+  cableIndex: number,
+  managerY: number
+): void {
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const cubic = (p0: number, p1: number, p2: number, p3: number, t: number) => {
+    const inv = 1 - t;
+    return inv * inv * inv * p0
+      + 3 * inv * inv * t * p1
+      + 3 * inv * t * t * p2
+      + t * t * t * p3;
+  };
+  const stagger = (cableIndex % 7) * 0.012;
+  const laneSpread = ((cableIndex % 6) - 2.5) * 0.008;
+  const exitZ = frontPlaneZ + 0.024 + stagger * 0.22;
+  const verticalGap = Math.abs(fromPort.y - toPort.y);
+  const horizontalGap = Math.abs(toPort.x - fromPort.x);
+  const loopDepth = Math.max(0.075, Math.min(0.26, 0.06 + horizontalGap * 0.16 + verticalGap * 0.52));
+  const loopY = Math.min(
+    managerY - 0.004 + laneSpread,
+    Math.min(fromPort.y, toPort.y) - loopDepth
+  );
+  const forwardBulge = Math.max(0.055, Math.min(0.16, 0.04 + horizontalGap * 0.12 + verticalGap * 0.16)) + stagger * 0.45;
+  const loopZ = exitZ + forwardBulge;
+  const samples = [0.07, 0.14, 0.22, 0.31, 0.41, 0.5, 0.59, 0.69, 0.78, 0.86, 0.93];
+
+  const startControlY = lerp(fromPort.y, loopY, 0.58);
+  const endControlY = lerp(toPort.y, loopY, 0.58);
+
+  pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+  pushPoint(points, fromPort.x, startControlY, exitZ);
+  for (const t of samples) {
+    const x = cubic(fromPort.x, fromPort.x, toPort.x, toPort.x, t);
+    const y = cubic(fromPort.y, startControlY, endControlY, toPort.y, t);
+    const z = cubic(exitZ, loopZ, loopZ, exitZ, t);
+    pushPoint(points, x, y, z);
+  }
+  pushPoint(points, toPort.x, endControlY, exitZ);
+  pushPoint(points, toPort.x, toPort.y, toPort.z);
+}
+
 export function buildCablePath3D(
   cable: CableRoute,
   plan: CablePlan,
@@ -95,6 +140,7 @@ export function buildCablePath3D(
   const fromFace = getCablePortFace(from, cable.fromPort);
   const toFace = getCablePortFace(to, cable.toPort);
   const isDirectPath = !hasRailNodes && fromFace === toFace;
+  const realistic = cableRoutingMode === 'realistic';
   const points: Vector3[] = [];
 
   if (isDirectPath) {
@@ -110,19 +156,23 @@ export function buildCablePath3D(
         ? devicePosition(layout, managerWaypoint.deviceId, rackWidth, rackDepth, rackHeight)
         : null;
       const baseZ = Math.max(fromPort.z, toPort.z);
-      const laneZ = (managerBox ? managerBox.z + managerBox.depth / 2 : baseZ) + 0.075 + stagger;
       const laneSpread = ((cableIndex % 6) - 2.5) * 0.012;
       const managerY = managerBox ? managerBox.y + laneSpread : midY + laneSpread;
-      const exitZ = baseZ + 0.035 + stagger;
-      pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
-      pushPoint(points, fromPort.x, fromPort.y, exitZ);
-      pushPoint(points, fromPort.x, managerY, exitZ);
-      pushPoint(points, fromPort.x, managerY, laneZ);
-      pushPoint(points, midX, managerY, laneZ);
-      pushPoint(points, toPort.x, managerY, laneZ);
-      pushPoint(points, toPort.x, managerY, exitZ);
-      pushPoint(points, toPort.x, toPort.y, exitZ);
-      pushPoint(points, toPort.x, toPort.y, toPort.z);
+      if (realistic && plan.discipline === 'patch') {
+        pushFrontPatchLoopPoints(points, fromPort, toPort, baseZ, cableIndex, managerY);
+      } else {
+        const laneZ = (managerBox ? managerBox.z + managerBox.depth / 2 : baseZ) + 0.075 + stagger;
+        const exitZ = baseZ + 0.035 + stagger;
+        pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
+        pushPoint(points, fromPort.x, fromPort.y, exitZ);
+        pushPoint(points, fromPort.x, managerY, exitZ);
+        pushPoint(points, fromPort.x, managerY, laneZ);
+        pushPoint(points, midX, managerY, laneZ);
+        pushPoint(points, toPort.x, managerY, laneZ);
+        pushPoint(points, toPort.x, managerY, exitZ);
+        pushPoint(points, toPort.x, toPort.y, exitZ);
+        pushPoint(points, toPort.x, toPort.y, toPort.z);
+      }
     } else if (fromFace === 'rear' && toFace === 'rear') {
       const baseZ = Math.min(fromPort.z, toPort.z);
       const cableZ = baseZ - 0.04 - stagger;
@@ -222,7 +272,6 @@ export function buildCablePath3D(
 
   if (points.length < 2) return null;
 
-  const realistic = cableRoutingMode === 'realistic';
   const sagAmount = realistic ? plan.render.sagMm / 1000 : (plan.render.sagMm / 1000) * 0.35;
   const withSag = insertGravitySag(points, sagAmount, realistic);
   const totalLength = withSag.reduce((sum, p, i) => (i > 0 ? sum + p.distanceTo(withSag[i - 1]) : sum), 0);
