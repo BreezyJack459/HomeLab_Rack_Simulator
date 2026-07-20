@@ -1,4 +1,4 @@
-import type { DeviceTemplate } from '../types/rack';
+import type { DeviceTemplate, PlacedDevice } from '../types/rack';
 
 export const deviceCatalog: DeviceTemplate[] = [
   {
@@ -302,10 +302,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 8, power: 1 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 8, xRatio: 0.42 },
+        { type: 'ethernet', count: 8, columns: 8, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' },
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, groupLabel: 'Power' },
       ],
     },
     color: '#2563eb',
@@ -323,8 +323,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 4, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.42, speed: '1G', mediaType: 'rj45' },
-        { type: 'fiber', columns: 4, xRatio: 0.88, speed: '10G', mediaType: 'sfp+' },
+        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 4, rowIndex: 0, xRatio: 0.88, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' },
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 },
@@ -346,12 +346,15 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, fiber: 4, power: 2, layoutColumns: 5 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 1, xRatio: 0.15, speed: '1G', mediaType: 'rj45' },
-        { type: 'fiber', columns: 4, xRatio: 0.72, speed: '10G', mediaType: 'sfp+' },
+        { type: 'ethernet', columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 4, rowIndex: 0, xRatio: 0.72, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' },
       ],
       rear: [
         { type: 'power', columns: 2, xRatio: 0.5 },
       ],
+    },
+    faceplate: {
+      front: '/src/assets/faceplates/mikrotik-crs305.front.svg',
     },
     color: '#0f766e',
     description: 'Popular compact 10G SFP+ switch template based on CRS305 dimensions. Single GbE left, four SFP+ right on front.'  },
@@ -369,10 +372,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 8, power: 1, layoutColumns: 8 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 8, xRatio: 0.42 },
+        { type: 'ethernet', count: 8, columns: 8, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' },
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, groupLabel: 'Power' },
       ],
     },
     color: '#2563eb',
@@ -390,8 +393,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.38, speed: '1G', mediaType: 'rj45' },
-        { type: 'fiber', columns: 2, xRatio: 0.9, speed: '10G', mediaType: 'sfp+' }
+        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 2, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
@@ -435,10 +438,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 5, power: 1 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 5, xRatio: 0.42 },
+        { type: 'ethernet', count: 5, columns: 5, rowIndex: 0, xRatio: 0.65, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' },
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, groupLabel: 'Power' },
       ],
     },
     color: '#0d9488',
@@ -526,8 +529,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 6, power: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 6, xRatio: 0.35 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 6, columns: 6, rowIndex: 0, xRatio: 0.25, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#dc2626',
@@ -546,9 +549,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, coax: 1, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'coax', columns: 1, xRatio: 0.15 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'coax', count: 1, columns: 1, rowIndex: 0, xRatio: 0.12, groupLabel: 'Coax' },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.42, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'Power' },
       ],
     },
     color: '#64748b',
@@ -567,9 +570,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, fiber: 1, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'fiber', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.2, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'fiber', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, speed: '1G', mediaType: 'fiber', groupLabel: 'PON' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'Power' },
       ],
     },
     color: '#475569',
@@ -588,9 +591,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 3, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 3, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 4, rowIndex: 0, xRatio: 0.15, speed: '2.5G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 3, columns: 3, rowIndex: 1, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.88, groupLabel: 'Power' },
       ],
     },
     color: '#b91c1c',
@@ -609,9 +612,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 4, rowIndex: 0, xRatio: 0.15, speed: '2.5G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 2, columns: 2, rowIndex: 1, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.88, groupLabel: 'Power' },
       ],
     },
     color: '#dc2626',
@@ -630,9 +633,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 4, power: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 4, columns: 4, rowIndex: 0, xRatio: 0.5, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#7c3aed',
@@ -651,10 +654,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, hdmi: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 2, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.12, speed: '2.5G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 6, rowIndex: 0, xRatio: 0.42, groupLabel: 'USB' },
+        { type: 'hdmi', count: 2, columns: 2, rowIndex: 0, xRatio: 0.72, groupLabel: 'HDMI' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#8b5cf6',
@@ -673,9 +676,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#6d28d9',
@@ -694,9 +697,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#7c3aed',
@@ -715,9 +718,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#6d28d9',
@@ -736,9 +739,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#5b21b6',
@@ -757,10 +760,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, usb: 6, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'fiber', columns: 2, xRatio: 0.7 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 2, rowIndex: 0, xRatio: 0.18, speed: '2.5G', mediaType: 'rj45', groupLabel: '2.5GbE' },
+        { type: 'fiber', count: 2, columns: 2, rowIndex: 0, xRatio: 0.4, speed: '10G', mediaType: 'sfp+', groupLabel: 'SFP+' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.62, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#8b5cf6',
@@ -779,10 +782,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 5, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.12, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 5, columns: 5, rowIndex: 0, xRatio: 0.42, groupLabel: 'USB' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.72, groupLabel: 'HDMI' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#94a3b8',
@@ -801,10 +804,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 5, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.12, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 5, columns: 5, rowIndex: 0, xRatio: 0.42, groupLabel: 'USB' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.72, groupLabel: 'HDMI' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#64748b',
@@ -823,10 +826,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 4, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, groupLabel: 'Power' },
+        { type: 'usb', count: 4, columns: 4, rowIndex: 0, xRatio: 0.42, groupLabel: 'USB' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.72, groupLabel: 'HDMI' },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.88, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
       ],
     },
     color: '#475569',
@@ -845,10 +848,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 6, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.12, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 6, columns: 4, rowIndex: 0, xRatio: 0.42, groupLabel: 'USB' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.72, groupLabel: 'HDMI' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#334155',
@@ -867,9 +870,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, usb: 4, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 4, columns: 4, rowIndex: 0, xRatio: 0.5, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#8b5cf6',
@@ -888,9 +891,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 4, power: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 4, rowIndex: 0, xRatio: 0.12, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 4, columns: 4, rowIndex: 0, xRatio: 0.45, groupLabel: 'USB' },
+        { type: 'power', count: 4, columns: 2, rowIndex: 0, xRatio: 0.82, groupLabel: 'Power' },
       ],
     },
     color: '#be185d',
@@ -1104,9 +1107,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 2, power: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.15, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.8, groupLabel: 'Power' },
       ],
     },
     color: '#f59e0b',
@@ -1125,10 +1128,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 4, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.35, groupLabel: 'Video' },
+        { type: 'usb', count: 4, columns: 2, rowIndex: 1, xRatio: 0.15, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.8, groupLabel: 'Power' },
       ],
     },
     color: '#d97706',
@@ -1147,9 +1150,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 2, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.15, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.8, groupLabel: 'Power' },
       ],
     },
     color: '#f59e0b',
@@ -1167,9 +1170,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: '1GbE' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.12, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#d97706',
@@ -1187,8 +1190,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, power: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.35 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#d97706',
@@ -1206,9 +1209,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 2, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.12, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#b45309',
@@ -1226,9 +1229,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 2, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.12, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#c2410c',
@@ -1246,10 +1249,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, fiber: 2, usb: 2, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'fiber', columns: 2, xRatio: 0.7 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'fiber', count: 2, columns: 1, rowIndex: 0, xRatio: 0.38, speed: '10G', mediaType: 'sfp+', groupLabel: 'SFP+' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.12, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 1, xRatio: 0.85, groupLabel: 'Power' },
       ],
     },
     color: '#92400e',
@@ -1267,9 +1270,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 2, power: 1, layoutColumns: 3 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.08, speed: '1G', mediaType: 'rj45', groupLabel: 'NIC' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.08, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 2, xRatio: 0.9, groupLabel: 'PSU' },
       ],
     },
     color: '#2563eb',
@@ -1287,10 +1290,13 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 2, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.08, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.08, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 2, xRatio: 0.85, groupLabel: 'PSU' },
       ],
+    },
+    faceplate: {
+      rear: '/src/assets/faceplates/server-rear.svg',
     },
     color: '#1d4ed8',
     description: 'Full-depth 1U rack server template; check rack depth, noise, and rear clearance.'  },
@@ -1307,9 +1313,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 4, usb: 2, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 4, xRatio: 0.3 },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 4, columns: 2, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'NICs' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.12, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 1, xRatio: 0.85, groupLabel: 'PSU' },
       ],
     },
     color: '#1e40af',
@@ -1327,11 +1333,11 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, usb: 2, hdmi: 1, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3, speed: '1G', mediaType: 'rj45' },
-        { type: 'fiber', columns: 2, xRatio: 0.7, speed: '10G', mediaType: 'sfp+' },
-        { type: 'usb', columns: 2, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.1, speed: '1G', mediaType: 'rj45', groupLabel: 'NIC' },
+        { type: 'fiber', count: 2, columns: 1, rowIndex: 0, xRatio: 0.22, speed: '10G', mediaType: 'sfp+', groupLabel: 'SFP+' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.34, groupLabel: 'Video' },
+        { type: 'usb', count: 2, columns: 1, rowIndex: 1, xRatio: 0.1, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 1, xRatio: 0.85, groupLabel: 'PSU' },
       ],
     },
     color: '#312e81',
@@ -1349,10 +1355,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, usb: 4, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3 },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.1, speed: '1G', mediaType: 'rj45', groupLabel: 'NIC' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.22, groupLabel: 'Video' },
+        { type: 'usb', count: 4, columns: 2, rowIndex: 1, xRatio: 0.15, groupLabel: 'USB' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 2, xRatio: 0.85, groupLabel: 'ATX Power' },
       ],
     },
     color: '#3730a3',
@@ -1370,11 +1376,11 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, usb: 4, hdmi: 1, power: 2, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 2, xRatio: 0.3, speed: '1G', mediaType: 'rj45' },
-        { type: 'fiber', columns: 2, xRatio: 0.7, speed: '25G', mediaType: 'sfp+' },
-        { type: 'usb', columns: 4, xRatio: 0.5 },
-        { type: 'hdmi', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'ethernet', count: 2, columns: 1, rowIndex: 0, xRatio: 0.1, speed: '1G', mediaType: 'rj45', groupLabel: 'NIC' },
+        { type: 'fiber', count: 2, columns: 1, rowIndex: 0, xRatio: 0.22, speed: '25G', mediaType: 'sfp28', groupLabel: 'SFP28' },
+        { type: 'hdmi', count: 1, columns: 1, rowIndex: 0, xRatio: 0.34, groupLabel: 'Video' },
+        { type: 'usb', count: 4, columns: 2, rowIndex: 1, xRatio: 0.1, groupLabel: 'USB' },
+        { type: 'power', count: 2, columns: 2, rowIndex: 1, xRatio: 0.85, groupLabel: 'PSU' },
       ],
     },
     color: '#4338ca',
@@ -1392,8 +1398,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { power: 6, usb: 1 },
     portLayouts: {
       rear: [
-        { type: 'power', columns: 2, xRatio: 0.5 },
-        { type: 'usb', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 6, columns: 6, rowIndex: 0, xRatio: 0.35, groupLabel: 'Outlets' },
+        { type: 'usb', count: 1, columns: 1, rowIndex: 0, xRatio: 0.85, groupLabel: 'Management' },
       ],
     },
     color: '#374151',
@@ -1411,9 +1417,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { power: 4, ethernet: 1, usb: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'power', columns: 2, xRatio: 0.5 },
-        { type: 'ethernet', columns: 1, xRatio: 0.35 },
-        { type: 'usb', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 4, columns: 4, rowIndex: 0, xRatio: 0.25, groupLabel: 'Outlets' },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.65, groupLabel: 'Mgmt' },
+        { type: 'usb', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'USB' },
       ],
     },
     color: '#374151',
@@ -1431,9 +1437,12 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { power: 4, usb: 1, layoutColumns: 4 },
     portLayouts: {
       rear: [
-        { type: 'power', columns: 2, xRatio: 0.5 },
-        { type: 'usb', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 4, columns: 4, rowIndex: 0, xRatio: 0.3, groupLabel: 'Outlets' },
+        { type: 'usb', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'Management' },
       ],
+    },
+    faceplate: {
+      rear: '/src/assets/faceplates/apc-smt750rm1u.rear.svg',
     },
     color: '#334155',
     description: 'Heavier short-depth 1U UPS profile; keep near the rack bottom.'  },
@@ -1452,12 +1461,12 @@ export const deviceCatalog: DeviceTemplate[] = [
     portFaceOverrides: { power: 'rear', ethernet: 'rear', coax: 'rear', usb: 'front' },
     portLayouts: {
       front: [
-        { type: 'usb', columns: 3, xRatio: 0.5 },
+        { type: 'usb', count: 3, columns: 3, rowIndex: 0, xRatio: 0.5, groupLabel: 'USB' },
       ],
       rear: [
-        { type: 'power', columns: 5, xRatio: 0.42 },
-        { type: 'ethernet', columns: 1, xRatio: 0.12 },
-        { type: 'coax', columns: 2, xRatio: 0.88 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, groupLabel: 'Data' },
+        { type: 'coax', count: 2, columns: 2, rowIndex: 0, xRatio: 0.85, groupLabel: 'Coax' },
+        { type: 'power', count: 10, columns: 5, rowIndex: 1, xRatio: 0.5, groupLabel: 'Outlets' },
       ],
     },
     color: '#334155',
@@ -1476,8 +1485,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { power: 4, usb: 1 },
     portLayouts: {
       rear: [
-        { type: 'power', columns: 2, xRatio: 0.5 },
-        { type: 'usb', columns: 1, xRatio: 0.5 },
+        { type: 'power', count: 4, columns: 4, rowIndex: 0, xRatio: 0.3, groupLabel: 'Outlets' },
+        { type: 'usb', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'USB' },
       ],
     },
     color: '#475569',
@@ -1495,7 +1504,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { power: 8 },
     portLayouts: {
       rear: [
-        { type: 'power', columns: 2, xRatio: 0.5 },
+        { type: 'power', columns: 8, xRatio: 0.5 },
       ],
     },
     color: '#111827',
@@ -1764,12 +1773,16 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.38 },
-        { type: 'fiber', columns: 2, xRatio: 0.9 }
+        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 2, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
       ]
+    },
+    faceplate: {
+      front: '/faceplates/ubiquiti/ubiquiti-unifi-switch-24-pro-poe-gen2.front.png',
+      rear: '/faceplates/ubiquiti/ubiquiti-unifi-switch-24-pro-poe-gen2.rear.png'
     },
     color: '#1d4ed8',
     description: 'UniFi Pro 24 PoE: 24x GbE (16 PoE+, 8 PoE++), 2x 10G SFP+, 400W PoE budget, Layer 3.'
@@ -1787,12 +1800,16 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 48, fiber: 4, power: 1, layoutColumns: 24 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 24, xRatio: 0.38 },
-        { type: 'fiber', columns: 4, xRatio: 0.9 }
+        { type: 'ethernet', columns: 24, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 4, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
       ]
+    },
+    faceplate: {
+      front: '/faceplates/ubiquiti/ubiquiti-unifi-switch-48-pro-poe-gen2.front.png',
+      rear: '/faceplates/ubiquiti/ubiquiti-unifi-switch-48-pro-poe-gen2.rear.png'
     },
     color: '#1e40af',
     description: 'UniFi Pro 48 PoE: 48x GbE (40 PoE+, 8 PoE++), 4x 10G SFP+, 600W PoE budget, Layer 3.'
@@ -1810,12 +1827,16 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 12, xRatio: 0.38 },
-        { type: 'fiber', columns: 2, xRatio: 0.9 }
+        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 2, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
       ]
+    },
+    faceplate: {
+      front: '/faceplates/ubiquiti/ubiquiti-unifi-switch-enterprise-24-poe.front.png',
+      rear: '/faceplates/ubiquiti/ubiquiti-unifi-switch-enterprise-24-poe.rear.png'
     },
     color: '#1d4ed8',
     description: 'UniFi Enterprise 24 PoE: 12x GbE + 12x 2.5GbE (all PoE+), 2x 10G SFP+, 400W PoE budget, Layer 3.'
@@ -1834,10 +1855,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 5, power: 1, layoutColumns: 5 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 5, xRatio: 0.5 }
+        { type: 'ethernet', count: 5, columns: 5, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' }
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, groupLabel: 'Power' }
       ]
     },
     color: '#2563eb',
@@ -1904,10 +1925,10 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 2, fiber: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
       front: [
-        { type: 'ethernet', columns: 1, xRatio: 0.15 },
-        { type: 'fiber', columns: 1, xRatio: 0.35 },
-        { type: 'ethernet', columns: 1, xRatio: 0.65 },
-        { type: 'fiber', columns: 1, xRatio: 0.85 }
+        { type: 'ethernet', count: 1, columns: 1, xRatio: 0.15 },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.35 },
+        { type: 'ethernet', count: 1, columns: 1, xRatio: 0.65 },
+        { type: 'fiber', count: 1, columns: 1, xRatio: 0.85 }
       ],
       rear: [
         { type: 'power', columns: 1, xRatio: 0.5 }
@@ -2018,9 +2039,9 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, fiber: 1, power: 1, layoutColumns: 2 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'fiber', columns: 1, xRatio: 0.7 },
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.2, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'fiber', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, speed: '10G', mediaType: 'sfp+', groupLabel: 'SFP+' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.82, groupLabel: 'Power' }
       ]
     },
     color: '#f59e0b',
@@ -2040,8 +2061,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, power: 1, layoutColumns: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.3 },
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.2, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.8, groupLabel: 'Power' }
       ]
     },
     color: '#7c3aed',
@@ -2167,11 +2188,45 @@ export const deviceCatalog: DeviceTemplate[] = [
     ports: { ethernet: 1, power: 1 },
     portLayouts: {
       rear: [
-        { type: 'ethernet', columns: 1, xRatio: 0.35 },
-        { type: 'power', columns: 1, xRatio: 0.5 },
+        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.2, speed: '1G', mediaType: 'rj45', groupLabel: 'LAN' },
+        { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.8, groupLabel: 'Power' },
       ],
     },
     color: '#0891b2',
     description: 'Editable placeholder for anything else.'
   }
 ];
+
+const templateById = new Map<string, DeviceTemplate>(
+  deviceCatalog.map((template) => [template.id, template])
+);
+
+export function getTemplateById(id: string | undefined): DeviceTemplate | undefined {
+  if (!id) return undefined;
+  return templateById.get(id);
+}
+
+export function templateFromDevice(device: PlacedDevice): DeviceTemplate {
+  return {
+    id: device.templateId ?? device.id,
+    category: device.category,
+    name: device.name,
+    defaultU: device.sizeU,
+    depthMm: device.depthMm,
+    widthType: device.widthType,
+    customWidthMm: device.customWidthMm,
+    weightKg: device.weightKg,
+    powerW: device.powerW,
+    heatLevel: device.heatLevel,
+    color: device.color,
+    description: device.description ?? '',
+    ports: device.ports,
+    portFaceOverrides: device.portFaceOverrides,
+    portLayouts: device.portLayouts,
+    faceplate: device.faceplate,
+    mountType: device.mountType,
+    mountSide0U: device.mountSide0U,
+    outletFacing: device.outletFacing,
+    mountEnvelopeMm: device.mountEnvelopeMm,
+  };
+}

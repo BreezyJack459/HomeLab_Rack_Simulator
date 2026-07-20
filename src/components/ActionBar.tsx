@@ -58,7 +58,7 @@ function ActionMenu({
 }: {
   label: string;
   summary: string;
-  menuRef: React.RefObject<HTMLDetailsElement | null>;
+  menuRef: React.RefObject<HTMLDetailsElement>;
   align?: 'left' | 'right';
   children: ReactNode;
   testId?: string;

@@ -398,6 +398,13 @@ const PortfolioWorkbench = lazy(() =>
     default: m.PortfolioWorkbench,
   })),
 );
+const FaceplateGallery = import.meta.env.DEV
+  ? lazy(() =>
+      import("./components/FaceplateGallery").then((m) => ({
+        default: m.FaceplateGallery,
+      })),
+    )
+  : undefined;
 
 // ── Workspace Hero (lightweight inline shell for audit/operate/plan/portfolio) ─
 
@@ -1656,6 +1663,20 @@ function App() {
   ]);
 
   function renderCanvas() {
+    if (import.meta.env.DEV && viewMode === "gallery") {
+      if (!FaceplateGallery) return null;
+      return (
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+              Loading faceplate gallery…
+            </div>
+          }
+        >
+          <FaceplateGallery />
+        </Suspense>
+      );
+    }
     const currentView =
       pluginRegistry.viewModes.find((definition) => definition.id === viewMode) ??
       pluginRegistry.viewModes.find((definition) => definition.id === "2d");

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Command, Search } from 'lucide-react';
+import { Command, LayoutGrid, Search } from 'lucide-react';
 import type {
   ToolbarActionDefinition,
   ViewModeDefinition,
@@ -101,6 +101,20 @@ export function TopContextBar({
                   </button>
                 );
               })}
+              {import.meta.env.DEV ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleViewMode('gallery')}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
+                    viewMode === 'gallery'
+                      ? 'bg-cyan-500 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900'
+                  }`}
+                >
+                  <LayoutGrid size={14} />
+                  Gallery
+                </button>
+              ) : null}
               {pluginToggles.length > 0 ? (
                 <>
                   <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />

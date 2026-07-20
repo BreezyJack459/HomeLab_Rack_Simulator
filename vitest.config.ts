@@ -7,7 +7,24 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
-    exclude: ['node_modules', 'dist']
+    exclude: ['node_modules', 'dist'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'app',
+          include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+          environment: 'jsdom'
+        }
+      },
+      {
+        extends: true,
+        test: {
+          name: 'scripts',
+          include: ['scripts/**/*.test.ts'],
+          environment: 'node'
+        }
+      }
+    ]
   }
 });

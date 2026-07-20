@@ -1,13 +1,19 @@
 import { Text } from '@react-three/drei';
-import { memo, useMemo, useState } from 'react';
-import type { PlacedDevice, PortType, RackType } from '../../types/rack';
+import * as THREE from 'three';
+import { memo, useEffect, useMemo, useState } from 'react';
+import type { DeviceTemplate, PlacedDevice, PortType, RackType, ViewSide } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
+import { getTemplateById, templateFromDevice } from '../../data/deviceCatalog';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
 import { buildPortLayout } from '../../utils/portLayout';
+import { getFaceplateTexture } from '../../utils/faceplateSvg';
 import { getDeviceWorldBox, ZERO_U_REAR_GAP, ZERO_U_SIDE_GAP } from '../../utils/rackGeometry';
 import { UNIT_BOX_GEOMETRY } from './sharedGeometries';
 
 const MAX_DETAILED_PORT_LABELS = 24;
+
+const CANVAS_TEXTURE_CACHE = new Map<string, THREE.CanvasTexture>();
+const CANVAS_TEXTURE_REFCOUNT = new Map<string, number>();
 
 function lifecycleTint(color: string, status?: string): string {
   if (status !== 'decommissioning') return color;
@@ -19,6 +25,74 @@ function lifecycleTint(color: string, status?: string): string {
   return `#${hex}${hex}${hex}`;
 }
 
+function FaceplateTexture({
+  template,
+  face,
+  width,
+  height,
+  rotationY
+}: {
+  template: DeviceTemplate;
+  face: ViewSide;
+  width: number;
+  height: number;
+  rotationY?: number;
+}) {
+  const cacheKey = `${template.id}:${face}`;
+  const [texture, setTexture] = useState<THREE.CanvasTexture | null>(() => CANVAS_TEXTURE_CACHE.get(cacheKey) ?? null);
+  useEffect(() => {
+    const cachedTexture = CANVAS_TEXTURE_CACHE.get(cacheKey);
+    if (cachedTexture) {
+      CANVAS_TEXTURE_REFCOUNT.set(cacheKey, (CANVAS_TEXTURE_REFCOUNT.get(cacheKey) ?? 0) + 1);
+      setTexture(cachedTexture);
+      return () => {
+        const nextRef = (CANVAS_TEXTURE_REFCOUNT.get(cacheKey) ?? 1) - 1;
+        if (nextRef <= 0) {
+          CANVAS_TEXTURE_REFCOUNT.delete(cacheKey);
+          const tex = CANVAS_TEXTURE_CACHE.get(cacheKey);
+          CANVAS_TEXTURE_CACHE.delete(cacheKey);
+          tex?.dispose();
+        } else {
+          CANVAS_TEXTURE_REFCOUNT.set(cacheKey, nextRef);
+        }
+      };
+    }
+
+    let cancelled = false;
+    CANVAS_TEXTURE_REFCOUNT.set(cacheKey, (CANVAS_TEXTURE_REFCOUNT.get(cacheKey) ?? 0) + 1);
+    const { canvas, ready } = getFaceplateTexture(template, face, 4);
+    ready.then(() => {
+      if (cancelled) return;
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      CANVAS_TEXTURE_CACHE.set(cacheKey, tex);
+      setTexture(tex);
+    }).catch(() => {
+      // On failure, leave texture null; dark faceplate mesh shows behind.
+    });
+    return () => {
+      cancelled = true;
+      const nextRef = (CANVAS_TEXTURE_REFCOUNT.get(cacheKey) ?? 1) - 1;
+      if (nextRef <= 0) {
+        CANVAS_TEXTURE_REFCOUNT.delete(cacheKey);
+        const tex = CANVAS_TEXTURE_CACHE.get(cacheKey);
+        CANVAS_TEXTURE_CACHE.delete(cacheKey);
+        tex?.dispose();
+      } else {
+        CANVAS_TEXTURE_REFCOUNT.set(cacheKey, nextRef);
+      }
+    };
+  }, [template.id, face, cacheKey]);
+  if (!texture) return null;
+  return (
+    <mesh rotation={[0, rotationY ?? (face === 'front' ? 0 : Math.PI), 0]}>
+      <planeGeometry args={[width, height]} />
+      <meshStandardMaterial map={texture} transparent />
+    </mesh>
+  );
+}
+
 /** Render ports on one face using the shared layout engine */
 function DevicePortFace({
   device,
@@ -26,12 +100,14 @@ function DevicePortFace({
   deviceHeight,
   z,
   face,
+  rotationY,
 }: {
   device: PlacedDevice;
   deviceWidth: number;
   deviceHeight: number;
   z: number;
   face: 'front' | 'rear';
+  rotationY?: number;
 }) {
   const groups = useMemo(
     () => buildPortLayout(device, deviceWidth, deviceHeight, face),
@@ -48,7 +124,7 @@ function DevicePortFace({
   if (groups.length === 0) return null;
 
   return (
-    <group position={[0, 0, z]}>
+    <group position={[0, 0, z]} rotation={[0, rotationY ?? 0, 0]}>
       {groups.map((group) => (
         <group key={group.key ?? group.type}>
           {group.slots.map((slot) => {
@@ -231,6 +307,7 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
     }
   );
   const { x, y, z, width, depth, height, isZeroU, isRearRail0U, isRearMounted } = box;
+  const template = getTemplateById(device.templateId) ?? templateFromDevice(device);
   const overflowDepth = !isZeroU ? Math.max(0, depth - rackDepth) : 0;
   const overflowCenterZ = isRearMounted
     ? depth / 2 - overflowDepth / 2
@@ -356,42 +433,70 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
         </mesh>
       )}
 
+      {/* Faceplate textures */}
+      {!isZeroU && (
+        <>
+          <group position={[0, 0, isRearMounted ? -depth / 2 - 0.016 : depth / 2 + 0.016]}>
+            <FaceplateTexture
+              template={template}
+              face="front"
+              width={width}
+              height={height}
+              rotationY={isRearMounted ? Math.PI : 0}
+            />
+          </group>
+          <group position={[0, 0, isRearMounted ? depth / 2 + 0.016 : -depth / 2 - 0.016]}>
+            <FaceplateTexture
+              template={template}
+              face="rear"
+              width={width}
+              height={height}
+              rotationY={isRearMounted ? 0 : Math.PI}
+            />
+          </group>
+        </>
+      )}
+
       {/* Ports */}
       {device.ports && (
         <>
           {isZeroU ? (
-            isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? (
-              <DevicePortFace
-                device={device}
-                deviceWidth={width * 0.9}
-                deviceHeight={height}
-                z={zeroUPortZ}
-                face="front"
-              />
-            ) : (
-              <DeviceZeroUSideFace
-                device={device}
-                faceWidth={depth}
-                faceHeight={height}
-                xOffset={zeroUPortSideX}
-                textRotY={sideTextRotY}
-              />
-            )
+            <>
+              {isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? (
+                <DevicePortFace
+                  device={device}
+                  deviceWidth={width * 0.9}
+                  deviceHeight={height}
+                  z={zeroUPortZ}
+                  face="front"
+                />
+              ) : (
+                <DeviceZeroUSideFace
+                  device={device}
+                  faceWidth={depth}
+                  faceHeight={height}
+                  xOffset={zeroUPortSideX}
+                  textRotY={sideTextRotY}
+                />
+              )}
+            </>
           ) : (
             <>
               <DevicePortFace
                 device={device}
-                deviceWidth={width}
+                deviceWidth={width * 0.9}
                 deviceHeight={height}
-                z={depth / 2 + 0.02}
+                z={isRearMounted ? -depth / 2 - 0.02 : depth / 2 + 0.02}
                 face="front"
+                rotationY={isRearMounted ? Math.PI : 0}
               />
               <DevicePortFace
                 device={device}
-                deviceWidth={width}
+                deviceWidth={width * 0.9}
                 deviceHeight={height}
-                z={-depth / 2 - 0.02}
+                z={isRearMounted ? depth / 2 + 0.02 : -depth / 2 - 0.02}
                 face="rear"
+                rotationY={isRearMounted ? 0 : Math.PI}
               />
             </>
           )}

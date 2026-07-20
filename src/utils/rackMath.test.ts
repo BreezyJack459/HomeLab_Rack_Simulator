@@ -10,6 +10,7 @@ import {
   getDepthCompatibilityIssues,
   getDepthSummary,
   getDefaultDeviceX,
+  getDeviceFaceSizeMm,
   getRequiredRearBendMm,
   getDeviceWidthMm,
   getDeviceXRange,
@@ -93,6 +94,36 @@ describe('getDeviceWidthMm', () => {
 
   it('returns fallback for shelf width', () => {
     expect(getDeviceWidthMm({ widthType: 'shelf', customWidthMm: undefined })).toBeCloseTo(182.88, 1);
+  });
+});
+
+describe('getDeviceFaceSizeMm', () => {
+  it('returns full rack width for 19in device', () => {
+    const device = makeDevice({ widthType: '19in', sizeU: 2 });
+    const size = getDeviceFaceSizeMm(device);
+    expect(size.width).toBeCloseTo(482.6, 1);
+    expect(size.height).toBeCloseTo(88.9, 1); // 2U * 44.45
+  });
+
+  it('returns custom width for custom/shelf devices', () => {
+    const custom = makeDevice({ widthType: 'custom', customWidthMm: 200, sizeU: 1 });
+    expect(getDeviceFaceSizeMm(custom)).toEqual({ width: 200, height: 44.45 });
+
+    const shelf = makeDevice({ widthType: 'shelf', customWidthMm: 350, sizeU: 1 });
+    expect(getDeviceFaceSizeMm(shelf)).toEqual({ width: 350, height: 44.45 });
+  });
+
+  it('falls back to getDeviceWidthMm defaults when custom/shelf width is missing', () => {
+    const custom = makeDevice({ widthType: 'custom', customWidthMm: undefined, sizeU: 1 });
+    expect(getDeviceFaceSizeMm(custom).width).toBe(254);
+
+    const shelf = makeDevice({ widthType: 'shelf', customWidthMm: undefined, sizeU: 1 });
+    expect(getDeviceFaceSizeMm(shelf).width).toBeCloseTo(182.88, 1);
+  });
+
+  it('uses at least 1U for height', () => {
+    const device = makeDevice({ widthType: '19in', sizeU: 0 });
+    expect(getDeviceFaceSizeMm(device).height).toBe(44.45);
   });
 });
 

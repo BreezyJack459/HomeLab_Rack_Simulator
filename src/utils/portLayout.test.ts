@@ -152,4 +152,137 @@ describe('buildPortLayout', () => {
     expect(groups[0].slots[0].y).toBeGreaterThan(groups[1].slots[0].y);
   });
 
+  it('places configs with the same rowIndex on the same row', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 2, usb: 2 },
+      portLayouts: {
+        front: [
+          { type: 'ethernet', count: 2, columns: 2, rowIndex: 0 },
+          { type: 'usb', count: 2, columns: 2, rowIndex: 0 }
+        ]
+      }
+    });
+
+    const groups = buildPortLayout(device, 1, 1, 'front');
+
+    expect(groups.length).toBe(2);
+    expect(groups[0].slots[0].y).toBeCloseTo(groups[1].slots[0].y, 6);
+  });
+
+  it('honors yRatio for explicit vertical anchoring', () => {
+    const topDevice = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 2 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 2, columns: 2, yRatio: 0 }]
+      }
+    });
+    const bottomDevice = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 2 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 2, columns: 2, yRatio: 1 }]
+      }
+    });
+
+    const topY = buildPortLayout(topDevice, 1, 1, 'front')[0].slots[0].y;
+    const bottomY = buildPortLayout(bottomDevice, 1, 1, 'front')[0].slots[0].y;
+
+    expect(topY).toBeGreaterThan(bottomY);
+  });
+
+  it('orders slots in odd-even-vertical pairs', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 4, columns: 2, pairing: 'odd-even-vertical' }]
+      }
+    });
+
+    const slots = buildPortLayout(device, 1, 1, 'front')[0].slots;
+
+    expect(slots.map((slot) => slot.index)).toEqual([0, 1, 2, 3]);
+    expect(slots[1].y).toBeLessThan(slots[0].y);
+    expect(slots[2].x).toBeGreaterThan(slots[0].x);
+  });
+
+  it('preserves old stacking behavior when new row fields are absent', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 8, fiber: 2 },
+      portLayouts: {
+        front: [
+          { type: 'ethernet', count: 8, columns: 4 },
+          { type: 'fiber', count: 2, columns: 2 }
+        ]
+      }
+    });
+
+    const groups = buildPortLayout(device, 1, 1, 'front');
+
+    expect(groups.map((group) => group.type)).toEqual(['ethernet', 'fiber']);
+    expect(groups[0].slots[0].y).toBeGreaterThan(groups[1].slots[0].y);
+  });
+
+  it('matches default-layout coordinates for legacy templates without rowIndex/yRatio', () => {
+    const defaultDevice = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4, fiber: 2 }
+    });
+    const legacyDevice = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4, fiber: 2 },
+      portLayouts: {
+        front: [
+          { type: 'ethernet', count: 4 },
+          { type: 'fiber', count: 2 }
+        ]
+      }
+    });
+
+    const defaultGroups = buildPortLayout(defaultDevice, 1, 1, 'front');
+    const legacyGroups = buildPortLayout(legacyDevice, 1, 1, 'front');
+
+    expect(legacyGroups.map((group) => group.type)).toEqual(defaultGroups.map((group) => group.type));
+    legacyGroups.forEach((group, groupIdx) => {
+      const expected = defaultGroups[groupIdx].slots;
+      expect(group.slots.map((s) => s.x)).toEqual(expected.map((s) => s.x));
+      expect(group.slots.map((s) => s.y)).toEqual(expected.map((s) => s.y));
+    });
+  });
+
+  it('swaps width and height and transposes placement for vertical orientation', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 4, columns: 2, orientation: 'vertical' }]
+      }
+    });
+
+    const slots = buildPortLayout(device, 1, 1, 'front')[0].slots;
+
+    expect(slots[0].width).toBeLessThan(slots[0].height);
+    expect(slots[0].x).toBe(slots[1].x);
+    expect(slots[0].y).toBeGreaterThan(slots[1].y);
+    expect(slots[2].x).toBeGreaterThan(slots[0].x);
+    expect(slots[2].x).toBe(slots[3].x);
+  });
+
+  it('propagates groupLabel to PortGroup.label', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 4, columns: 2, groupLabel: 'WAN' }]
+      }
+    });
+
+    const groups = buildPortLayout(device, 1, 1, 'front');
+
+    expect(groups[0].label).toBe('WAN');
+  });
+
 });

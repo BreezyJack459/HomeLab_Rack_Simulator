@@ -1,4 +1,10 @@
-import type { PlacedDevice } from '../types/rack';
+import type { PlacedDevice, PortTypeConfig } from '../types/rack';
+
+/** Subset of PlacedDevice required by port layout calculations. */
+export type PortLayoutDevice = Pick<
+  PlacedDevice,
+  'category' | 'ports' | 'portFaceOverrides' | 'portLayouts'
+>;
 
 export interface PortSlot {
   type: string;
@@ -18,6 +24,7 @@ export interface PortGroup {
   emissive: string;
   short: string;
   key?: string;
+  label?: string;
 }
 
 export const PORT_META: Record<string, { color: string; emissive: string; short: string }> = {
@@ -87,7 +94,7 @@ function getDefaultPortFaceMap(category: string): Record<string, 'front' | 'rear
  *  Returns undefined if the device has no portLayouts config for that face.
  */
 export function getPortMetadata(
-  device: PlacedDevice,
+  device: PortLayoutDevice,
   face: 'front' | 'rear',
   portType: string,
   portIndex: number
@@ -117,7 +124,7 @@ export function getPortFaceMap(category: string, overrides?: Record<string, 'fro
 
 /** Build port layout for a specific face of a device */
 export function buildPortLayout(
-  device: PlacedDevice,
+  device: PortLayoutDevice,
   faceWidth: number,
   faceHeight: number,
   targetFace: 'front' | 'rear'
@@ -157,24 +164,32 @@ export function buildPortLayout(
       return [{ config, sourceIndex, count, startIndex: alreadyUsed }];
     });
 
-    return renderableConfigs.map(({ config, sourceIndex, count, startIndex }, groupIndex) => {
-      const group = layoutPortGroup(
-        config.type,
-        count,
+    const rowMap = new Map<number, typeof renderableConfigs>();
+    let fallbackIndex = -renderableConfigs.length;
+    for (const item of renderableConfigs) {
+      const idx = item.config.rowIndex ?? fallbackIndex++;
+      if (!rowMap.has(idx)) rowMap.set(idx, []);
+      rowMap.get(idx)!.push(item);
+    }
+    // Fallback rows use negative indices; map them to values just below
+    // Number.MAX_SAFE_INTEGER so explicit (>=0) rows sort first while
+    // preserving the original order among fallback rows.
+    const sortedRows = Array.from(rowMap.entries()).sort((a, b) => {
+      const ai = a[0] >= 0 ? a[0] : Number.MAX_SAFE_INTEGER + a[0];
+      const bi = b[0] >= 0 ? b[0] : Number.MAX_SAFE_INTEGER + b[0];
+      return ai - bi;
+    });
+    return sortedRows.flatMap(([, items], rowIdx) =>
+      layoutPortRow(
+        items,
         device,
         faceWidth,
         faceHeight,
-        renderableConfigs.length,
-        config.xRatio,
-        groupIndex,
-        startIndex,
-        config.columns,
-        config.speed,
-        config.mediaType
-      );
-      group.key = `${config.type}-${sourceIndex}`;
-      return group;
-    });
+        sortedRows.length,
+        rowIdx,
+        sortedRows.map(([, r]) => r[0]?.config.yRatio)
+      )
+    );
   }
 
   // Default behavior
@@ -224,10 +239,107 @@ function getPortTypeOrder(category: string): string[] {
   }
 }
 
+type RenderableConfig = {
+  config: PortTypeConfig;
+  sourceIndex: number;
+  count: number;
+  startIndex: number;
+};
+
+function layoutPortRow(
+  items: RenderableConfig[],
+  device: PortLayoutDevice,
+  faceWidth: number,
+  faceHeight: number,
+  totalRows: number,
+  rowIdx: number,
+  rowYRatios: (number | undefined)[]
+): PortGroup[] {
+  const isZeroUPduPower = device.category === 'pdu-0u' && items.every((item) => item.config.type === 'power');
+  const isPowerOnly = totalRows === 1 && items.every((item) => item.config.type === 'power');
+  const rowUsesNewFields = items.some(
+    (item) => item.config.rowIndex !== undefined || item.config.yRatio !== undefined
+  );
+  const topMargin = faceHeight * (isPowerOnly ? 0.02 : 0.15);
+  const bottomMargin = faceHeight * (isPowerOnly ? 0.06 : 0.04);
+  const availableH = Math.max(0.01, faceHeight - topMargin - bottomMargin);
+  const groupH = availableH / totalRows;
+
+  const explicitY = rowYRatios[rowIdx];
+  let rowY: number;
+  if (explicitY !== undefined) {
+    rowY = faceHeight / 2 - explicitY * faceHeight;
+  } else if (isZeroUPduPower) {
+    rowY = 0;
+  } else if (isPowerOnly) {
+    rowY = -availableH / 2 + bottomMargin + groupH / 2;
+  } else {
+    rowY = availableH / 2 - topMargin - rowIdx * groupH;
+  }
+
+  return items.map(({ config, sourceIndex, count, startIndex }) => {
+    const group = layoutPortGroup(
+      config.type,
+      count,
+      device,
+      faceWidth,
+      faceHeight,
+      totalRows,
+      config.xRatio,
+      rowIdx,
+      startIndex,
+      config.columns,
+      config.speed,
+      config.mediaType,
+      config.orientation
+    );
+    group.key = `${config.type}-${sourceIndex}`;
+    group.label = config.groupLabel;
+
+    if (config.pairing === 'odd-even-vertical') {
+      group.slots = applyOddEvenVerticalPairing(group.slots, config.columns ?? group.slots.length);
+    }
+
+    // Only recenter rows that use the new row positioning fields. Fallback
+    // rows (unindexed configs with no yRatio) keep the classic layoutPortGroup
+    // output exactly.
+    if (!isZeroUPduPower && rowUsesNewFields && group.slots.length > 0) {
+      const ys = group.slots.map((s) => s.y);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const centerY = (minY + maxY) / 2;
+      const delta = rowY - centerY;
+      for (const slot of group.slots) slot.y += delta;
+    }
+
+    return group;
+  });
+}
+
+// Renumber slot indices for odd-even-vertical pairing without moving slot
+// geometry; the visual positions stay the same and only the index order changes.
+function applyOddEvenVerticalPairing(slots: PortSlot[], columns: number): PortSlot[] {
+  if (slots.length === 0) return slots;
+  const rows = Math.ceil(slots.length / columns);
+  if (rows !== 2 || slots.length % columns !== 0) return slots;
+
+  const baseIndex = slots[0].index;
+  const ordered = slots
+    .map((slot, i) => {
+      const oldRow = Math.floor(i / columns);
+      const oldCol = i % columns;
+      const newIndex = Math.floor(oldRow / 2) * 2 * columns + oldCol * 2 + (oldRow % 2);
+      return { slot, newIndex };
+    })
+    .sort((a, b) => a.newIndex - b.newIndex);
+
+  return ordered.map((o, i) => ({ ...o.slot, index: baseIndex + i }));
+}
+
 function layoutPortGroup(
   type: string,
   count: number,
-  device: PlacedDevice,
+  device: PortLayoutDevice,
   faceWidth: number,
   faceHeight: number,
   totalGroups: number,
@@ -236,11 +348,13 @@ function layoutPortGroup(
   startIndex?: number,
   explicitColumns?: number,
   speed?: import('../types/rack').PortSpeed,
-  mediaType?: import('../types/rack').MediaType
+  mediaType?: import('../types/rack').MediaType,
+  orientation?: 'horizontal' | 'vertical'
 ): PortGroup {
   const meta = PORT_META[type] ?? PORT_META.ethernet;
   const aspect = PORT_ASPECT[type] ?? 1.14;
   const isZeroUPduPower = device.category === 'pdu-0u' && type === 'power';
+  const isVertical = orientation === 'vertical';
 
   // Determine columns: explicit from portLayouts config, then layoutColumns, then default
   const requestedColumns = explicitColumns ?? (device.ports?.layoutColumns as number) ?? getDefaultColumns(type, count, device.category);
@@ -309,38 +423,47 @@ function layoutPortGroup(
   const finalPortH = finalPortW / aspect;
   const finalGapW = Math.min(gapW, faceWidth * 0.01);
 
+  const slotW = isVertical ? finalPortH * 0.9 : finalPortW * 0.9;
+  const slotH = isVertical ? finalPortW * 0.9 : finalPortH * 0.9;
+  const rowPitch = isVertical ? slotH + finalGapW * 0.5 : finalPortH + finalGapW * 0.5;
+  const displayCols = isVertical ? Math.ceil(count / rows) : cols;
+
   // Horizontal placement
-  const rowW = cols * finalPortW + (cols - 1) * finalGapW;
+  const rowW = displayCols * slotW + (displayCols - 1) * finalGapW;
   let startX: number;
   if (xRatio !== undefined) {
     // xRatio 0 = left edge, 0.5 = center, 1 = right edge
-    const leftEdge = -availableW / 2 + finalPortW / 2;
-    const rightEdge = availableW / 2 - rowW + finalPortW / 2;
+    const leftEdge = -availableW / 2 + slotW / 2;
+    const rightEdge = availableW / 2 - rowW + slotW / 2;
     startX = leftEdge + xRatio * (rightEdge - leftEdge);
   } else {
-    startX = -rowW / 2 + finalPortW / 2;
+    startX = -rowW / 2 + slotW / 2;
   }
 
   // Stack rows from top of group area downward
-  const rowH = isZeroUPduPower && rows > 1
-    ? Math.max(finalPortH * 1.35, (availableH - finalPortH) / (rows - 1))
-    : finalPortH + finalGapW * 0.5;
   const startY = isZeroUPduPower
-    ? Math.min(availableH / 2 - finalPortH / 2, ((rows - 1) * rowH) / 2)
-    : groupY + (rows * rowH) / 2 - finalPortH / 2;
+    ? Math.min(availableH / 2 - finalPortH / 2, ((rows - 1) * rowPitch) / 2)
+    : groupY + (rows * rowPitch) / 2 - slotH / 2;
 
   const slots: PortSlot[] = [];
   const baseIndex = startIndex ?? 0;
   for (let i = 0; i < count; i++) {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
+    let col: number;
+    let row: number;
+    if (isVertical) {
+      col = Math.floor(i / rows);
+      row = i % rows;
+    } else {
+      col = i % displayCols;
+      row = Math.floor(i / displayCols);
+    }
     slots.push({
       type,
       index: baseIndex + i,
-      x: startX + col * (finalPortW + finalGapW),
-      y: startY - row * rowH,
-      width: finalPortW * 0.9,
-      height: finalPortH * 0.9,
+      x: startX + col * (slotW + finalGapW),
+      y: startY - row * rowPitch,
+      width: slotW,
+      height: slotH,
       speed,
       mediaType,
     });

@@ -1,7 +1,13 @@
 export type RackType = '10in' | '19in';
 export type WidthType = RackType | 'shelf' | 'custom';
 export type ViewSide = 'front' | 'rear';
-export type ViewMode = '2d' | '3d' | 'cables' | 'topology';
+export type ViewMode =
+  | '2d'
+  | '3d'
+  | 'cables'
+  | 'topology'
+  // Consumed by FaceplateGallery component
+  | 'gallery';
 export type SpatialZone = 'front' | 'rear' | 'side-left' | 'side-right' | 'rear-left' | 'rear-right';
 export type HeatLevel = 1 | 2 | 3 | 4 | 5;
 export type ZeroUMountType = 'side-rail' | 'rear-rail';
@@ -11,7 +17,7 @@ export type CableType = 'ethernet' | 'power' | 'fiber' | 'usb' | 'hdmi' | 'atx' 
 
 export type PortSpeed = '100M' | '1G' | '2.5G' | '5G' | '10G' | '25G' | '40G' | '100G';
 
-export type MediaType = 'rj45' | 'sfp' | 'sfp+' | 'qsfp+' | 'dac' | 'fiber' | 'usb2' | 'usb3';
+export type MediaType = 'rj45' | 'sfp' | 'sfp+' | 'sfp28' | 'qsfp+' | 'dac' | 'fiber' | 'usb2' | 'usb3';
 
 export type DeviceCategory =
   | 'patch-panel'
@@ -63,6 +69,10 @@ export interface DeviceTemplate {
   portLayouts?: {
     front?: PortTypeConfig[];
     rear?: PortTypeConfig[];
+  };
+  faceplate?: {
+    front?: string;
+    rear?: string;
   };
   mountType?: ZeroUMountType;
   mountSide0U?: ZeroUMountSide;
@@ -129,6 +139,10 @@ export interface PlacedDevice {
     front?: PortTypeConfig[];
     rear?: PortTypeConfig[];
   };
+  faceplate?: {
+    front?: string;
+    rear?: string;
+  };
   mountType?: ZeroUMountType;
   mountSide0U?: ZeroUMountSide;
   outletFacing?: OutletFacing;
@@ -178,6 +192,15 @@ export interface PortTypeConfig {
   count?: number;
   columns?: number;
   xRatio?: number; // 0 = left edge, 0.5 = center, 1 = right edge
+  // Consumed by layout engine v2-lite (portLayout.ts)
+  rowIndex?: number;
+  // Consumed by layout engine v2-lite (portLayout.ts)
+  yRatio?: number; // 0 = top edge, 0.5 = center, 1 = bottom edge
+  // Consumed by layout engine v2-lite (portLayout.ts)
+  orientation?: 'horizontal' | 'vertical';
+  // Consumed by layout engine v2-lite (portLayout.ts)
+  pairing?: 'sequential' | 'odd-even-vertical';
+  groupLabel?: string;
   speed?: PortSpeed;
   mediaType?: MediaType;
 }
