@@ -1,9 +1,11 @@
-import type { PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
-import { buildPortLayout, getPortFaceMap } from './portLayout';
+import type { PlacedDevice, PortRef, RackLayout } from '../types/rack';
+import { buildPortLayout, resolvePortFace } from './portLayout';
 import { getDeviceMountSide, getDeviceXRange, getZeroUEarSide, RACK_SPECS } from './rackMath';
 
 export const RACK_3D_U_HEIGHT = 0.18;
 export const RACK_3D_POST_SIZE = 0.045;
+// Fallback device depth when a template omits depthMm; avoids NaN geometry.
+export const DEFAULT_DEVICE_DEPTH_MM = 200;
 export const ZERO_U_SIDE_GAP = 0.16;
 export const ZERO_U_SIDE_WIDTH = 0.16;
 export const ZERO_U_SIDE_DEPTH = 0.78;
@@ -64,7 +66,7 @@ export function getDeviceWorldBox(
   const depthScale = layout.rackDepthMm > 0 ? rackDepth / layout.rackDepthMm : rackDepth;
   const depth = isZeroU
     ? (isRearRail0U ? ZERO_U_REAR_DEPTH : Math.min(rackDepth * 0.72, ZERO_U_SIDE_DEPTH))
-    : Math.max(0.12, device.depthMm * depthScale);
+    : Math.max(0.12, (device.depthMm ?? DEFAULT_DEVICE_DEPTH_MM) * depthScale);
 
   let x: number;
   let z: number;
@@ -104,14 +106,7 @@ export function getDeviceWorldBox(
 }
 
 export function getCablePortFace(device: PlacedDevice, portRef?: PortRef): 'front' | 'rear' {
-  if (device.category === 'patch-panel') {
-    // Explicit side wins; missing side: ethernet/fiber = front, structured/patch = rear
-    if (portRef?.side) return portRef.side;
-    const frontTypes: PortType[] = ['ethernet', 'fiber'];
-    return frontTypes.includes(portRef?.type ?? 'ethernet') ? 'front' : 'rear';
-  }
-  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
-  return (faceMap[portRef?.type ?? 'ethernet'] ?? 'rear') as 'front' | 'rear';
+  return resolvePortFace(device, portRef);
 }
 
 export function getPortZSign(device: PlacedDevice, portRef?: PortRef): number {

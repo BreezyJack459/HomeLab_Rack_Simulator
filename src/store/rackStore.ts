@@ -963,18 +963,67 @@ export const useRackStore = create<RackState>((set, get) => ({
       idMap.set(device.id, newDeviceId);
       return { ...device, id: newDeviceId };
     });
-    const clonedCables = (sourceRack.cables ?? []).map((cable) => ({
-      ...cable,
-      id: newId('cable'),
-      fromDeviceId: idMap.get(cable.fromDeviceId) ?? cable.fromDeviceId,
-      toDeviceId: idMap.get(cable.toDeviceId) ?? cable.toDeviceId,
+    const cableIdMap = new Map<string, string>();
+    const clonedCables = (sourceRack.cables ?? []).map((cable) => {
+      const newCableId = newId('cable');
+      cableIdMap.set(cable.id, newCableId);
+      return {
+        ...cable,
+        id: newCableId,
+        fromDeviceId: idMap.get(cable.fromDeviceId) ?? cable.fromDeviceId,
+        toDeviceId: idMap.get(cable.toDeviceId) ?? cable.toDeviceId,
+      };
+    });
+    // Remap device/cable-id-keyed collections through the id maps; drop
+    // entries whose referenced ids do not exist in the cloned rack.
+    const mapDeviceIds = (ids?: string[]) =>
+      ids?.map((id) => idMap.get(id)).filter((id): id is string => Boolean(id));
+    const mapCableIds = (ids?: string[]) =>
+      ids?.map((id) => cableIdMap.get(id)).filter((id): id is string => Boolean(id));
+    const clonedServices = (sourceRack.services ?? [])
+      .filter((service) => !service.hostDeviceId || idMap.has(service.hostDeviceId))
+      .map((service) => ({
+        ...service,
+        hostDeviceId: service.hostDeviceId ? idMap.get(service.hostDeviceId) : undefined,
+      }));
+    const clonedPortReservations = (sourceRack.portReservations ?? [])
+      .filter((reservation) => idMap.has(reservation.deviceId))
+      .map((reservation) => ({ ...reservation, deviceId: idMap.get(reservation.deviceId)! }));
+    const clonedPatchPanelDocs = (sourceRack.patchPanelDocs ?? [])
+      .filter((doc) => idMap.has(doc.deviceId))
+      .map((doc) => ({
+        ...doc,
+        deviceId: idMap.get(doc.deviceId)!,
+        cableId: doc.cableId ? cableIdMap.get(doc.cableId) : undefined,
+      }));
+    const clonedDebtItems = (sourceRack.debtItems ?? []).map((item) => ({
+      ...item,
+      deviceIds: mapDeviceIds(item.deviceIds),
+      cableIds: mapCableIds(item.cableIds),
     }));
-    const newRack: RackLayout = {
+    const clonedDomainAssignments = (sourceRack.domainAssignments ?? []).map((assignment) => ({
+      ...assignment,
+      deviceIds: mapDeviceIds(assignment.deviceIds),
+      cableIds: mapCableIds(assignment.cableIds),
+    }));
+    const clonedSensorReadings = (sourceRack.sensorReadings ?? [])
+      .filter((reading) => idMap.has(reading.deviceId))
+      .map((reading) => ({ ...reading, deviceId: idMap.get(reading.deviceId)! }));
+    const newRackBase: RackLayout = {
       ...sourceRack,
       id: `rack-${Date.now()}`,
       name: newName,
       devices: clonedDevices,
       cables: clonedCables,
+      services: clonedServices,
+      portReservations: clonedPortReservations,
+      patchPanelDocs: clonedPatchPanelDocs,
+      debtItems: clonedDebtItems,
+      domainAssignments: clonedDomainAssignments,
+      sensorReadings: clonedSensorReadings,
+    };
+    const newRack: RackLayout = {
+      ...withCableNodes(newRackBase),
       updatedAt: new Date().toISOString(),
     };
     const updatedWorkspace = { ...workspace, racks: [...syncedRacks, newRack] };

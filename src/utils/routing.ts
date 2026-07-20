@@ -12,7 +12,7 @@ import type {
   RackLayout
 } from '../types/rack';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
-import { getPortFaceMap } from './portLayout';
+import { resolvePortFace } from './portLayout';
 import { getDeviceXRange } from './rackMath';
 
 const STANDARD_U_MM = 44.45;
@@ -25,7 +25,7 @@ const POWER_DRIP_LOOP_MM = 280;
 const STRUCTURED_SLACK_MM = 380;
 const DATA_SLACK_MM = 300;
 const PATCH_SLACK_MM = 180;
-const STANDARD_CABLE_LENGTHS_MM = [500, 1000, 1500, 2000, 3000, 4000, 5000, 7000, 10000];
+export const STANDARD_CABLE_LENGTHS_MM = [500, 1000, 1500, 2000, 3000, 4000, 5000, 7000, 10000];
 const RACK_USABLE_WIDTH_MM: Record<RackLayout['rackType'], number> = {
   '10in': 254,
   '19in': 482.6
@@ -88,11 +88,7 @@ function isNetworkCable(type: CableType): boolean {
 }
 
 function portFace(device: PlacedDevice, portRef?: PortRef): 'front' | 'rear' {
-  if (device.category === 'patch-panel' && portRef?.side) {
-    return portRef.side;
-  }
-  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
-  return (faceMap[portRef?.type ?? 'ethernet'] ?? 'rear') as 'front' | 'rear';
+  return resolvePortFace(device, portRef);
 }
 
 function deviceCenterXMm(layout: RackLayout, device: PlacedDevice): number {
@@ -234,17 +230,6 @@ function nearestRailForDevice(layout: RackLayout, device: PlacedDevice): 'left' 
   return deviceCenterXMm(layout, device) < RACK_USABLE_WIDTH_MM[layout.rackType] / 2 ? 'left' : 'right';
 }
 
-function densityRailForCable(layout: RackLayout, cable: CableRoute, rail: 'left' | 'right' | null): 'left' | 'right' | null {
-  const from = layout.devices.find((device) => device.id === cable.fromDeviceId);
-  const to = layout.devices.find((device) => device.id === cable.toDeviceId);
-  if (!from || !to) return rail;
-  const discipline = classifyDiscipline(cable, from, to);
-  if (directFrontPath(cable, from, to)) return null;
-  const pdu = discipline === 'power' ? (isPdu(from) ? from : isPdu(to) ? to : null) : null;
-  if (pdu?.sizeU === 0) return zeroUEarSide(pdu);
-  return nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
-}
-
 // ── Rail stats cache for O(1) density / same-rail lookups ──
 
 interface RailStats {
@@ -256,20 +241,16 @@ interface RailStats {
   preferredCounts: Map<string, number>; // key: `${rail}-${separation}`
 }
 
-const railStatsCache = new Map<string, RailStats>();
-const MAX_RAIL_CACHE = 8;
+// Keyed on the layout object itself: every store mutation creates a new
+// layout object, so stale stats for a pre-mutation device set are impossible.
+const railStatsCache = new WeakMap<RackLayout, RailStats>();
 
 function getRailStats(layout: RackLayout): RailStats {
-  const key = `${layout.id}:${layout.updatedAt}`;
-  const cached = railStatsCache.get(key);
+  const cached = railStatsCache.get(layout);
   if (cached) return cached;
 
   const stats = computeRailStats(layout);
-  railStatsCache.set(key, stats);
-  if (railStatsCache.size > MAX_RAIL_CACHE) {
-    const first = railStatsCache.keys().next().value;
-    if (first) railStatsCache.delete(first);
-  }
+  railStatsCache.set(layout, stats);
   return stats;
 }
 
@@ -336,28 +317,10 @@ function computeRailStats(layout: RackLayout): RailStats {
     cableSeparations.set(cable.id, separation);
 
     if (preferred === null) {
-      const naturalRail = nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
-      const candidates = (['left', 'right'] as const).map((rail) => {
-        const rawLength = candidateLengthForRail(layout, cable, discipline, from, to, rail);
-        const densityKey = `${rail}-${separation}`;
-        const totalDensity = densityCounts.get(densityKey) ?? 0;
-        const thisDensityRail = cableDensityRails.get(cable.id);
-        const density = thisDensityRail === rail ? totalDensity - 1 : totalDensity;
-        return {
-          rail,
-          rawLength,
-          standardLength: standardCableLength(rawLength),
-          density,
-          naturalPenalty: rail === naturalRail ? 0 : 1
-        };
+      preferred = choosePreferredRail(layout, cable, discipline, from, to, separation, (rail) => {
+        const totalDensity = densityCounts.get(`${rail}-${separation}`) ?? 0;
+        return cableDensityRails.get(cable.id) === rail ? totalDensity - 1 : totalDensity;
       });
-      candidates.sort((a, b) => (
-        a.standardLength - b.standardLength ||
-        a.rawLength - b.rawLength ||
-        a.naturalPenalty - b.naturalPenalty ||
-        a.density - b.density
-      ));
-      preferred = candidates[0].rail;
     }
 
     cablePreferredRails.set(cable.id, preferred);
@@ -390,15 +353,17 @@ function candidateLengthForRail(
   return baseLengthMm + slackForDiscipline(discipline);
 }
 
-function preferredRail(layout: RackLayout, discipline: CableRoutingDiscipline, cable: CableRoute, from: PlacedDevice, to: PlacedDevice): 'left' | 'right' | null {
-  if (directFrontPath(cable, from, to)) return null;
-
-  if (discipline === 'power') {
-    const pdu = isPdu(from) ? from : isPdu(to) ? to : null;
-    if (pdu?.sizeU === 0) return zeroUEarSide(pdu);
-  }
-
-  const separation = discipline === 'power' ? 'power' : 'data';
+// Shared rail-choice logic: build left/right candidates and pick the best by
+// standard length, raw length, natural-rail penalty, then rail density.
+function choosePreferredRail(
+  layout: RackLayout,
+  cable: CableRoute,
+  discipline: CableRoutingDiscipline,
+  from: PlacedDevice,
+  to: PlacedDevice,
+  separation: 'data' | 'power',
+  densityFor: (rail: 'left' | 'right') => number
+): 'left' | 'right' {
   const naturalRail = nearestRailForDevice(layout, consumerDeviceForRouting(discipline, from, to));
   const candidates = (['left', 'right'] as const).map((rail) => {
     const rawLength = candidateLengthForRail(layout, cable, discipline, from, to, rail);
@@ -406,7 +371,7 @@ function preferredRail(layout: RackLayout, discipline: CableRoutingDiscipline, c
       rail,
       rawLength,
       standardLength: standardCableLength(rawLength),
-      density: railDensity(layout, cable, rail, separation),
+      density: densityFor(rail),
       naturalPenalty: rail === naturalRail ? 0 : 1
     };
   });
@@ -417,6 +382,20 @@ function preferredRail(layout: RackLayout, discipline: CableRoutingDiscipline, c
     a.density - b.density
   ));
   return candidates[0].rail;
+}
+
+function preferredRail(layout: RackLayout, discipline: CableRoutingDiscipline, cable: CableRoute, from: PlacedDevice, to: PlacedDevice): 'left' | 'right' | null {
+  if (directFrontPath(cable, from, to)) return null;
+
+  if (discipline === 'power') {
+    const pdu = isPdu(from) ? from : isPdu(to) ? to : null;
+    if (pdu?.sizeU === 0) return zeroUEarSide(pdu);
+  }
+
+  const separation = discipline === 'power' ? 'power' : 'data';
+  return choosePreferredRail(layout, cable, discipline, from, to, separation, (rail) =>
+    railDensity(layout, cable, rail, separation)
+  );
 }
 
 function waypoint(id: string, role: CableWaypoint['role'], label: string, patch: Partial<CableWaypoint> = {}): CableWaypoint {

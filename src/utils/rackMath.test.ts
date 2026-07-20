@@ -18,8 +18,7 @@ import {
   isDeviceWithinRack,
   isZeroU,
   RACK_SPECS,
-  rangesOverlap,
-  standardCableLength
+  rangesOverlap
 } from './rackMath';
 
 const baseLayout: RackLayout = {
@@ -255,15 +254,6 @@ describe('isZeroU', () => {
   it('identifies zero-U devices', () => {
     expect(isZeroU({ sizeU: 0 })).toBe(true);
     expect(isZeroU({ sizeU: 1 })).toBe(false);
-  });
-});
-
-describe('standardCableLength', () => {
-  it('picks smallest standard length covering estimate', () => {
-    expect(standardCableLength(400)).toBe(500);
-    expect(standardCableLength(500)).toBe(500);
-    expect(standardCableLength(5500)).toBe(7000);
-    expect(standardCableLength(10500)).toBe(10000);
   });
 });
 

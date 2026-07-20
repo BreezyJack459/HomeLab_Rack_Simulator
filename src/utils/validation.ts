@@ -23,7 +23,7 @@ import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW, validatePduO
 import { getServiceabilityIssues } from './serviceability';
 import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
 import { validatePrintedMountFit } from './printedMount';
-import { getPortMetadata } from './portLayout';
+import { getPortFaceMap, getPortMetadata } from './portLayout';
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
@@ -71,8 +71,7 @@ function areMediaCompatible(a: string, b: string): boolean {
 }
 
 function recommendCableLength(pathLengthMm: number): string {
-  const STANDARD_LENGTHS_MM = [500, 1000, 2000, 3000, 5000];
-  const match = STANDARD_LENGTHS_MM.find((l) => l >= pathLengthMm * 1.15);
+  const match = standardCableLength(pathLengthMm * 1.15);
   return match ? `${match / 1000}m` : '5m+';
 }
 
@@ -653,10 +652,10 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
 
     // Port speed / media type mismatch checks
     const fromMeta = cable.fromPort
-      ? getPortMetadata(from, cable.fromPort.side ?? getDeviceMountSide(from) as 'front' | 'rear', cable.fromPort.type, cable.fromPort.index)
+      ? getPortMetadata(from, cable.fromPort.side ?? getPortFaceMap(from.category, from.portFaceOverrides)[cable.fromPort.type] ?? 'rear', cable.fromPort.type, cable.fromPort.index)
       : undefined;
     const toMeta = cable.toPort
-      ? getPortMetadata(to, cable.toPort.side ?? getDeviceMountSide(to) as 'front' | 'rear', cable.toPort.type, cable.toPort.index)
+      ? getPortMetadata(to, cable.toPort.side ?? getPortFaceMap(to.category, to.portFaceOverrides)[cable.toPort.type] ?? 'rear', cable.toPort.type, cable.toPort.index)
       : undefined;
 
     if (fromMeta?.speed && toMeta?.speed && fromMeta.speed !== toMeta.speed) {

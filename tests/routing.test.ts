@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { sampleLayouts } from '../src/data/sampleLayouts';
 import type { CablePlan, CableRoute, RackLayout } from '../src/types/rack';
 import { getPatchPanelJacks, getPatchPanelLinkedCableIds, patchPanelRouteLabel } from '../src/utils/patchPanel';
-import { calculateCablePlan } from '../src/utils/routing';
+import { calculateCablePlan, standardCableLength } from '../src/utils/routing';
 import { validateRackLayout } from '../src/utils/validation';
 
 const onHand = sampleLayouts.find((layout) => layout.id === 'sample-my-onhand-gear') as RackLayout;
@@ -205,4 +205,74 @@ test('manual cable lengths must cover routed path plus slack budget', () => {
   expect(shortCable).toBeTruthy();
   expect(shortCable?.detail).toContain('plus');
   expect(shortCable?.detail).toContain('slack');
+});
+
+test('standardCableLength picks smallest standard length covering estimate', () => {
+  expect(standardCableLength(400)).toBe(500);
+  expect(standardCableLength(500)).toBe(500);
+  expect(standardCableLength(5500)).toBe(7000);
+  expect(standardCableLength(10500)).toBe(10000);
+});
+
+test('speed/media validation runs for front-mounted devices with rear ports', () => {
+  const layout: RackLayout = {
+    id: 'speed-face',
+    name: 'Speed face test',
+    rackType: '19in',
+    heightU: 12,
+    rackDepthMm: 600,
+    weightLimitKg: 200,
+    powerBudgetW: 1200,
+    viewSide: 'front',
+    devices: [
+      {
+        id: 'sw-front',
+        category: 'switch',
+        name: 'Front switch',
+        mountSide: 'front',
+        positionU: 1,
+        sizeU: 1,
+        depthMm: 300,
+        widthType: '19in',
+        weightKg: 4,
+        powerW: 40,
+        heatLevel: 2,
+        ports: { ethernet: 8 },
+        portLayouts: { front: [{ type: 'ethernet', count: 8, speed: '10G', mediaType: 'rj45' }] },
+        color: '#334155'
+      },
+      {
+        id: 'srv-front',
+        category: 'server',
+        name: 'Front-mounted server',
+        mountSide: 'front',
+        positionU: 3,
+        sizeU: 1,
+        depthMm: 500,
+        widthType: '19in',
+        weightKg: 10,
+        powerW: 300,
+        heatLevel: 3,
+        ports: { ethernet: 2 },
+        portLayouts: { rear: [{ type: 'ethernet', count: 2, speed: '1G', mediaType: 'rj45' }] },
+        color: '#475569'
+      }
+    ],
+    cables: [
+      {
+        id: 'cable-speed',
+        fromDeviceId: 'sw-front',
+        toDeviceId: 'srv-front',
+        fromPort: { type: 'ethernet', index: 0 },
+        toPort: { type: 'ethernet', index: 0 },
+        type: 'ethernet',
+        color: '#0ea5e9'
+      }
+    ],
+    updatedAt: new Date().toISOString()
+  };
+
+  const issues = validateRackLayout(layout);
+  const speedIssue = issues.find((issue) => issue.id === 'speed-mismatch-cable-speed');
+  expect(speedIssue).toBeTruthy();
 });

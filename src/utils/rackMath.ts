@@ -208,26 +208,12 @@ export function findFirstFreeSlot(
   return null;
 }
 
-export function findFirstFreePosition(layout: RackLayout, sizeU: number) {
-  const device = {
-    id: '__candidate__',
-    positionU: 1,
-    sizeU,
-    widthType: layout.rackType,
-    mountSide: layout.viewSide,
-    xMm: 0
-  } satisfies Pick<PlacedDevice, 'id' | 'positionU' | 'sizeU' | 'widthType' | 'mountSide' | 'xMm'>;
-  return findFirstFreeSlot(layout, device)?.positionU ?? null;
-}
-
 export function unitsForDevice(device: Pick<PlacedDevice, 'positionU' | 'sizeU'>) {
   if (isZeroU(device)) return [];
   return Array.from({ length: device.sizeU }, (_, index) => device.positionU + index);
 }
 
 const STANDARD_U_MM = 44.45;
-const CABLE_SLACK_MM = 300;
-const STANDARD_LENGTHS_MM = [500, 1000, 1500, 2000, 3000, 4000, 5000, 7000, 10000];
 
 export function getDeviceFaceSizeMm(
   device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU'>
@@ -235,13 +221,6 @@ export function getDeviceFaceSizeMm(
   const width = getDeviceWidthMm(device);
   const height = Math.max(device.sizeU, 1) * STANDARD_U_MM;
   return { width, height };
-}
-
-export function standardCableLength(estimatedMm: number): number {
-  for (const length of STANDARD_LENGTHS_MM) {
-    if (estimatedMm <= length) return length;
-  }
-  return STANDARD_LENGTHS_MM[STANDARD_LENGTHS_MM.length - 1];
 }
 
 export function formatCableLength(mm: number): string {

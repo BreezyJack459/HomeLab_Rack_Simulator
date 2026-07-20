@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { PlacedDevice } from '../types/rack';
 import { buildPortLayout, getPortFaceMap } from './portLayout';
 
@@ -285,4 +285,80 @@ describe('buildPortLayout', () => {
     expect(groups[0].label).toBe('WAN');
   });
 
+});
+describe('buildPortLayout degenerate config guards', () => {
+  it('clamps explicit columns of 0 instead of producing NaN geometry', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 4, columns: 0 }]
+      }
+    });
+
+    const groups = buildPortLayout(device, 482.6, 44.45, 'front');
+
+    expect(groups[0].slots).toHaveLength(4);
+    for (const slot of groups[0].slots) {
+      expect(Number.isFinite(slot.x)).toBe(true);
+      expect(Number.isFinite(slot.y)).toBe(true);
+    }
+  });
+
+  it('treats a negative explicit rowIndex as a fallback row instead of colliding', () => {
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 2, usb: 2 },
+      portLayouts: {
+        front: [
+          { type: 'ethernet', count: 2, columns: 2, rowIndex: -2 },
+          { type: 'usb', count: 2, columns: 2 }
+        ]
+      }
+    });
+
+    const groups = buildPortLayout(device, 482.6, 44.45, 'front');
+    const ethernet = groups.find((g) => g.type === 'ethernet')!;
+    const usb = groups.find((g) => g.type === 'usb')!;
+
+    // A negative explicit rowIndex (-2) would otherwise share the fallback
+    // row key with the unindexed usb config, stacking both on the same row.
+    expect(ethernet.slots[0].y).not.toBeCloseTo(usb.slots[0].y, 5);
+  });
+
+  it('clamps extreme yRatio values into the face band', () => {
+    const faceHeight = 44.45;
+    const device = makeDevice({
+      category: 'switch',
+      ports: { ethernet: 2 },
+      portLayouts: {
+        front: [{ type: 'ethernet', count: 2, columns: 2, yRatio: 5 }]
+      }
+    });
+
+    const groups = buildPortLayout(device, 482.6, faceHeight, 'front');
+
+    for (const slot of groups[0].slots) {
+      expect(Math.abs(slot.y)).toBeLessThanOrEqual(faceHeight / 2 + 1e-6);
+    }
+  });
+
+  it('warns in dev when odd-even-vertical pairing does not match the grid', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const device = makeDevice({
+        category: 'switch',
+        ports: { ethernet: 6 },
+        portLayouts: {
+          front: [{ type: 'ethernet', count: 6, columns: 4, pairing: 'odd-even-vertical' }]
+        }
+      });
+
+      buildPortLayout(device, 482.6, 44.45, 'front');
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('applyOddEvenVerticalPairing'));
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

@@ -37,4 +37,16 @@ describe('getDeviceWorldBox', () => {
 
     expect(box.depth).toBeCloseTo(1.4, 5);
   });
+
+  it('falls back to a default depth when depthMm is missing instead of producing NaN', () => {
+    const box = getDeviceWorldBox(
+      { rackType: '19in', rackDepthMm: 600 },
+      { ...baseDevice, depthMm: undefined as unknown as number },
+      { rackWidth: 3.72, rackDepth: 2.8, rackHeight: 3.24, bottom: -1.62 }
+    );
+
+    expect(Number.isNaN(box.depth)).toBe(false);
+    // DEFAULT_DEVICE_DEPTH_MM (200) at depthScale 2.8 / 600
+    expect(box.depth).toBeCloseTo((200 * 2.8) / 600, 5);
+  });
 });

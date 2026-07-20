@@ -501,4 +501,97 @@ describe('rackStore store operations', () => {
     expect(state.layout.rackType).toBe('10in');
     expect(state.layout.powerBudgetW).toBe(450);
   });
+
+  it('duplicateRack remaps id-keyed collections and recomputes cable nodes', () => {
+    const sourceLayout: RackLayout = {
+      ...testLayout,
+      id: 'dup-source',
+      name: 'Dup Source',
+      services: [
+        { id: 'svc-1', name: 'Web', criticality: 'high', hostDeviceId: 'dev-a' },
+        { id: 'svc-2', name: 'Ghost', criticality: 'low', hostDeviceId: 'dev-missing' }
+      ],
+      portReservations: [
+        { id: 'res-1', deviceId: 'dev-b', portType: 'ethernet', portIndex: 0, purpose: 'uplink' },
+        { id: 'res-2', deviceId: 'dev-missing', portType: 'ethernet', portIndex: 1, purpose: 'stale' }
+      ],
+      patchPanelDocs: [
+        { portIndex: 0, deviceId: 'dev-a', cableId: 'cable-ab' },
+        { portIndex: 1, deviceId: 'dev-gone', cableId: 'cable-gone' }
+      ],
+      debtItems: [
+        {
+          id: 'debt-1',
+          title: 'Messy cabling',
+          description: '',
+          severity: 'low',
+          status: 'open',
+          scope: 'device',
+          deviceIds: ['dev-a', 'dev-missing'],
+          cableIds: ['cable-ab', 'cable-gone'],
+          createdAt: '2026-01-01T00:00:00.000Z'
+        }
+      ],
+      domainAssignments: [
+        { domainId: 'dom-1', deviceIds: ['dev-a', 'dev-missing'], cableIds: ['cable-ab'] }
+      ],
+      sensorReadings: [
+        { id: 'sr-1', deviceId: 'dev-a', powerActualW: 40 },
+        { id: 'sr-2', deviceId: 'dev-missing', powerActualW: 10 }
+      ]
+    };
+    useRackStore.getState().loadLayout(sourceLayout);
+    // Ensure the workspace tracks the loaded rack regardless of leaked state
+    // from earlier tests (newLayout does not reset workspace/currentRackId).
+    useRackStore.setState({
+      workspace: {
+        id: 'ws-dup-test',
+        name: 'Dup Test',
+        racks: [useRackStore.getState().layout],
+        interRackCables: [],
+        updatedAt: new Date().toISOString()
+      },
+      currentRackId: 'dup-source'
+    });
+
+    useRackStore.getState().duplicateRack('dup-source', 'Dup Copy');
+
+    const state = useRackStore.getState();
+    const newRack = state.layout;
+    expect(newRack.id).not.toBe('dup-source');
+    expect(newRack.name).toBe('Dup Copy');
+
+    const newDevA = newRack.devices.find((d) => d.name === 'Switch A')!;
+    const newDevB = newRack.devices.find((d) => d.name === 'Server B')!;
+    expect(newDevA.id).not.toBe('dev-a');
+    const newDeviceIds = new Set(newRack.devices.map((d) => d.id));
+    const newCableAB = newRack.cables.find((c) => c.fromDeviceId === newDevA.id && c.toDeviceId === newDevB.id)!;
+    expect(newCableAB).toBeTruthy();
+    expect(newCableAB.id).not.toBe('cable-ab');
+
+    // Cable nodes recomputed against the cloned rack, not copied from the source
+    expect((newCableAB.nodes ?? []).length).toBeGreaterThan(0);
+    for (const cable of newRack.cables) {
+      for (const node of cable.nodes ?? []) {
+        expect(newDeviceIds.has(node.deviceId)).toBe(true);
+      }
+    }
+
+    // Device-id-keyed collections remapped; dangling entries dropped
+    expect(newRack.services).toHaveLength(1);
+    expect(newRack.services![0].hostDeviceId).toBe(newDevA.id);
+    expect(newRack.portReservations).toHaveLength(1);
+    expect(newRack.portReservations![0].deviceId).toBe(newDevB.id);
+    expect(newRack.patchPanelDocs).toHaveLength(1);
+    expect(newRack.patchPanelDocs![0].deviceId).toBe(newDevA.id);
+    expect(newRack.patchPanelDocs![0].cableId).toBe(newCableAB.id);
+    expect(newRack.debtItems).toHaveLength(1);
+    expect(newRack.debtItems![0].deviceIds).toEqual([newDevA.id]);
+    expect(newRack.debtItems![0].cableIds).toEqual([newCableAB.id]);
+    expect(newRack.domainAssignments).toHaveLength(1);
+    expect(newRack.domainAssignments![0].deviceIds).toEqual([newDevA.id]);
+    expect(newRack.domainAssignments![0].cableIds).toEqual([newCableAB.id]);
+    expect(newRack.sensorReadings).toHaveLength(1);
+    expect(newRack.sensorReadings![0].deviceId).toBe(newDevA.id);
+  });
 });

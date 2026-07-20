@@ -147,8 +147,6 @@ export function buildCablePath3D(
   if (isDirectPath) {
     const midX = (fromPort.x + toPort.x) / 2;
     const midY = (fromPort.y + toPort.y) / 2;
-    const fromFace = getCablePortFace(from, cable.fromPort);
-    const toFace = getCablePortFace(to, cable.toPort);
     const stagger = (cableIndex % 7) * 0.012;
 
     if (fromFace === 'front' && toFace === 'front') {

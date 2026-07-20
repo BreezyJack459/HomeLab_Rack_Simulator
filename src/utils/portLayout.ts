@@ -1,4 +1,4 @@
-import type { PlacedDevice, PortTypeConfig } from '../types/rack';
+import type { PlacedDevice, PortRef, PortTypeConfig } from '../types/rack';
 
 /** Subset of PlacedDevice required by port layout calculations. */
 export type PortLayoutDevice = Pick<
@@ -122,6 +122,18 @@ export function getPortFaceMap(category: string, overrides?: Record<string, 'fro
   return { ...defaults, ...overrides };
 }
 
+/** Single source of truth for which face a cable port lives on.
+ *  Explicit patch-panel side wins; otherwise the category face map
+ *  (with user overrides) decides, defaulting to 'rear'.
+ */
+export function resolvePortFace(device: PortLayoutDevice, portRef?: PortRef): 'front' | 'rear' {
+  if (device.category === 'patch-panel' && portRef?.side) {
+    return portRef.side;
+  }
+  const faceMap = getPortFaceMap(device.category, device.portFaceOverrides);
+  return (faceMap[portRef?.type ?? 'ethernet'] ?? 'rear') as 'front' | 'rear';
+}
+
 /** Build port layout for a specific face of a device */
 export function buildPortLayout(
   device: PortLayoutDevice,
@@ -167,7 +179,10 @@ export function buildPortLayout(
     const rowMap = new Map<number, typeof renderableConfigs>();
     let fallbackIndex = -renderableConfigs.length;
     for (const item of renderableConfigs) {
-      const idx = item.config.rowIndex ?? fallbackIndex++;
+      // Negative explicit rowIndex would collide with internal fallback row
+      // keys; treat it as absent (fallback).
+      const explicitRow = item.config.rowIndex;
+      const idx = explicitRow !== undefined && explicitRow >= 0 ? explicitRow : fallbackIndex++;
       if (!rowMap.has(idx)) rowMap.set(idx, []);
       rowMap.get(idx)!.push(item);
     }
@@ -268,7 +283,9 @@ function layoutPortRow(
   const explicitY = rowYRatios[rowIdx];
   let rowY: number;
   if (explicitY !== undefined) {
-    rowY = faceHeight / 2 - explicitY * faceHeight;
+    // Clamp into the [0, 1] face band so extreme values can't push slots off-face.
+    const clampedY = Math.min(1, Math.max(0, explicitY));
+    rowY = faceHeight / 2 - clampedY * faceHeight;
   } else if (isZeroUPduPower) {
     rowY = 0;
   } else if (isPowerOnly) {
@@ -321,7 +338,14 @@ function layoutPortRow(
 function applyOddEvenVerticalPairing(slots: PortSlot[], columns: number): PortSlot[] {
   if (slots.length === 0) return slots;
   const rows = Math.ceil(slots.length / columns);
-  if (rows !== 2 || slots.length % columns !== 0) return slots;
+  if (rows !== 2 || slots.length % columns !== 0) {
+    if (import.meta.env.DEV) {
+      console.warn(
+        `applyOddEvenVerticalPairing: skipped; ${slots.length} slots over ${columns} columns does not form an even 2-row grid.`
+      );
+    }
+    return slots;
+  }
 
   const baseIndex = slots[0].index;
   const ordered = slots
@@ -359,7 +383,8 @@ function layoutPortGroup(
   // Determine columns: explicit from portLayouts config, then layoutColumns, then default
   const requestedColumns = explicitColumns ?? (device.ports?.layoutColumns as number) ?? getDefaultColumns(type, count, device.category);
   const layoutColumns = isZeroUPduPower ? Math.min(requestedColumns, 2) : requestedColumns;
-  const cols = Math.min(count, layoutColumns);
+  // Clamp degenerate explicit columns (0/negative) to avoid Infinity/NaN geometry.
+  const cols = Math.max(1, Math.min(count, layoutColumns));
   const rows = Math.ceil(count / cols);
 
   // Side margins

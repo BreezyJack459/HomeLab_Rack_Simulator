@@ -77,6 +77,7 @@ import {
   getServiceabilityHighlightedDeviceIds,
 } from "./utils/serviceability";
 import { getRackTotals, validateRackLayout } from "./utils/validation";
+import { RACK_SPECS } from "./utils/rackMath";
 import type { SearchItem } from "./components/CommandPalette";
 
 const issueSeverityRank: Record<ValidationIssue["severity"], number> = {
@@ -808,9 +809,30 @@ function App() {
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
-    const { readJsonFile } = await import("./utils/exporters");
-    const imported = await readJsonFile(file);
-    loadLayout(imported as typeof layout);
+    try {
+      const { readJsonFile } = await import("./utils/exporters");
+      const imported = await readJsonFile(file);
+      const candidate = imported as Partial<RackLayout> | null;
+      if (
+        !candidate ||
+        typeof candidate !== "object" ||
+        Array.isArray(candidate) ||
+        typeof candidate.rackType !== "string" ||
+        !(candidate.rackType in RACK_SPECS) ||
+        (candidate.devices !== undefined && !Array.isArray(candidate.devices))
+      ) {
+        useRackStore.setState({
+          statusMessage: "Invalid rack layout JSON file.",
+        });
+        event.currentTarget.value = "";
+        return;
+      }
+      loadLayout(candidate as RackLayout);
+    } catch {
+      useRackStore.setState({
+        statusMessage: "Failed to read rack layout file.",
+      });
+    }
     event.currentTarget.value = "";
   }
 
