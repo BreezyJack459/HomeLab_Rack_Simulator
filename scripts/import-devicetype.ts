@@ -150,7 +150,7 @@ function inferCategory(netbox: NetBoxDeviceType): DeviceCategory {
   if (modelLower.includes('switch')) return 'switch';
   if (modelLower.includes('router')) return 'router';
   if (modelLower.includes('firewall')) return 'firewall';
-  if (modelLower.includes('access point') || modelLower.includes('ap')) return 'access-point';
+  if (modelLower.includes('access point') || /\bap\b/.test(modelLower)) return 'access-point';
   if (modelLower.includes('nas') || modelLower.includes('diskstation') || modelLower.includes('synology')) return 'nas';
   if (modelLower.includes('server')) return 'server';
   if (modelLower.includes('ups')) return 'ups';
@@ -210,7 +210,9 @@ export function convertNetBoxDeviceType(netbox: NetBoxDeviceType, vendorDir?: st
     }
   }
 
-  ingest(netbox.interfaces, 'interface');
+  // Management-only interfaces are out-of-band; they should not inflate the
+  // data port counts on the faceplate.
+  ingest(netbox.interfaces?.filter((item) => !item.mgmt_only), 'interface');
   ingest(netbox['power-ports'], 'power-port');
   ingest(netbox['console-ports'], 'console-port');
 
@@ -229,7 +231,7 @@ export function convertNetBoxDeviceType(netbox: NetBoxDeviceType, vendorDir?: st
       type,
       count,
       columns: Math.min(count, 12),
-      xRatio: type === 'power' ? 0.5 : 0.5,
+      xRatio: 0.5,
       yRatio: 0.85,
       orientation: 'horizontal',
       pairing: 'sequential',
@@ -264,9 +266,10 @@ function vendorFaceplatePath(vendor: string, slug: string, side: 'front' | 'rear
 }
 
 function assertWithinBase(base: string, target: string): void {
-  const resolvedBase = path.resolve(base);
-  const resolvedTarget = path.resolve(target);
-  if (!resolvedTarget.startsWith(resolvedBase)) {
+  const relative = path.relative(path.resolve(base), path.resolve(target));
+  // Reject escapes (leading '..'), siblings with a shared prefix, and
+  // cross-absolute results (different drive/root).
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal detected: ${target} is outside ${base}`);
   }
 }

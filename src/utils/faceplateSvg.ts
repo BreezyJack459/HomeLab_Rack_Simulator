@@ -81,7 +81,13 @@ export function getFaceplateArtifact(
       const key = svgCacheKey(template, face);
       let svg = SVG_CACHE.get(key);
       if (!svg) {
-        svg = loadHandTracedSvg(path);
+        try {
+          svg = loadHandTracedSvg(path);
+        } catch {
+          // Imported layouts may reference non-bundled SVGs; fall back to the
+          // procedural faceplate instead of crashing the editor render.
+          svg = generateProceduralSvg(template, face);
+        }
         SVG_CACHE.set(key, svg);
       }
       return { kind: 'svg', svg };
@@ -136,7 +142,14 @@ export function getFaceplateTexture(
 
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    throw new Error(`Could not get 2D context for faceplate texture ${template.id}/${face}`);
+    // Reject through the ready promise (callers handle rejection) rather than
+    // throwing synchronously during render.
+    return {
+      canvas,
+      ready: Promise.reject(
+        new Error(`Could not get 2D context for faceplate texture ${template.id}/${face}`)
+      )
+    };
   }
 
   const artifact = getFaceplateArtifact(template, face);
@@ -182,8 +195,13 @@ export function getFaceplateTexture(
 export function getHitRegions(template: DeviceTemplate, face: ViewSide): PortHitRegion[] {
   const path = template.faceplate?.[face];
   if (path && path.toLowerCase().endsWith('.svg')) {
-    const svg = loadHandTracedSvg(path);
-    return parseHitRegionsFromSvg(svg);
+    try {
+      const svg = loadHandTracedSvg(path);
+      return parseHitRegionsFromSvg(svg);
+    } catch {
+      // Non-bundled SVG (e.g. from an imported layout): fall through to the
+      // procedural layout regions.
+    }
   }
   return buildHitRegionsFromLayout(template, face);
 }

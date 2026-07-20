@@ -39,7 +39,9 @@ function FaceplateTexture({
   rotationY?: number;
 }) {
   const cacheKey = `${template.id}:${face}`;
-  const [texture, setTexture] = useState<THREE.CanvasTexture | null>(() => CANVAS_TEXTURE_CACHE.get(cacheKey) ?? null);
+  // Start null: reading the cache here would use a texture without taking a
+  // refcount. The effect below populates state and owns the refcount.
+  const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null);
   useEffect(() => {
     const cachedTexture = CANVAS_TEXTURE_CACHE.get(cacheKey);
     if (cachedTexture) {
@@ -63,6 +65,14 @@ function FaceplateTexture({
     const { canvas, ready } = getFaceplateTexture(template, face, 4);
     ready.then(() => {
       if (cancelled) return;
+      // Another instance sharing this in-flight load may have cached a texture
+      // first; reuse it instead of creating (and orphaning) a duplicate. The
+      // refcount for this instance was already taken above.
+      const existing = CANVAS_TEXTURE_CACHE.get(cacheKey);
+      if (existing) {
+        setTexture(existing);
+        return;
+      }
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = 4;

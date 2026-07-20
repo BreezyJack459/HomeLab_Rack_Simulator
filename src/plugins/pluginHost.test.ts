@@ -72,8 +72,45 @@ describe('buildPluginRegistry', () => {
     );
   });
 
-  it('rejects duplicate contribution ids deterministically', () => {
+  it('records activation failures in plugin states and continues with remaining plugins', () => {
+    const healthy = vi.fn((host) => {
+      host.registerCommand({
+        id: 'healthy.command',
+        title: 'Healthy Command',
+        subtitle: 'Command from a healthy plugin',
+        category: 'Actions',
+        run: vi.fn(),
+      });
+    });
+
     const plugins: RackPluginModule[] = [
+      basePlugin({
+        manifest: { id: 'boom', requiresAppVersion: '1.0.0' },
+        activate: () => {
+          throw new Error('kaboom');
+        },
+      }),
+      basePlugin({
+        manifest: { id: 'healthy', requiresAppVersion: '1.0.0' },
+        activate: healthy,
+      }),
+    ];
+
+    const registry = buildPluginRegistry({
+      appVersion: '1.0.0',
+      plugins,
+      enabledPluginIds: ['boom', 'healthy'],
+      core: { viewModes: [], panels: [], toolbarActions: [], commands: [] },
+    });
+
+    expect(registry.pluginStates.errored.boom).toContain('kaboom');
+    expect(registry.pluginStates.enabled).not.toContain('boom');
+    expect(registry.pluginStates.enabled).toContain('healthy');
+    expect(healthy).toHaveBeenCalledTimes(1);
+    expect(registry.commands.map((c) => c.id)).toContain('healthy.command');
+  });
+
+  it('rejects duplicate contribution ids deterministically', () => {    const plugins: RackPluginModule[] = [
       basePlugin({
         manifest: { id: 'one', requiresAppVersion: '1.0.0' },
         activate: (host) =>

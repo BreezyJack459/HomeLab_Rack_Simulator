@@ -228,8 +228,8 @@ power-ports:
 `;
     await fs.writeFile(yamlPath, yaml);
 
-    const fetchImpl = async (url: string): Promise<Response> => {
-      if (url.includes('.front.png')) {
+    const fetchImpl = async (url: string | URL | Request): Promise<Response> => {
+      if (String(url).includes('.front.png')) {
         return {
           ok: true,
           headers: new Headers({ 'content-type': 'image/png' }),
@@ -271,8 +271,8 @@ interfaces:
 `;
     await fs.writeFile(yamlPath, yaml);
 
-    const fetchImpl = async (url: string): Promise<Response> => {
-      if (url.includes('/aruba-custom/')) {
+    const fetchImpl = async (url: string | URL | Request): Promise<Response> => {
+      if (String(url).includes('/aruba-custom/')) {
         return {
           ok: true,
           headers: new Headers({ 'content-type': 'image/png' }),

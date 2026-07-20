@@ -206,6 +206,32 @@ describe('parseHitRegionsFromSvg', () => {
   });
 });
 
+describe('missing hand-traced SVG fallback', () => {
+  it('falls back to a procedural SVG when the referenced SVG is not bundled', () => {
+    const template = makeTemplate({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      faceplate: { front: '/src/assets/faceplates/not-bundled.svg' },
+    });
+    const artifact = getFaceplateArtifact(template, 'front');
+    expect(artifact.kind).toBe('svg');
+    if (artifact.kind === 'svg') {
+      expect(artifact.svg.startsWith('<svg')).toBe(true);
+    }
+  });
+
+  it('falls back to layout hit regions when the referenced SVG is not bundled', () => {
+    const template = makeTemplate({
+      category: 'switch',
+      ports: { ethernet: 4 },
+      faceplate: { front: '/src/assets/faceplates/not-bundled.svg' },
+    });
+    const regions = getHitRegions(template, 'front');
+    expect(regions).toHaveLength(4);
+    expect(regions.every((r) => r.type === 'ethernet')).toBe(true);
+  });
+});
+
 describe('getFaceplateTexture', () => {
   const mockContext = {
     drawImage: vi.fn(),
@@ -245,6 +271,15 @@ describe('getFaceplateTexture', () => {
     expect(texture.canvas).toBeInstanceOf(HTMLCanvasElement);
     expect(texture.ready).toBeInstanceOf(Promise);
     await expect(texture.ready).resolves.toBeUndefined();
+  });
+
+  it('rejects through the ready promise when the 2D context is unavailable', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      null as unknown as CanvasRenderingContext2D
+    );
+    const template = makeTemplate({ category: 'switch', ports: { ethernet: 4 } });
+    const texture = getFaceplateTexture(template, 'front');
+    await expect(texture.ready).rejects.toThrow(/2D context/);
   });
 
   it('revokes the object URL after a successful SVG load', async () => {

@@ -35,6 +35,7 @@ type PluginStates = {
   enabled: string[];
   disabled: string[];
   incompatible: Record<string, string>;
+  errored: Record<string, string>;
 };
 
 const isCompatible = (appVersion: string, requiresAppVersion: string) =>
@@ -56,6 +57,7 @@ export function buildPluginRegistry({
     enabled: [],
     disabled: [],
     incompatible: {},
+    errored: {},
   };
 
   const pushUnique = <T extends { id: string }>(
@@ -88,35 +90,47 @@ export function buildPluginRegistry({
       continue;
     }
 
-    plugin.activate({
-      getLayout: () => {
-        if (!shell?.getLayout) {
-          throw new Error('Plugin host shell.getLayout is not available');
-        }
+    try {
+      plugin.activate({
+        getLayout: () => {
+          if (!shell?.getLayout) {
+            throw new Error('Plugin host shell.getLayout is not available');
+          }
 
-        return shell.getLayout();
-      },
-      getViewMode: () => shell?.getViewMode?.() ?? '2d',
-      setViewMode: (mode) => shell?.setViewMode?.(mode),
-      openPanel: (panelId) => {
-        const panel = panels.find((item) => item.id === panelId);
-        if (!panel) {
-          return;
-        }
+          return shell.getLayout();
+        },
+        getViewMode: () => shell?.getViewMode?.() ?? '2d',
+        setViewMode: (mode) => shell?.setViewMode?.(mode),
+        openPanel: (panelId) => {
+          const panel = panels.find((item) => item.id === panelId);
+          if (!panel) {
+            return;
+          }
 
-        shell?.setCurrentWorkspace?.(panel.workspace);
-        if (panel.defaultPlacement === 'inspector') {
-          shell?.setInspectorOpen?.(true);
-        }
-      },
-      registerViewMode: (definition) =>
-        pushUnique('view', viewModes, definition),
-      registerPanel: (definition) => pushUnique('panel', panels, definition),
-      registerToolbarAction: (definition) =>
-        pushUnique('toolbar', toolbarActions, definition),
-      registerCommand: (definition) =>
-        pushUnique('command', commands, definition),
-    });
+          shell?.setCurrentWorkspace?.(panel.workspace);
+          if (panel.defaultPlacement === 'inspector') {
+            shell?.setInspectorOpen?.(true);
+          }
+        },
+        registerViewMode: (definition) =>
+          pushUnique('view', viewModes, definition),
+        registerPanel: (definition) => pushUnique('panel', panels, definition),
+        registerToolbarAction: (definition) =>
+          pushUnique('toolbar', toolbarActions, definition),
+        registerCommand: (definition) =>
+          pushUnique('command', commands, definition),
+      });
+    } catch (error) {
+      // Duplicate contribution ids are an integrity guard; keep them fatal.
+      if (error instanceof Error && error.message.startsWith('Duplicate contribution id:')) {
+        throw error;
+      }
+      // A throwing plugin must not abort the whole registry; record the
+      // failure and continue with the remaining plugins.
+      pluginStates.errored[plugin.manifest.id] =
+        error instanceof Error ? error.message : String(error);
+      continue;
+    }
 
     pluginStates.enabled.push(plugin.manifest.id);
   }
