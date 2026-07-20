@@ -56,3 +56,6 @@ pnpm-debug.log*
 /cable-port-selection-redesign.md
 /game-studio-code-review.md
 opencode.json
+
+# Playwright MCP tool output
+.playwright-mcp/
