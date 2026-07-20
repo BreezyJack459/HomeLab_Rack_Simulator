@@ -114,7 +114,7 @@ function touchIncremental(prev: RackLayout, next: RackLayout): RackLayout {
 | Unit/store regression test | **Done** | `routing`, `rackMath`, `portLayout`, `rackStore` tests cover current fix path |
 | E2E / smoke test | **Partial** | Playwright 喺 devDependencies，但冇 test files |
 | Visual regression | **Missing** | 冇 screenshot comparison |
-| Automated cable routing validation | **Improved** | Existing routing tests migrated into Vitest; legacy `npm run test:routing` still exists |
+| Automated cable routing validation | **Improved** | Existing routing tests migrated into Vitest; legacy `npm run test:routing` still exists *(update: removed since — routing tests run under `npm test`)* |
 
 ### 5.2 Recommended QA Pipeline
 

@@ -77,6 +77,8 @@
 | ⚡ **電源鏈規劃** | 建立 UPS／PDU／設備電源關係模型並追蹤負載路徑 |
 | 🔎 **線材追蹤** | 檢視端點到端點的線材走向，包含跳線、結構化線材、電源、光纖、USB、HDMI、ATX 與同軸電纜 |
 | 🗺️ **線圖** | 專屬分頁，以托盤式路徑顯示各類線材的走向 |
+| 🖼️ **面板貼圖管線** | 程序化 SVG 與手繪／NetBox 設備面板，以 3D 貼圖呈現，並提供連接埠點擊區域 |
+| 🧩 **外掛平台** | 內建外掛宿主，支援本地套件載入、外掛貢獻面板與外掛管理器 |
 | 🧊 **3D 檢視** | 近似機架與設備尺寸，支援完整相機控制 |
 | 💾 **儲存／載入／匯出** | 本地儲存、JSON 匯入／匯出、2D 圖表 PNG 匯出 |
 | 🌱 **種子佈局** | 精簡 10 吋邊緣實驗室、現有設備佈局、4 區域路由測試佈局，以及 19 吋家用雲端機架等快速入門範本 |
@@ -120,6 +122,12 @@ npm run build
 npm test
 ```
 
+執行外掛平台測試套件：
+
+```bash
+npm run test:plugins
+```
+
 啟動開發伺服器後，重新整理線材路由截圖：
 
 ```bash
@@ -147,6 +155,7 @@ homelab-rack-simulator/
 │   │   ├── DepthCompatibilityPanel.tsx  ← 各設備深度符合性檢查
 │   │   ├── DocumentationAuditPanel.tsx  ← 標示／文件完整性稽核
 │   │   ├── EnergySummary.tsx            ← 功耗與電費面板
+│   │   ├── FaceplateGallery.tsx         ← 僅限開發模式的面板展示檢視
 │   │   ├── FileMenu.tsx                 ← 儲存、載入、JSON 匯入／匯出、PNG
 │   │   ├── IssueBar.tsx                 ← 編輯器上方的內聯警告列
 │   │   ├── KeyboardShortcuts.tsx        ← 鍵盤快捷鍵說明覆蓋層
@@ -154,9 +163,11 @@ homelab-rack-simulator/
 │   │   ├── NoiseSummary.tsx             ← 聲學／噪音等級估算
 │   │   ├── PowerChainPanel.tsx          ← UPS／PDU／設備負載路徑分析
 │   │   ├── PrintableLabels.tsx          ← 可列印機架標籤頁
+│   │   ├── PluginManagerPanel.tsx       ← 外掛管理介面
 │   │   ├── PropertyPanel.tsx            ← 選取設備的屬性編輯器
 │   │   ├── RackEditor2D.tsx             ← 2D 前視／後視編輯器、拖放與對齊
 │   │   ├── RackHealthDashboard.tsx      ← 機架利用率／健康狀態摘要
+│   │   ├── RackReportsPanel.tsx         ← 機架報告面板（由外掛提供）
 │   │   ├── RackViewer3D.tsx             ← React Three Fiber 場景載入器
 │   │   ├── ServiceabilityPanel.tsx      ← 前後方存取與間隙檢查
 │   │   ├── ThemeToggle.tsx              ← 深色／淺色主題切換按鈕
@@ -174,6 +185,14 @@ homelab-rack-simulator/
 │   │   ├── deviceCatalog.ts             ← 100+ 硬體範本（範本庫的資料來源）
 │   │   └── sampleLayouts.ts             ← 快速入門的種子佈局
 │   │
+│   ├── plugins/                         ← 外掛平台
+│   │   ├── pluginHost.ts                ← 外掛生命週期宿主
+│   │   ├── pluginCatalog.ts             ← 外掛目錄／探索
+│   │   ├── localPackageLoader.ts        ← 本地外掛套件載入器
+│   │   ├── builtInPlugins.ts            ← 內建外掛註冊
+│   │   ├── types.ts                     ← 外掛 API 型別
+│   │   └── local-manifests/             ← 本地外掛清單
+│   │
 │   ├── store/
 │   │   ├── rackStore.ts                 ← Zustand 儲存庫：狀態、變更、復原／重做
 │   │   ├── rackStore.test.ts            ← 儲存庫單元測試
@@ -185,6 +204,8 @@ homelab-rack-simulator/
 │   │
 │   ├── types/
 │   │   ├── rack.ts                      ← 核心資料模型：RackLayout、PlacedDevice、CableRoute
+│   │   ├── appShell.ts                  ← 工作區 shell 型別（工作區、視角、面板插槽）
+│   │   ├── panelRegistry.tsx            ← 應用 shell 使用的面板註冊
 │   │   └── fileSystemAccess.d.ts        ← File System Access API 型別宣告
 │   │
 │   └── utils/                           ← 純函式（無 React 依賴）
@@ -195,6 +216,7 @@ homelab-rack-simulator/
 │       ├── documentationAudit.ts        ← 文件／標籤完整性評分
 │       ├── energyCalc.ts                ← 功耗與電費輔助函式
 │       ├── exporters.ts                 ← JSON 與 PNG 匯出邏輯
+│       ├── faceplateSvg.ts              ← 程序化 SVG 面板與連接埠點擊區域
 │       ├── featureFlags.ts              ← 執行期功能旗標輔助函式
 │       ├── fileSystem.ts                ← File System Access API 包裝器
 │       ├── layoutValidation.ts          ← 高階佈局約束檢查
@@ -211,30 +233,34 @@ homelab-rack-simulator/
 │       ├── validation.ts                ← 核心驗證規則與機架總計
 │       └── validationRecommendations.ts ← 各問題的具體修正建議
 │
-├── tests/                               ← Playwright 瀏覽器層級測試
+├── tests/                               ← Vitest 整合測試 + Playwright 煙霧測試
 │   ├── smoke/
-│   │   └── app.spec.ts                  ← 煙霧測試：載入應用程式、截圖
+│   │   ├── app.spec.ts                  ← 煙霧測試：載入應用程式、檢視、設備／線材流程
+│   │   └── workspace.spec.ts            ← 工作區 shell 煙霧測試
 │   ├── routing.test.ts                  ← 線材路由整合測試
-│   └── setup.ts                         ← Playwright 全域設定
+│   ├── cablePath3D.test.ts              ← 3D 線材曲線路徑測試
+│   ├── layout-junchen.test.ts           ← 對照真實佈局的迴歸測試
+│   ├── junchen-22u-*.json               ← 真實世界佈局 fixtures
+│   └── setup.ts                         ← Vitest 設定（jest-dom）
 │
 ├── scripts/                             ← 開發輔助指令碼
 │   ├── check-bundle-size.mjs            ← 確保 bundle 維持在預算內
-│   ├── run-routing-tests.mjs            ← 獨立執行路由測試
-│   └── smoke-cable-routing.mjs          ← 擷取線材路由截圖
+│   ├── smoke-cable-routing.mjs          ← 擷取線材路由截圖
+│   ├── import-devicetype.ts             ← 將 NetBox device-type YAML 匯入範本庫
+│   └── import-devicetype.test.ts        ← 匯入工具的測試
 │
 ├── docs/                                ← 專案文件
 │   ├── design/                          ← 設計決策與 UI 研究
-│   │   ├── cable-port-selection-redesign.md
 │   │   └── game-studio-code-review.md
 │   ├── dev/                             ← 程式碼品質與已知問題
 │   │   ├── CODE_REVIEW.md
 │   │   ├── DECISIONS.md
 │   │   ├── KNOWN_ISSUES.md
 │   │   └── NEXT_STEPS.md
-│   ├── planning/                        ← 腦力激盪、任務、交接筆記
+│   ├── planning/                        ← 腦力激盪與目前任務追蹤
 │   │   ├── BRAINSTORM.md
-│   │   ├── TASKS.md
-│   │   └── TRANSFER_FOLLOWUP.md
+│   │   └── TASKS.md
+│   ├── archive/                         ← 已被取代的計畫、交接與 PR 筆記
 │   └── *.md                             ← 其他一次性規劃與修正文件
 │
 ├── artifacts/smoke/                     ← 自動生成的 Playwright 截圖
@@ -243,9 +269,10 @@ homelab-rack-simulator/
 ├── vite.config.ts
 ├── tailwind.config.js
 ├── postcss.config.js
-├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
+├── tsconfig.json / tsconfig.app.json / tsconfig.node.json / tsconfig.tests.json
 ├── playwright.config.ts
 ├── vitest.config.ts
+├── vitest.plugin-platform.config.ts
 └── package.json
 ```
 
@@ -254,7 +281,7 @@ homelab-rack-simulator/
 | 檔案 | 用途 |
 |------|---------|
 | `src/types/rack.ts` | 📐 核心資料模型：`RackLayout`、`PlacedDevice`、`CableRoute`、`PortLayout` |
-| `src/data/deviceCatalog.ts` | 📦 90+ 可重複使用的設備範本，顯示於左側邊欄 |
+| `src/data/deviceCatalog.ts` | 📦 100+ 可重複使用的設備範本，顯示於左側邊欄 |
 | `src/data/sampleLayouts.ts` | 🌱 10 吋與 19 吋入門佈局種子 |
 | `src/store/rackStore.ts` | 🐻 Zustand 儲存庫 — 佈局狀態、變更、復原／重做、localStorage 持久化 |
 | `src/store/themeStore.ts` | 🌗 深色／淺色主題狀態 |
@@ -271,6 +298,9 @@ homelab-rack-simulator/
 | `src/utils/migrationCalc.ts` | 🚚 遷移規劃成本與工時計算 |
 | `src/utils/featureFlags.ts` | 🚩 執行期功能旗標輔助函式 |
 | `src/utils/exporters.ts` | 📤 JSON 與 PNG 匯出邏輯 |
+| `src/utils/faceplateSvg.ts` | 🖼️ 程序化 SVG 面板生成與連接埠點擊區域 |
+| `src/plugins/pluginHost.ts` | 🧩 外掛平台宿主（生命週期、目錄、本地套件載入） |
+| `src/components/FaceplateGallery.tsx` | 🖼️ 僅限開發模式的面板展示檢視 |
 | `src/components/RackEditor2D.tsx` | 🖱️ 2D 編輯器，支援拖放與對齊 U 槽 |
 | `src/components/RackViewer3D.tsx` | 🧊 React Three Fiber 場景載入器 |
 | `src/components/CableMap.tsx` | 🗺️ 線圖分頁與路由 SVG 追蹤檢視 |

@@ -79,6 +79,8 @@ The layout library and property panels adapt to narrower viewports so you can ch
 | ⚡ **Power Chain Planning** | Model UPS/PDU/device power relationships and trace load paths |
 | 🔎 **Cable Trace** | Inspect endpoint-to-endpoint cable runs, including patch, structured cabling, power, fiber, USB, HDMI, ATX, and coax |
 | 🗺️ **Cable Map** | Dedicated tab with tray-style routed paths per cable type |
+| 🖼️ **Faceplate Pipeline** | Procedural SVG and hand-traced/NetBox device faceplates rendered as 3D textures, with port hit regions |
+| 🧩 **Plugin Platform** | Built-in plugin host with local package loading, plugin-contributed panels, and a plugin manager |
 | 🧊 **3D Inspection** | Approximate rack and device dimensions with full camera control |
 | 💾 **Save / Load / Export** | Local storage, JSON import/export, and PNG export of the 2D diagram |
 | 🌱 **Seed Layouts** | Compact 10-inch edge lab, on-hand device layout, 4-zone routing test layout, and a 19-inch home cloud rack to get started |
@@ -122,6 +124,12 @@ Run the regression suite:
 npm test
 ```
 
+Run the plugin-platform test suite:
+
+```bash
+npm run test:plugins
+```
+
 Refresh the cable-routing screenshots after starting the dev server:
 
 ```bash
@@ -149,6 +157,7 @@ homelab-rack-simulator/
 │   │   ├── DepthCompatibilityPanel.tsx  ← depth fit checks per device
 │   │   ├── DocumentationAuditPanel.tsx  ← labeling/doc completeness audit
 │   │   ├── EnergySummary.tsx            ← power draw & electricity cost panel
+│   │   ├── FaceplateGallery.tsx         ← DEV-only faceplate gallery view
 │   │   ├── FileMenu.tsx                 ← save, load, import/export JSON, PNG
 │   │   ├── IssueBar.tsx                 ← inline warning strip above editor
 │   │   ├── KeyboardShortcuts.tsx        ← keyboard shortcut help overlay
@@ -156,9 +165,11 @@ homelab-rack-simulator/
 │   │   ├── NoiseSummary.tsx             ← acoustic / noise-level estimate
 │   │   ├── PowerChainPanel.tsx          ← UPS/PDU/device load path analysis
 │   │   ├── PrintableLabels.tsx          ← printable rack label sheet
+│   │   ├── PluginManagerPanel.tsx       ← plugin management UI
 │   │   ├── PropertyPanel.tsx            ← selected device property editor
 │   │   ├── RackEditor2D.tsx             ← 2D front/rear editor, drag-and-snap
 │   │   ├── RackHealthDashboard.tsx      ← rack utilization / health summary
+│   │   ├── RackReportsPanel.tsx         ← rack reports panel (plugin-contributed)
 │   │   ├── RackViewer3D.tsx             ← React Three Fiber scene (lazy)
 │   │   ├── ServiceabilityPanel.tsx      ← front/rear access & clearance checks
 │   │   ├── ThemeToggle.tsx              ← dark/light theme toggle button
@@ -176,6 +187,14 @@ homelab-rack-simulator/
 │   │   ├── deviceCatalog.ts             ← 100+ hardware templates (library source of truth)
 │   │   └── sampleLayouts.ts             ← seed layouts for quick start
 │   │
+│   ├── plugins/                         ← plugin platform
+│   │   ├── pluginHost.ts                ← plugin lifecycle host
+│   │   ├── pluginCatalog.ts             ← plugin catalog / discovery
+│   │   ├── localPackageLoader.ts        ← local plugin package loader
+│   │   ├── builtInPlugins.ts            ← built-in plugin registrations
+│   │   ├── types.ts                     ← plugin API types
+│   │   └── local-manifests/             ← local plugin manifests
+│   │
 │   ├── store/
 │   │   ├── rackStore.ts                 ← Zustand store: state, mutations, undo/redo
 │   │   ├── rackStore.test.ts            ← store unit tests
@@ -187,6 +206,8 @@ homelab-rack-simulator/
 │   │
 │   ├── types/
 │   │   ├── rack.ts                      ← core data models: RackLayout, PlacedDevice, CableRoute
+│   │   ├── appShell.ts                  ← workspace shell types (workspaces, lenses, panel slots)
+│   │   ├── panelRegistry.tsx            ← panel registrations consumed by the app shell
 │   │   └── fileSystemAccess.d.ts        ← File System Access API type declarations
 │   │
 │   └── utils/                           ← pure functions (no React deps)
@@ -197,6 +218,7 @@ homelab-rack-simulator/
 │       ├── documentationAudit.ts        ← doc/label completeness scoring
 │       ├── energyCalc.ts                ← power draw and electricity cost helpers
 │       ├── exporters.ts                 ← JSON and PNG export logic
+│       ├── faceplateSvg.ts              ← procedural SVG faceplates + port hit regions
 │       ├── featureFlags.ts              ← runtime feature flag helpers
 │       ├── fileSystem.ts                ← File System Access API wrappers
 │       ├── layoutValidation.ts          ← high-level layout constraint checks
@@ -213,30 +235,34 @@ homelab-rack-simulator/
 │       ├── validation.ts                ← core validation rules and rack totals
 │       └── validationRecommendations.ts ← actionable fix suggestions for issues
 │
-├── tests/                               ← Playwright browser-level tests
+├── tests/                               ← Vitest integration tests + Playwright smoke tests
 │   ├── smoke/
-│   │   └── app.spec.ts                  ← smoke test: load app, take screenshots
+│   │   ├── app.spec.ts                  ← smoke tests: load app, views, device/cable flows
+│   │   └── workspace.spec.ts            ← workspace-shell smoke tests
 │   ├── routing.test.ts                  ← cable routing integration tests
-│   └── setup.ts                         ← Playwright global setup
+│   ├── cablePath3D.test.ts              ← 3D cable spline path tests
+│   ├── layout-junchen.test.ts           ← layout regression tests against real fixtures
+│   ├── junchen-22u-*.json               ← real-world layout fixtures
+│   └── setup.ts                         ← Vitest setup (jest-dom)
 │
 ├── scripts/                             ← dev utility scripts
 │   ├── check-bundle-size.mjs            ← assert bundle stays under budget
-│   ├── run-routing-tests.mjs            ← run routing tests in isolation
-│   └── smoke-cable-routing.mjs          ← capture cable-routing screenshots
+│   ├── smoke-cable-routing.mjs          ← capture cable-routing screenshots
+│   ├── import-devicetype.ts             ← import NetBox device-type YAML into the catalog
+│   └── import-devicetype.test.ts        ← tests for the importer
 │
 ├── docs/                                ← project documentation
 │   ├── design/                          ← design decisions and UI research
-│   │   ├── cable-port-selection-redesign.md
 │   │   └── game-studio-code-review.md
 │   ├── dev/                             ← code quality and known issues
 │   │   ├── CODE_REVIEW.md
 │   │   ├── DECISIONS.md
 │   │   ├── KNOWN_ISSUES.md
 │   │   └── NEXT_STEPS.md
-│   ├── planning/                        ← brainstorm, tasks, transfer notes
+│   ├── planning/                        ← brainstorm and current task tracking
 │   │   ├── BRAINSTORM.md
-│   │   ├── TASKS.md
-│   │   └── TRANSFER_FOLLOWUP.md
+│   │   └── TASKS.md
+│   ├── archive/                         ← superseded plans, handoffs, and PR notes
 │   └── *.md                             ← other one-off planning and fix docs
 │
 ├── artifacts/smoke/                     ← auto-generated Playwright screenshots
@@ -245,9 +271,10 @@ homelab-rack-simulator/
 ├── vite.config.ts
 ├── tailwind.config.js
 ├── postcss.config.js
-├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
+├── tsconfig.json / tsconfig.app.json / tsconfig.node.json / tsconfig.tests.json
 ├── playwright.config.ts
 ├── vitest.config.ts
+├── vitest.plugin-platform.config.ts
 └── package.json
 ```
 
@@ -256,7 +283,7 @@ homelab-rack-simulator/
 | File | Purpose |
 |------|---------|
 | `src/types/rack.ts` | 📐 Core data models: `RackLayout`, `PlacedDevice`, `CableRoute`, `PortLayout` |
-| `src/data/deviceCatalog.ts` | 📦 90+ reusable device templates shown in the left sidebar |
+| `src/data/deviceCatalog.ts` | 📦 100+ reusable device templates shown in the left sidebar |
 | `src/data/sampleLayouts.ts` | 🌱 Seed 10-inch and 19-inch starter layouts |
 | `src/store/rackStore.ts` | 🐻 Zustand store — layout state, mutations, undo/redo, localStorage persistence |
 | `src/store/themeStore.ts` | 🌗 Dark/light theme state |
@@ -273,6 +300,9 @@ homelab-rack-simulator/
 | `src/utils/migrationCalc.ts` | 🚚 Migration planning cost and effort calculations |
 | `src/utils/featureFlags.ts` | 🚩 Runtime feature flag helpers |
 | `src/utils/exporters.ts` | 📤 JSON and PNG export logic |
+| `src/utils/faceplateSvg.ts` | 🖼️ Procedural SVG faceplate generation and port hit regions |
+| `src/plugins/pluginHost.ts` | 🧩 Plugin platform host (lifecycle, catalog, local package loading) |
+| `src/components/FaceplateGallery.tsx` | 🖼️ DEV-only gallery view for inspecting all faceplates |
 | `src/components/RackEditor2D.tsx` | 🖱️ 2D editor with drag/drop and snap-to-U |
 | `src/components/RackViewer3D.tsx` | 🧊 React Three Fiber scene loader |
 | `src/components/CableMap.tsx` | 🗺️ Cable map tab and routed SVG trace view |

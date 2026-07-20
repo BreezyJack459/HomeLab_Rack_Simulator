@@ -34,13 +34,11 @@ Quick navigation for all project documentation.
 |------|--------|
 | [`planning/TASKS.md`](planning/TASKS.md) | Current task list and backlog |
 | [`planning/BRAINSTORM.md`](planning/BRAINSTORM.md) | Ideas and exploration notes |
-| [`planning/TRANSFER_FOLLOWUP.md`](planning/TRANSFER_FOLLOWUP.md) | Session handoff notes |
 
 ## Design & Technical Specs (`design/`)
 
 | File | Purpose |
 |------|--------|
-| [`design/cable-port-selection-redesign.md`](design/cable-port-selection-redesign.md) | Cable port selection UI redesign spec |
 | [`design/game-studio-code-review.md`](design/game-studio-code-review.md) | Game Studio feature code review |
 
 ## Technical Notes (root of `docs/`)
@@ -50,5 +48,7 @@ Quick navigation for all project documentation.
 | [`0u-pdu-3d-positioning.md`](0u-pdu-3d-positioning.md) | 0U PDU 3D layout notes |
 | [`4zone-display-option.md`](4zone-display-option.md) | 4-zone display implementation notes |
 | [`cable-endpoint-routing-fix.md`](cable-endpoint-routing-fix.md) | Cable endpoint routing fix details |
-| [`cable-port-selection-redesign.md`](cable-port-selection-redesign.md) | Legacy copy — see design/ |
-| [`session-handoff-2026-05-10.md`](session-handoff-2026-05-10.md) | May 10 session handoff |
+
+## Archive (`archive/`)
+
+Superseded planning docs, session handoffs, PR notes, and shipped redesign specs — kept for history, no longer current. Includes the old cabling fix plans, bundle-optimisation plan/PR notes, capacity-forecast plan, cable-port-selection redesign specs, and 2026-05 session handoffs.

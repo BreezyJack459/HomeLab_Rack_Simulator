@@ -1593,7 +1593,7 @@ Expected: all pass.
 npm run build && node scripts/check-bundle-size.mjs
 ```
 
-Expected: initial chunk under 420KB. The faceplate code is small; texture data is runtime-generated, not bundled.
+Expected: total eager JS under the 500KB budget (measured from `dist/index.html`). The faceplate code is small; texture data is runtime-generated, not bundled.
 
 - [ ] **Step 5: Run cable routing invariant check**
 
