@@ -11,6 +11,16 @@ import {
 } from './CommandPalette';
 import { useRackStore } from '../store/rackStore';
 
+const runtimeRegistry = {
+  viewModes: [
+    { id: '2d', label: '2D Rack Editor', icon: null, order: 10, render: () => null },
+    { id: '3d', label: '3D Inspection', icon: null, order: 20, render: () => null },
+    { id: 'cables', label: 'Cable Map', icon: null, order: 30, render: () => null },
+    { id: 'topology', label: 'Network Topology', icon: null, order: 40, render: () => null }
+  ],
+  commands: []
+} as const;
+
 const mockLayout: RackLayout = {
   id: 'test-layout',
   name: 'Test Rack',
@@ -161,7 +171,7 @@ describe('CommandPalette helpers', () => {
 
   describe('buildSearchItems', () => {
     it('creates device search items', () => {
-      const items = buildSearchItems(mockLayout, []);
+      const items = buildSearchItems(mockLayout, [], runtimeRegistry);
       const deviceItems = items.filter((i) => i.type === 'device' && i.id.startsWith('device-'));
       expect(deviceItems).toHaveLength(2);
       expect(deviceItems[0].title).toBe('Core Switch');
@@ -170,7 +180,7 @@ describe('CommandPalette helpers', () => {
     });
 
     it('creates cable search items', () => {
-      const items = buildSearchItems(mockLayout, []);
+      const items = buildSearchItems(mockLayout, [], runtimeRegistry);
       const cableItems = items.filter((i) => i.type === 'cable');
       expect(cableItems).toHaveLength(1);
       expect(cableItems[0].title).toBe('Core Switch → Web Server');
@@ -179,21 +189,21 @@ describe('CommandPalette helpers', () => {
     });
 
     it('creates issue search items', () => {
-      const items = buildSearchItems(mockLayout, mockIssues);
+      const items = buildSearchItems(mockLayout, mockIssues, runtimeRegistry);
       const issueItems = items.filter((i) => i.type === 'issue');
       expect(issueItems).toHaveLength(1);
       expect(issueItems[0].title).toBe('Weight limit exceeded');
     });
 
     it('creates reservation search items', () => {
-      const items = buildSearchItems(mockLayout, []);
+      const items = buildSearchItems(mockLayout, [], runtimeRegistry);
       const resItems = items.filter((i) => i.id.startsWith('reservation-'));
       expect(resItems).toHaveLength(1);
       expect(resItems[0].title).toBe('Future NAS');
     });
 
     it('creates view mode search items', () => {
-      const items = buildSearchItems(mockLayout, []);
+      const items = buildSearchItems(mockLayout, [], runtimeRegistry);
       const viewItems = items.filter((i) => i.type === 'view');
       expect(viewItems).toHaveLength(4);
       expect(viewItems.map((v) => v.title)).toContain('2D Rack Editor');
@@ -201,14 +211,33 @@ describe('CommandPalette helpers', () => {
     });
 
     it('creates quick action items', () => {
-      const items = buildSearchItems(mockLayout, []);
+      const items = buildSearchItems(mockLayout, [], runtimeRegistry);
       const actionItems = items.filter((i) => i.type === 'action');
       expect(actionItems).toHaveLength(1);
       expect(actionItems[0].title).toBe('Export Layout JSON');
     });
 
+    it('includes runtime command items as quick actions', () => {
+      const items = buildSearchItems(mockLayout, [], {
+        ...runtimeRegistry,
+        commands: [
+          {
+            id: 'plugin.toggle',
+            title: 'Toggle Plugin',
+            subtitle: 'Enable or disable a plugin',
+            category: 'Plugins',
+            run: vi.fn(),
+          },
+        ],
+      });
+      const quickActionItems = items.filter((i) => i.type === 'quick-action');
+      expect(quickActionItems).toHaveLength(1);
+      expect(quickActionItems[0].title).toBe('Toggle Plugin');
+      expect(quickActionItems[0].category).toBe('Plugins');
+    });
+
     it('groups items by category', () => {
-      const items = buildSearchItems(mockLayout, mockIssues);
+      const items = buildSearchItems(mockLayout, mockIssues, runtimeRegistry);
       const categories = new Set(items.map((i) => i.category));
       expect(categories.has('Devices')).toBe(true);
       expect(categories.has('Cables')).toBe(true);
@@ -221,7 +250,7 @@ describe('CommandPalette helpers', () => {
 
   describe('buildWorkspaceSearchItems', () => {
     it('indexes devices from all racks', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout', runtimeRegistry);
       const deviceItems = items.filter((i) => i.type === 'device' && i.id.includes('dev-'));
       expect(deviceItems).toHaveLength(3);
       expect(deviceItems.some((d) => d.title.includes('Core Switch'))).toBe(true);
@@ -229,7 +258,7 @@ describe('CommandPalette helpers', () => {
     });
 
     it('includes rack name in device titles', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout', runtimeRegistry);
       const routerItem = items.find((i) => i.id.includes('dev-router'));
       expect(routerItem).toBeDefined();
       expect(routerItem!.title).toContain('(Garage Rack)');
@@ -237,14 +266,18 @@ describe('CommandPalette helpers', () => {
     });
 
     it('indexes cables from all racks', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout', runtimeRegistry);
       const cableItems = items.filter((i) => i.type === 'cable');
       expect(cableItems).toHaveLength(1);
       expect(cableItems[0].title).toBe('Core Switch → Web Server');
     });
 
     it('indexes port aliases', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const aliasItems = items.filter((i) => i.type === 'port-alias');
       expect(aliasItems).toHaveLength(2);
       expect(aliasItems.some((a) => a.title.includes('ISP-IN'))).toBe(true);
@@ -252,7 +285,11 @@ describe('CommandPalette helpers', () => {
     });
 
     it('indexes inter-rack cables', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const ircItems = items.filter((i) => i.type === 'inter-rack-cable');
       expect(ircItems).toHaveLength(1);
       expect(ircItems[0].title).toContain('Test Rack:Core Switch:ethernet:0');
@@ -262,7 +299,11 @@ describe('CommandPalette helpers', () => {
     });
 
     it('indexes issues from all racks', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const issueItems = items.filter((i) => i.type === 'issue');
       expect(issueItems.length).toBeGreaterThanOrEqual(1);
     });
@@ -271,7 +312,11 @@ describe('CommandPalette helpers', () => {
       const switchRackSpy = vi.spyOn(useRackStore.getState(), 'switchRack').mockImplementation(() => {});
       const selectDeviceSpy = vi.spyOn(useRackStore.getState(), 'selectDevice').mockImplementation(() => {});
 
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const routerItem = items.find((i) => i.id.includes('dev-router'));
       expect(routerItem).toBeDefined();
       routerItem!.action();
@@ -287,7 +332,11 @@ describe('CommandPalette helpers', () => {
       const switchRackSpy = vi.spyOn(useRackStore.getState(), 'switchRack').mockImplementation(() => {});
       const selectDeviceSpy = vi.spyOn(useRackStore.getState(), 'selectDevice').mockImplementation(() => {});
 
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const switchItem = items.find((i) => i.id.includes('dev-switch'));
       expect(switchItem).toBeDefined();
       switchItem!.action();
@@ -300,16 +349,29 @@ describe('CommandPalette helpers', () => {
     });
 
     it('includes global views and actions once', () => {
-      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const items = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const viewItems = items.filter((i) => i.type === 'view');
       const actionItems = items.filter((i) => i.type === 'action');
       expect(viewItems).toHaveLength(4);
       expect(actionItems).toHaveLength(1);
     });
+
+    it('omits cable map when the runtime registry excludes cable views', () => {
+      const items = buildWorkspaceSearchItems(mockWorkspace, 'test-layout', {
+        viewModes: runtimeRegistry.viewModes.slice(0, 2),
+        commands: [],
+      });
+
+      expect(items.some((item) => item.title === 'Cable Map')).toBe(false);
+    });
   });
 
   describe('filterItems', () => {
-    const items = buildSearchItems(mockLayout, mockIssues);
+    const items = buildSearchItems(mockLayout, mockIssues, runtimeRegistry);
 
     it('returns all items when query is empty', () => {
       expect(filterItems(items, '').length).toBe(items.length);
@@ -334,7 +396,11 @@ describe('CommandPalette helpers', () => {
     });
 
     it('filters port aliases by alias name', () => {
-      const wsItems = buildWorkspaceSearchItems(mockWorkspace, 'test-layout');
+      const wsItems = buildWorkspaceSearchItems(
+        mockWorkspace,
+        'test-layout',
+        runtimeRegistry,
+      );
       const filtered = filterItems(wsItems, 'ISP-IN');
       expect(filtered.length).toBeGreaterThan(0);
       expect(filtered.some((i) => i.type === 'port-alias')).toBe(true);

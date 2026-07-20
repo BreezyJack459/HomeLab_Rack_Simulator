@@ -29,7 +29,7 @@ interface ActionBarProps {
   contextContent?: ReactNode;
   issueCount: number;
   onAddDevice: () => void;
-  onAddCable: () => void;
+  onAddCable?: (() => void) | null;
   onFixAlerts: () => void;
   onOpenSearch: () => void;
   onNewLayout: () => void;
@@ -158,10 +158,12 @@ export function ActionBar({
             menuRef={workMenuRef}
             testId="actions-dropdown"
           >
-            <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onAddCable)} type="button">
-              <Cable className="mr-2 inline" size={13} />
-              Connect cable
-            </button>
+            {onAddCable ? (
+              <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onAddCable)} type="button">
+                <Cable className="mr-2 inline" size={13} />
+                Connect cable
+              </button>
+            ) : null}
             <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onFixAlerts)} type="button">
               <AlertTriangle className="mr-2 inline" size={13} />
               {issueCount > 0 ? `Fix alerts (${issueCount})` : 'Check alerts'}

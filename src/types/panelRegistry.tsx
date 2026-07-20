@@ -7,7 +7,6 @@ import type { AppPanelId, AppWorkspace, AuditLens, OperateLens, PanelPlacement, 
 export const PANEL_REGISTRY: PanelRegistryItem[] = [
   // Model
   { id: 'property', title: 'Properties', workspace: 'model', priority: 10, defaultPlacement: 'inspector' },
-  { id: 'cable-planner', title: 'Cable Planner', workspace: 'model', priority: 20, supportedViewModes: ['2d', 'cables', 'topology'], defaultPlacement: 'inspector' },
   { id: 'port-reservation', title: 'Port Reservations', workspace: 'model', priority: 30, selectionRequired: true, defaultPlacement: 'inspector' },
   { id: 'port-speed', title: 'Port Speeds', workspace: 'model', priority: 40, selectionRequired: true, defaultPlacement: 'inspector' },
 
@@ -65,6 +64,7 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
   { id: 'portfolio-export', title: 'Portfolio Export', workspace: 'portfolio', priority: 50, defaultPlacement: 'main' },
   { id: 'dcim-import', title: 'DCIM Import', workspace: 'portfolio', priority: 60, defaultPlacement: 'main' },
   { id: 'rack-photo', title: 'Rack Photos', workspace: 'portfolio', priority: 70, defaultPlacement: 'inspector' },
+  { id: 'plugin-manager', title: 'Plugin Manager', workspace: 'portfolio', priority: 75, defaultPlacement: 'inspector' },
   { id: 'policy-rules', title: 'Policy Rules', workspace: 'portfolio', priority: 80, defaultPlacement: 'inspector' },
   { id: 'homelab-guide', title: 'Homelab Guide', workspace: 'portfolio', priority: 90, defaultPlacement: 'inspector' },
 ];

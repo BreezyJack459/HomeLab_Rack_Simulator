@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
-  Box,
   Cable,
   ChevronRight,
   FileJson,
   HardDrive,
   LayoutGrid,
-  Monitor,
   Network,
   Search,
   Server,
   X
 } from 'lucide-react';
+import type { CommandDefinition, ViewModeDefinition } from '../plugins/types';
 import { useRackStore } from '../store/rackStore';
-import type { CableRoute, RackLayout, ValidationIssue, ViewMode, Workspace, InterRackCable, PortRef } from '../types/rack';
+import type { CableRoute, RackLayout, ValidationIssue, Workspace, InterRackCable, PortRef } from '../types/rack';
 import { exportLayoutJson } from '../utils/exporters';
 import { validateRackLayout } from '../utils/validation';
 
@@ -32,6 +31,11 @@ export interface SearchItem {
   rackId?: string;
   rackName?: string;
 }
+
+type SearchRegistry = {
+  viewModes: ViewModeDefinition[];
+  commands: CommandDefinition[];
+};
 
 export function getDeviceName(layout: RackLayout, deviceId: string): string {
   return layout.devices.find((d) => d.id === deviceId)?.name ?? deviceId.slice(0, 8);
@@ -169,25 +173,22 @@ function buildRackSpecificSearchItems(
   return items;
 }
 
-export function buildSearchItems(layout: RackLayout, issues: ValidationIssue[]): SearchItem[] {
+export function buildSearchItems(
+  layout: RackLayout,
+  issues: ValidationIssue[],
+  registry?: SearchRegistry,
+): SearchItem[] {
   const items: SearchItem[] = buildRackSpecificSearchItems(layout, issues);
 
-  // View modes
-  const views: { mode: ViewMode; label: string; icon: React.ReactNode }[] = [
-    { mode: '2d', label: '2D Rack Editor', icon: <Monitor size={16} /> },
-    { mode: '3d', label: '3D Inspection', icon: <Box size={16} /> },
-    { mode: 'cables', label: 'Cable Map', icon: <Cable size={16} /> },
-    { mode: 'topology', label: 'Network Topology', icon: <Network size={16} /> }
-  ];
-  views.forEach((v) => {
+  (registry?.viewModes ?? []).forEach((view) => {
     items.push({
-      id: `view-${v.mode}`,
+      id: `view-${view.id}`,
       type: 'view',
-      title: v.label,
-      subtitle: `Switch to ${v.label}`,
-      icon: <span className="text-slate-500 dark:text-slate-400">{v.icon}</span>,
+      title: view.label,
+      subtitle: `Switch to ${view.label}`,
+      icon: <span className="text-slate-500 dark:text-slate-400">{view.icon}</span>,
       action: () => {
-        useRackStore.getState().setViewMode(v.mode);
+        useRackStore.getState().setViewMode(view.id);
       },
       category: 'Views'
     });
@@ -206,10 +207,31 @@ export function buildSearchItems(layout: RackLayout, issues: ValidationIssue[]):
     category: 'Actions'
   });
 
+  (registry?.commands ?? []).forEach((command) => {
+    items.push({
+      id: command.id,
+      type: 'quick-action',
+      title: command.title,
+      subtitle: command.subtitle,
+      icon: (
+        <ChevronRight
+          size={16}
+          className="text-slate-500 dark:text-slate-400"
+        />
+      ),
+      action: command.run,
+      category: command.category,
+    });
+  });
+
   return items;
 }
 
-export function buildWorkspaceSearchItems(workspace: Workspace, currentRackId: string): SearchItem[] {
+export function buildWorkspaceSearchItems(
+  workspace: Workspace,
+  currentRackId: string,
+  registry?: SearchRegistry,
+): SearchItem[] {
   const items: SearchItem[] = [];
 
   // Index all racks
@@ -245,22 +267,15 @@ export function buildWorkspaceSearchItems(workspace: Workspace, currentRackId: s
     });
   }
 
-  // View modes (global)
-  const views: { mode: ViewMode; label: string; icon: React.ReactNode }[] = [
-    { mode: '2d', label: '2D Rack Editor', icon: <Monitor size={16} /> },
-    { mode: '3d', label: '3D Inspection', icon: <Box size={16} /> },
-    { mode: 'cables', label: 'Cable Map', icon: <Cable size={16} /> },
-    { mode: 'topology', label: 'Network Topology', icon: <Network size={16} /> }
-  ];
-  views.forEach((v) => {
+  (registry?.viewModes ?? []).forEach((view) => {
     items.push({
-      id: `view-${v.mode}`,
+      id: `view-${view.id}`,
       type: 'view',
-      title: v.label,
-      subtitle: `Switch to ${v.label}`,
-      icon: <span className="text-slate-500 dark:text-slate-400">{v.icon}</span>,
+      title: view.label,
+      subtitle: `Switch to ${view.label}`,
+      icon: <span className="text-slate-500 dark:text-slate-400">{view.icon}</span>,
       action: () => {
-        useRackStore.getState().setViewMode(v.mode);
+        useRackStore.getState().setViewMode(view.id);
       },
       category: 'Views'
     });
@@ -282,6 +297,23 @@ export function buildWorkspaceSearchItems(workspace: Workspace, currentRackId: s
     });
   }
 
+  (registry?.commands ?? []).forEach((command) => {
+    items.push({
+      id: command.id,
+      type: 'quick-action',
+      title: command.title,
+      subtitle: command.subtitle,
+      icon: (
+        <ChevronRight
+          size={16}
+          className="text-slate-500 dark:text-slate-400"
+        />
+      ),
+      action: command.run,
+      category: command.category,
+    });
+  });
+
   return items;
 }
 
@@ -298,9 +330,15 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   extraItems?: SearchItem[];
+  registry?: SearchRegistry;
 }
 
-export function CommandPalette({ open, onClose, extraItems = [] }: CommandPaletteProps) {
+export function CommandPalette({
+  open,
+  onClose,
+  extraItems = [],
+  registry,
+}: CommandPaletteProps) {
   const workspace = useRackStore((state) => state.workspace);
   const currentRackId = useRackStore((state) => state.currentRackId);
   const viewMode = useRackStore((state) => state.viewMode);
@@ -310,8 +348,11 @@ export function CommandPalette({ open, onClose, extraItems = [] }: CommandPalett
   const listRef = useRef<HTMLDivElement>(null);
 
   const allItems = useMemo(
-    () => [...extraItems, ...buildWorkspaceSearchItems(workspace, currentRackId)],
-    [currentRackId, extraItems, workspace]
+    () => [
+      ...extraItems,
+      ...buildWorkspaceSearchItems(workspace, currentRackId, registry),
+    ],
+    [currentRackId, extraItems, registry, workspace]
   );
   const filtered = useMemo(() => filterItems(allItems, query), [allItems, query]);
 

@@ -67,6 +67,8 @@ export type AppPanelId =
   | 'rack-photo'
   | 'policy-rules'
   | 'homelab-guide'
+  | 'plugin-manager'
+  | 'rack-reports'
   | 'depth-compatibility';
 
 export type PanelRegistryItem = {

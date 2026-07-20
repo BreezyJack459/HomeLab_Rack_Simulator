@@ -1,16 +1,13 @@
 import type { ReactNode } from 'react';
-import { Box, Cable, Command, Monitor, Network, Search } from 'lucide-react';
+import { Command, Search } from 'lucide-react';
+import type {
+  ToolbarActionDefinition,
+  ViewModeDefinition,
+} from '../plugins/types';
 import { ThemeToggle } from './ThemeToggle';
 import type { AppWorkspace } from '../types/appShell';
 import type { RackLayout, ViewMode, Workspace } from '../types/rack';
 import { RACK_SPECS } from '../utils/rackMath';
-
-const viewMeta: Record<ViewMode, { label: string; icon: ReactNode }> = {
-  '2d': { label: '2D', icon: <Monitor size={14} /> },
-  '3d': { label: '3D', icon: <Box size={14} /> },
-  cables: { label: 'Cables', icon: <Cable size={14} /> },
-  topology: { label: 'Topology', icon: <Network size={14} /> },
-};
 
 const workspaceLabel: Record<AppWorkspace, string> = {
   model: 'Build',
@@ -25,6 +22,15 @@ interface TopContextBarProps {
   layout: RackLayout;
   currentWorkspace: AppWorkspace;
   viewMode: ViewMode;
+  viewModes: ViewModeDefinition[];
+  pluginToggles?: Array<{
+    id: string;
+    label: string;
+    enabled: boolean;
+    disabled?: boolean;
+    onToggle: () => void;
+  }>;
+  toolbarActions?: ToolbarActionDefinition[];
   onOpenCommand: () => void;
   onRenameLayout: (name: string) => void;
   onToggleViewMode: (mode: ViewMode) => void;
@@ -36,6 +42,9 @@ export function TopContextBar({
   layout,
   currentWorkspace,
   viewMode,
+  viewModes,
+  pluginToggles = [],
+  toolbarActions = [],
   onOpenCommand,
   onRenameLayout,
   onToggleViewMode,
@@ -74,24 +83,61 @@ export function TopContextBar({
 
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
             <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-              {Object.entries(viewMeta).map(([mode, meta]) => {
-                const active = viewMode === mode;
+              {viewModes.map((definition) => {
+                const active = viewMode === definition.id;
                 return (
                   <button
-                    key={mode}
+                    key={definition.id}
                     type="button"
-                    onClick={() => onToggleViewMode(mode as ViewMode)}
+                    onClick={() => onToggleViewMode(definition.id)}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
                       active
                         ? 'bg-cyan-500 text-white shadow-sm'
                         : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900'
                     }`}
                   >
-                    {meta.icon}
-                    {meta.label}
+                    {definition.icon}
+                    {definition.label}
                   </button>
                 );
               })}
+              {pluginToggles.length > 0 ? (
+                <>
+                  <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
+                  {pluginToggles.map((plugin) => (
+                    <button
+                      key={plugin.id}
+                      type="button"
+                      disabled={plugin.disabled}
+                      onClick={plugin.onToggle}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
+                        plugin.disabled
+                          ? 'cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600'
+                          : plugin.enabled
+                            ? 'bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/18 dark:text-emerald-300'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {plugin.label}
+                    </button>
+                  ))}
+                </>
+              ) : null}
+              {toolbarActions.length > 0 ? (
+                <>
+                  <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
+                  {toolbarActions.map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={action.run}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-amber-500/12 px-3 text-xs font-medium text-amber-700 transition hover:bg-amber-500/20 dark:text-amber-300"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </>
+              ) : null}
               <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
               <div className="inline-flex items-center rounded-full bg-slate-100 p-1 dark:bg-slate-900">
                 <button

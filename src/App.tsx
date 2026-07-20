@@ -24,6 +24,19 @@ import { PrimaryNav } from "./components/PrimaryNav";
 import { RackSummaryPanel } from "./components/RackSummaryPanel";
 import { RightInspectorShell } from "./components/RightInspectorShell";
 import { TopContextBar } from "./components/TopContextBar";
+import {
+  builtInPlugins,
+} from "./plugins/builtInPlugins";
+import { getCoreContributions } from "./plugins/coreContributions";
+import {
+  getPluginCatalogState,
+  pluginCatalogEntries,
+} from "./plugins/pluginCatalog";
+import {
+  resolveLocalPackagePlugins,
+  sanitizeEnabledPluginIds,
+} from "./plugins/localPackageLoader";
+import { buildPluginRegistry } from "./plugins/pluginHost";
 import { useLayoutPrefsStore } from "./store/layoutPrefsStore";
 import { useRackStore } from "./store/rackStore";
 import type {
@@ -34,12 +47,10 @@ import type {
   PlanLens,
   PortfolioLens,
   PanelPlacement,
-  PanelRegistryItem,
 } from "./types/appShell";
 import {
   auditPanelIdsByLens,
   operatePanelIdsByLens,
-  PANEL_REGISTRY,
   planPanelIdsByLens,
   portfolioPanelIdsByLens,
   WORKSPACE_META,
@@ -74,6 +85,8 @@ const issueSeverityRank: Record<ValidationIssue["severity"], number> = {
   info: 2,
 };
 
+const APP_VERSION = "1.0.0";
+
 const CommandPalette = lazy(() =>
   import("./components/CommandPalette").then((m) => ({
     default: m.CommandPalette,
@@ -87,14 +100,6 @@ const RackEditor2D = lazy(() =>
 const RackViewer3D = lazy(() =>
   import("./components/RackViewer3D").then((m) => ({
     default: m.RackViewer3D,
-  })),
-);
-const CableMap = lazy(() =>
-  import("./components/CableMap").then((m) => ({ default: m.CableMap })),
-);
-const NetworkTopology = lazy(() =>
-  import("./components/NetworkTopology").then((m) => ({
-    default: m.NetworkTopology,
   })),
 );
 const ModelWorkspaceLayout = lazy(() =>
@@ -123,11 +128,6 @@ const PlanWorkbench = lazy(() =>
 const PropertyPanel = lazy(() =>
   import("./components/PropertyPanel").then((m) => ({
     default: m.PropertyPanel,
-  })),
-);
-const CablePlanner = lazy(() =>
-  import("./components/CablePlanner").then((m) => ({
-    default: m.CablePlanner,
   })),
 );
 const PortReservationPanel = lazy(() =>
@@ -373,6 +373,11 @@ const RackPhotoPanel = lazy(() =>
     default: m.RackPhotoPanel,
   })),
 );
+const PluginManagerPanel = lazy(() =>
+  import("./components/PluginManagerPanel").then((m) => ({
+    default: m.PluginManagerPanel,
+  })),
+);
 const PolicyRulesPanel = lazy(() =>
   import("./components/PolicyRulesPanel").then((m) => ({
     default: m.PolicyRulesPanel,
@@ -556,6 +561,18 @@ function App() {
   const toggleRackSummary = useLayoutPrefsStore(
     (state) => state.toggleRackSummary,
   );
+  const enabledPluginIds = useLayoutPrefsStore(
+    (state) => state.enabledPluginIds,
+  );
+  const approvedLocalPluginIds = useLayoutPrefsStore(
+    (state) => state.approvedLocalPluginIds,
+  );
+  const setEnabledPluginIds = useLayoutPrefsStore(
+    (state) => state.setEnabledPluginIds,
+  );
+  const setApprovedLocalPluginIds = useLayoutPrefsStore(
+    (state) => state.setApprovedLocalPluginIds,
+  );
 
   const [confirmAction, setConfirmAction] = useState<null | {
     type: "new" | "sample";
@@ -657,6 +674,59 @@ function App() {
   const hasSelection = Boolean(
     selectedDeviceId || selectedCableId || selectedInterRackCableId,
   );
+  const cablePluginEnabled = enabledPluginIds.includes("cable-management");
+  const resolvedLocalPackages = useMemo(
+    () =>
+      resolveLocalPackagePlugins({
+        catalogEntries: pluginCatalogEntries,
+        approvedLocalPluginIds,
+      }),
+    [approvedLocalPluginIds],
+  );
+  const pluginRegistry = useMemo(
+    () =>
+      buildPluginRegistry({
+        appVersion: APP_VERSION,
+        plugins: [...builtInPlugins, ...resolvedLocalPackages.loadablePlugins],
+        enabledPluginIds,
+        shell: {
+          getLayout: () => layout,
+          getViewMode: () => viewMode,
+          setViewMode,
+          setCurrentWorkspace,
+          setInspectorOpen,
+        },
+        core: getCoreContributions({
+          render2d: (canvasLayout) => (
+            <RackEditor2D
+              layoutOverride={canvasLayout}
+              serviceabilityOverlay={serviceabilityOverlayEnabled}
+              highlightedDeviceIds={serviceabilityHighlightIds}
+            />
+          ),
+          render3d: (canvasLayout) => (
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+                  Loading 3D…
+                </div>
+              }
+            >
+              <RackViewer3D layout={canvasLayout} />
+            </Suspense>
+          ),
+        }),
+      }),
+    [
+      enabledPluginIds,
+      layout,
+      resolvedLocalPackages.loadablePlugins,
+      serviceabilityHighlightIds,
+      serviceabilityOverlayEnabled,
+      setViewMode,
+      viewMode,
+    ],
+  );
   const selectedIssue = useMemo(
     () => issues.find((issue) => issue.id === selectedIssueId) ?? null,
     [issues, selectedIssueId],
@@ -676,6 +746,15 @@ function App() {
       loadLayout(layout);
     }
   }, [layout, loadLayout]);
+
+  useEffect(() => {
+    const supportsCurrentView = pluginRegistry.viewModes.some(
+      (definition) => definition.id === viewMode,
+    );
+    if (!supportsCurrentView) {
+      setViewMode("2d");
+    }
+  }, [pluginRegistry.viewModes, setViewMode, viewMode]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -822,6 +901,74 @@ function App() {
     setViewMode("cables");
   }
 
+  function togglePlugin(pluginId: string) {
+    const next = enabledPluginIds.includes(pluginId)
+      ? enabledPluginIds.filter((id) => id !== pluginId)
+      : [...enabledPluginIds, pluginId];
+    setEnabledPluginIds(next);
+  }
+
+  function togglePluginApproval(pluginId: string) {
+    const revokingApproval = approvedLocalPluginIds.includes(pluginId);
+    const next = revokingApproval
+      ? approvedLocalPluginIds.filter((id) => id !== pluginId)
+      : [...approvedLocalPluginIds, pluginId];
+    setApprovedLocalPluginIds(next);
+
+    if (revokingApproval && enabledPluginIds.includes(pluginId)) {
+      setEnabledPluginIds(enabledPluginIds.filter((id) => id !== pluginId));
+    }
+  }
+
+  const pluginToggles = useMemo(
+    () =>
+      pluginCatalogEntries
+        .map((entry) =>
+          resolvedLocalPackages.catalogEntries.find(
+            (candidate) => candidate.manifest.id === entry.manifest.id,
+          ) ?? entry,
+        )
+        .filter((entry) => entry.activationMode === "hosted")
+        .map(({ manifest: plugin }) => {
+          const incompatibleReason =
+            pluginRegistry.pluginStates.incompatible[plugin.id];
+          const enabled = enabledPluginIds.includes(plugin.id);
+
+          return {
+            id: plugin.id,
+            label: incompatibleReason
+              ? `${plugin.name} Blocked`
+              : `${plugin.name} ${enabled ? "On" : "Off"}`,
+            enabled,
+            disabled: Boolean(incompatibleReason),
+            onToggle: () => togglePlugin(plugin.id),
+          };
+        }),
+    [enabledPluginIds, pluginRegistry.pluginStates.incompatible, resolvedLocalPackages.catalogEntries],
+  );
+  const toolbarActions = useMemo(
+    () =>
+      pluginRegistry.toolbarActions.filter(
+        (action) => action.isVisible?.() ?? true,
+      ),
+    [pluginRegistry.toolbarActions],
+  );
+
+  useEffect(() => {
+    const sanitizedPluginIds = sanitizeEnabledPluginIds({
+      catalogEntries: resolvedLocalPackages.catalogEntries,
+      enabledPluginIds,
+    });
+
+    if (sanitizedPluginIds.length !== enabledPluginIds.length) {
+      setEnabledPluginIds(sanitizedPluginIds);
+    }
+  }, [
+    enabledPluginIds,
+    resolvedLocalPackages.catalogEntries,
+    setEnabledPluginIds,
+  ]);
+
   function handleFixAlertsTask() {
     setCurrentWorkspace("audit");
     setCurrentAuditLens("issues");
@@ -837,7 +984,7 @@ function App() {
 
   const visiblePanels = useMemo(
     () => (workspaceId: AppWorkspace, placement: PanelPlacement) =>
-      PANEL_REGISTRY.filter(
+      pluginRegistry.panels.filter(
         (panel) =>
           panel.workspace === workspaceId &&
           panel.defaultPlacement === placement,
@@ -849,15 +996,20 @@ function App() {
         )
         .filter((panel) => !panel.selectionRequired || hasSelection)
         .sort((a, b) => a.priority - b.priority),
-    [hasSelection, viewMode],
+    [hasSelection, pluginRegistry.panels, viewMode],
   );
 
   function renderPanel(panelId: AppPanelId) {
+    const pluginPanel = pluginRegistry.panels.find(
+      (panel) => panel.id === panelId && panel.pluginId,
+    );
+    if (pluginPanel) {
+      return pluginPanel.render();
+    }
+
     switch (panelId) {
       case "property":
         return <PropertyPanel />;
-      case "cable-planner":
-        return <CablePlanner />;
       case "port-reservation":
         return <PortReservationPanel />;
       case "port-speed":
@@ -976,6 +1128,17 @@ function App() {
         return <DcimImportPanel />;
       case "rack-photo":
         return <RackPhotoPanel />;
+      case "plugin-manager":
+        return (
+          <PluginManagerPanel
+            plugins={resolvedLocalPackages.catalogEntries}
+            enabledPluginIds={enabledPluginIds}
+            approvedLocalPluginIds={approvedLocalPluginIds}
+            incompatibleReasons={pluginRegistry.pluginStates.incompatible}
+            onTogglePlugin={togglePlugin}
+            onToggleApproval={togglePluginApproval}
+          />
+        );
       case "policy-rules":
         return <PolicyRulesPanel />;
       case "homelab-guide":
@@ -1233,6 +1396,14 @@ function App() {
               onClick: () => setCurrentPortfolioLens("policy"),
             },
             {
+              label: "Plugin Manager",
+              detail: "Enable or disable optional workflows for this app shell.",
+              onClick: () => {
+                setCurrentPortfolioLens("overview");
+                setInspectorOpen(true);
+              },
+            },
+            {
               label: "Guide lens",
               detail: "Open guide and photo documentation tools.",
               onClick: () => setCurrentPortfolioLens("guide"),
@@ -1275,17 +1446,6 @@ function App() {
         subtitle: "Open the device library and place hardware in the rack",
         icon: <Box size={16} className="text-cyan-600 dark:text-cyan-300" />,
         action: handleAddDeviceTask,
-        category: "Quick tasks",
-      },
-      {
-        id: "task-connect-cable",
-        type: "quick-action",
-        title: "Connect cable",
-        subtitle: "Switch to cable view and use the cable planner",
-        icon: (
-          <Cable size={16} className="text-cyan-600 dark:text-cyan-300" />
-        ),
-        action: handleAddCableTask,
         category: "Quick tasks",
       },
       {
@@ -1373,6 +1533,19 @@ function App() {
         category: "Quick tasks",
       },
     ];
+    if (cablePluginEnabled) {
+      quickActions.splice(1, 0, {
+        id: "task-connect-cable",
+        type: "quick-action",
+        title: "Connect cable",
+        subtitle: "Switch to cable view and use the cable planner",
+        icon: (
+          <Cable size={16} className="text-cyan-600 dark:text-cyan-300" />
+        ),
+        action: handleAddCableTask,
+        category: "Quick tasks",
+      });
+    }
 
     const workspaceItems: SearchItem[] = (
       Object.keys(WORKSPACE_META) as AppWorkspace[]
@@ -1390,7 +1563,7 @@ function App() {
       category: "Workspaces",
     }));
 
-    const panelItems: SearchItem[] = PANEL_REGISTRY.map((panel) => ({
+    const panelItems: SearchItem[] = pluginRegistry.panels.map((panel) => ({
       id: `panel-${panel.id}`,
       type: "panel",
       title: panel.title,
@@ -1407,56 +1580,87 @@ function App() {
       category: "Advanced panels",
     }));
 
-    return [...quickActions, ...workspaceItems, ...panelItems];
-  }, [setViewMode, topIssue]);
+    const pluginItems: SearchItem[] = resolvedLocalPackages.catalogEntries.map((entry) => {
+      const plugin = entry.manifest;
+      const enabled = enabledPluginIds.includes(plugin.id);
+      const capabilitySummary = plugin.capabilities
+        .map((capability) => {
+          switch (capability) {
+            case "view-modes":
+              return "views";
+            case "panels":
+              return "panels";
+            case "commands":
+              return "commands";
+            case "toolbar-actions":
+              return "toolbar";
+            case "layout-read":
+              return "layout read";
+            default:
+              return capability;
+          }
+        })
+        .join(", ");
+      const catalogState = getPluginCatalogState({
+        entry,
+        enabledPluginIds,
+        approvedLocalPluginIds,
+        incompatibleReasons: pluginRegistry.pluginStates.incompatible,
+      });
+      const blockedReason = catalogState.canToggle
+        ? undefined
+        : catalogState.summary;
+
+      return {
+        id: `plugin-toggle-${plugin.id}`,
+        type: "quick-action",
+        title: blockedReason
+          ? entry.activationMode === "manifest-only" &&
+            catalogState.runtimeStatus !== "incompatible"
+            ? approvedLocalPluginIds.includes(plugin.id)
+              ? `${plugin.name} reviewed`
+              : `Review ${plugin.name}`
+            : `${plugin.name} unavailable`
+          : enabled
+            ? `Disable ${plugin.name}`
+            : `Enable ${plugin.name}`,
+        subtitle: blockedReason
+          ? blockedReason
+          : `${plugin.description} · ${capabilitySummary}${entry.statusNote ? ` · ${entry.statusNote}` : ""}`,
+        icon: (
+          <Settings2
+            size={16}
+            className="text-slate-500 dark:text-slate-400"
+          />
+        ),
+        action: blockedReason
+          ? entry.activationMode === "manifest-only" &&
+            catalogState.runtimeStatus !== "incompatible"
+            ? () => togglePluginApproval(plugin.id)
+            : () => undefined
+          : () => togglePlugin(plugin.id),
+        category: "Plugins",
+      };
+    });
+
+    return [...quickActions, ...workspaceItems, ...panelItems, ...pluginItems];
+  }, [
+    cablePluginEnabled,
+    enabledPluginIds,
+    approvedLocalPluginIds,
+    pluginRegistry.panels,
+    pluginRegistry.pluginStates.incompatible,
+    resolvedLocalPackages.catalogEntries,
+    setViewMode,
+    topIssue,
+  ]);
 
   function renderCanvas() {
-    if (viewMode === "2d") {
-      return (
-        <RackEditor2D
-          layoutOverride={filteredLayout}
-          serviceabilityOverlay={serviceabilityOverlayEnabled}
-          highlightedDeviceIds={serviceabilityHighlightIds}
-        />
-      );
-    }
-    if (viewMode === "3d") {
-      return (
-        <Suspense
-          fallback={
-            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
-              Loading 3D…
-            </div>
-          }
-        >
-          <RackViewer3D layout={filteredLayout} />
-        </Suspense>
-      );
-    }
-    if (viewMode === "cables") {
-      return (
-        <Suspense
-          fallback={
-            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
-              Loading cable map...
-            </div>
-          }
-        >
-          <CableMap layout={filteredLayout} />
-        </Suspense>
-      );
-    }
-    return (
-      <Suspense
-        fallback={
-          <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
-            Loading topology...
-          </div>
-        }
-      >
-        <NetworkTopology layout={filteredLayout} />
-      </Suspense>
-    );
+    const currentView =
+      pluginRegistry.viewModes.find((definition) => definition.id === viewMode) ??
+      pluginRegistry.viewModes.find((definition) => definition.id === "2d");
+
+    return currentView?.render(filteredLayout) ?? null;
   }
 
   function renderModelWorkspace() {
@@ -1583,6 +1787,9 @@ function App() {
           layout={layout}
           currentWorkspace={currentWorkspace}
           viewMode={viewMode}
+          viewModes={pluginRegistry.viewModes}
+          pluginToggles={pluginToggles}
+          toolbarActions={toolbarActions}
           onOpenCommand={() => setCommandOpen(true)}
           onRenameLayout={(name) => updateRack({ name })}
           onToggleViewMode={setViewMode}
@@ -1642,7 +1849,7 @@ function App() {
           }
           issueCount={issues.length}
           onAddDevice={handleAddDeviceTask}
-          onAddCable={handleAddCableTask}
+          onAddCable={cablePluginEnabled ? handleAddCableTask : null}
           onFixAlerts={handleFixAlertsTask}
           onOpenSearch={() => setCommandOpen(true)}
           onNewLayout={handleNewLayout}
@@ -1803,6 +2010,10 @@ function App() {
           open={commandOpen}
           onClose={() => setCommandOpen(false)}
           extraItems={commandItems}
+          registry={{
+            viewModes: pluginRegistry.viewModes,
+            commands: pluginRegistry.commands,
+          }}
         />
       </Suspense>
       <Suspense fallback={null}>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { defaultEnabledPluginIds } from '../plugins/builtInPlugins';
 
 const STORAGE_KEY = 'homelab-rack-simulator-layout-prefs';
 
@@ -7,6 +8,8 @@ type LayoutPrefs = {
   inspectorOpen: boolean;
   rackSummaryOpen: boolean;
   bottomTrayOpen: boolean;
+  enabledPluginIds: string[];
+  approvedLocalPluginIds: string[];
 };
 
 type PersistedPrefs = Partial<LayoutPrefs>;
@@ -38,6 +41,8 @@ interface LayoutPrefsState extends LayoutPrefs {
   toggleRackSummary: () => void;
   setBottomTrayOpen: (open: boolean) => void;
   toggleBottomTray: () => void;
+  setEnabledPluginIds: (pluginIds: string[]) => void;
+  setApprovedLocalPluginIds: (pluginIds: string[]) => void;
 }
 
 const saved = readPrefs();
@@ -48,6 +53,8 @@ function snapshot(state: LayoutPrefs): LayoutPrefs {
     inspectorOpen: state.inspectorOpen,
     rackSummaryOpen: state.rackSummaryOpen,
     bottomTrayOpen: state.bottomTrayOpen,
+    enabledPluginIds: state.enabledPluginIds,
+    approvedLocalPluginIds: state.approvedLocalPluginIds,
   };
 }
 
@@ -56,6 +63,8 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
   inspectorOpen: saved.inspectorOpen ?? true,
   rackSummaryOpen: saved.rackSummaryOpen ?? false,
   bottomTrayOpen: saved.bottomTrayOpen ?? false,
+  enabledPluginIds: saved.enabledPluginIds ?? defaultEnabledPluginIds,
+  approvedLocalPluginIds: saved.approvedLocalPluginIds ?? [],
 
   setDeviceLibraryOpen: (open) =>
     set((state) => {
@@ -115,5 +124,19 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
       const next = { ...snapshot(state), bottomTrayOpen: open };
       writePrefs(next);
       return { bottomTrayOpen: open };
+    }),
+
+  setEnabledPluginIds: (enabledPluginIds) =>
+    set((state) => {
+      const next = { ...snapshot(state), enabledPluginIds };
+      writePrefs(next);
+      return { enabledPluginIds };
+    }),
+
+  setApprovedLocalPluginIds: (approvedLocalPluginIds) =>
+    set((state) => {
+      const next = { ...snapshot(state), approvedLocalPluginIds };
+      writePrefs(next);
+      return { approvedLocalPluginIds };
     }),
 }));

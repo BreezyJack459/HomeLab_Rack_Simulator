@@ -362,7 +362,7 @@ export function PropertyPanel() {
           ) : (
             <div className="space-y-3">
               <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 via-white/70 to-white/30 p-3 shadow-sm dark:from-cyan-500/10 dark:via-slate-950/70 dark:to-slate-950/50">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="flex flex-col gap-3">
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
                       Selection
@@ -374,7 +374,10 @@ export function PropertyPanel() {
                       Edit identity, fit, power and connectivity from the focused device surface.
                     </p>
                   </div>
-                  <div className="grid shrink-0 grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                  <div
+                    data-testid="property-selection-meta"
+                    className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300"
+                  >
                     <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
                       {device.category}
                     </span>
