@@ -1,11 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cableManagementPlugin } from './cableManagementPlugin';
 import { governanceToolsPlugin } from './governanceToolsPlugin';
-import type { RackPluginModule } from './types';
+import type { RackPluginManifest, RackPluginModule } from './types';
 import { buildPluginRegistry } from './pluginHost';
 
+type PluginOverrides = {
+  manifest?: Partial<RackPluginManifest>;
+  activate?: RackPluginModule['activate'];
+};
+
 const basePlugin = (
-  overrides?: Partial<RackPluginModule>,
+  overrides?: PluginOverrides,
 ): RackPluginModule => ({
   manifest: {
     id: 'test-plugin',
@@ -14,6 +19,9 @@ const basePlugin = (
     description: 'test',
     requiresAppVersion: '1.0.0',
     defaultEnabled: true,
+    origin: 'built-in',
+    trustLevel: 'trusted',
+    capabilities: ['view-modes', 'panels', 'commands', 'toolbar-actions'],
     ...overrides?.manifest,
   },
   activate:

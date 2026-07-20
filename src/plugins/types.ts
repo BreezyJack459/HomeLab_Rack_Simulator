@@ -6,6 +6,8 @@ import type {
 } from '../types/appShell';
 import type { RackLayout, ViewMode } from '../types/rack';
 
+export type { AppPanelId, AppWorkspace } from '../types/appShell';
+
 export type ViewModeId = ViewMode;
 
 export type ViewModeDefinition = {

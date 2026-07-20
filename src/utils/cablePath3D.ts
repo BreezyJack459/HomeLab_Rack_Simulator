@@ -7,6 +7,7 @@ import {
   getPortZSign,
   RACK_3D_U_HEIGHT as U_HEIGHT
 } from './rackGeometry';
+import type { WorldPoint } from './rackGeometry';
 import { getZeroUEarSide } from './rackMath';
 
 type CableRoutingMode = 'clean' | 'realistic';
@@ -74,8 +75,8 @@ function insertGravitySag(points: Vector3[], amount: number, realistic: boolean)
 
 function pushFrontPatchLoopPoints(
   points: Vector3[],
-  fromPort: Vector3,
-  toPort: Vector3,
+  fromPort: WorldPoint,
+  toPort: WorldPoint,
   frontPlaneZ: number,
   cableIndex: number,
   managerY: number

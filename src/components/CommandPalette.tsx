@@ -33,8 +33,8 @@ export interface SearchItem {
 }
 
 type SearchRegistry = {
-  viewModes: ViewModeDefinition[];
-  commands: CommandDefinition[];
+  viewModes: readonly ViewModeDefinition[];
+  commands: readonly CommandDefinition[];
 };
 
 export function getDeviceName(layout: RackLayout, deviceId: string): string {
