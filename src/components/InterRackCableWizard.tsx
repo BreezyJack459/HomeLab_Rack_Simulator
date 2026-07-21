@@ -46,10 +46,10 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 isActive
-                  ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950'
+                  ? 'bg-accent-solid text-content dark:bg-accent dark:text-accent-on'
                   : isDone
                     ? 'bg-emerald-500/20 text-emerald-400 dark:text-emerald-300'
-                    : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500'
+                    : 'bg-fill-strong text-content-muted dark:bg-fill dark:text-content-faint'
               }`}
             >
               {isDone ? <Check size={14} /> : stepNum}
@@ -57,16 +57,16 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             <span
               className={`text-xs font-medium ${
                 isActive
-                  ? 'text-cyan-700 dark:text-cyan-300'
+                  ? 'text-accent-fg'
                   : isDone
                     ? 'text-emerald-600 dark:text-emerald-300'
-                    : 'text-slate-400 dark:text-slate-600'
+                    : 'text-content-faint'
               }`}
             >
               {label}
             </span>
             {i < steps.length - 1 && (
-              <ChevronRight size={14} className="text-slate-300 dark:text-slate-700" />
+              <ChevronRight size={14} className="text-content-faint" />
             )}
           </div>
         );
@@ -109,12 +109,12 @@ function EndpointSelector({
 
   return (
     <div className="space-y-4">
-      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</div>
+      <div className="text-sm font-semibold text-content-secondary">{label}</div>
 
-      <label className="block text-xs text-slate-500 dark:text-slate-400">
+      <label className="block text-xs text-content-muted">
         Rack
         <select
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedRackId}
           onChange={(e) => {
             onChangeRack(e.target.value);
@@ -131,10 +131,10 @@ function EndpointSelector({
         </select>
       </label>
 
-      <label className="block text-xs text-slate-500 dark:text-slate-400">
+      <label className="block text-xs text-content-muted">
         Device
         <select
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedDeviceId}
           onChange={(e) => {
             onChangeDevice(e.target.value);
@@ -153,10 +153,10 @@ function EndpointSelector({
         </select>
       </label>
 
-      <label className="block text-xs text-slate-500 dark:text-slate-400">
+      <label className="block text-xs text-content-muted">
         Port
         <select
-          className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedPort ? `${selectedPort.type}:${selectedPort.index}:${selectedPort.side ?? ''}` : ''}
           onChange={(e) => {
             const value = e.target.value;
@@ -261,15 +261,15 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-slate-300 bg-slate-100 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-300 px-5 py-3 dark:border-slate-700">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-            <Cable size={16} className="text-cyan-600 dark:text-cyan-400" />
+      <div className="w-full max-w-lg rounded-xl border border-edge-strong bg-fill shadow-2xl dark:border-edge-strong dark:bg-surface-raised">
+        <div className="flex items-center justify-between border-b border-edge-strong px-5 py-3 dark:border-edge-strong">
+          <div className="flex items-center gap-2 text-sm font-semibold text-content">
+            <Cable size={16} className="text-accent" />
             Add Inter-Rack Cable
           </div>
           <button
             onClick={handleClose}
-            className="rounded-md p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="rounded-md p-1 text-content-muted hover:bg-fill-strong hover:text-content-secondary dark:text-content-muted dark:hover:bg-fill dark:hover:text-content"
             type="button"
           >
             <X size={16} />
@@ -310,13 +310,13 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
 
           {step === 3 && (
             <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cable Details</div>
+              <div className="text-sm font-semibold text-content-secondary">Cable Details</div>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className="block text-xs text-slate-500 dark:text-slate-400">
+                <label className="block text-xs text-content-muted">
                   Cable Type
                   <select
-                    className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                     value={cableType}
                     onChange={(e) => setCableType(e.target.value as InterRackCableType)}
                   >
@@ -328,13 +328,13 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                   </select>
                 </label>
 
-                <label className="block text-xs text-slate-500 dark:text-slate-400">
+                <label className="block text-xs text-content-muted">
                   Length (m)
                   <input
                     type="number"
                     min={0}
                     step={0.5}
-                    className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                     value={lengthM}
                     onChange={(e) => setLengthM(e.target.value)}
                     placeholder="Optional"
@@ -342,11 +342,11 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                 </label>
               </div>
 
-              <label className="block text-xs text-slate-500 dark:text-slate-400">
+              <label className="block text-xs text-content-muted">
                 Label
                 <input
                   type="text"
-                  className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="Optional label"
@@ -354,7 +354,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               </label>
 
               <div>
-                <div className="mb-1 text-xs text-slate-500 dark:text-slate-400">Color</div>
+                <div className="mb-1 text-xs text-content-muted">Color</div>
                 <div className="flex flex-wrap gap-2">
                   {COLOR_PRESETS.map((preset) => (
                     <button
@@ -363,8 +363,8 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                       onClick={() => setColor(preset.value)}
                       className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition ${
                         color === preset.value
-                          ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
-                          : 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+                          ? 'border-accent bg-accent-solid/10 text-accent-fg'
+                          : 'border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-fill dark:text-content-muted dark:hover:bg-fill-strong'
                       }`}
                       title={preset.label}
                     >
@@ -377,7 +377,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                   ))}
                   <input
                     type="color"
-                    className="h-7 w-12 cursor-pointer rounded-md border border-slate-300 bg-transparent dark:border-slate-700"
+                    className="h-7 w-12 cursor-pointer rounded-md border border-edge-strong bg-transparent dark:border-edge-strong"
                     value={color || '#06b6d4'}
                     onChange={(e) => setColor(e.target.value)}
                     title="Custom color"
@@ -385,10 +385,10 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                 </div>
               </div>
 
-              <label className="block text-xs text-slate-500 dark:text-slate-400">
+              <label className="block text-xs text-content-muted">
                 Notes
                 <textarea
-                  className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-100 px-2 py-1.5 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -397,9 +397,9 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               </label>
 
               {/* Summary */}
-              <div className="rounded-lg border border-slate-200 bg-slate-100/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-950/40">
-                <div className="mb-1 font-semibold text-slate-600 dark:text-slate-400">Summary</div>
-                <div className="space-y-1 text-slate-500 dark:text-slate-500">
+              <div className="rounded-lg border border-edge bg-fill/60 p-3 text-xs dark:border-edge dark:bg-surface/40">
+                <div className="mb-1 font-semibold text-content-secondary dark:text-content-muted">Summary</div>
+                <div className="space-y-1 text-content-muted dark:text-content-faint">
                   <div>
                     From: {sourceRack?.name} → {sourceDevice?.name} → {sourcePort ? `${sourcePort.type} ${sourcePort.index + 1}` : '—'}
                   </div>
@@ -417,10 +417,10 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-300 px-5 py-3 dark:border-slate-700">
+        <div className="flex items-center justify-between border-t border-edge-strong px-5 py-3 dark:border-edge-strong">
           <button
             onClick={handleClose}
-            className="h-8 rounded-md border border-slate-300 bg-slate-100 px-3 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="h-8 rounded-md border border-edge-strong bg-fill px-3 text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-fill dark:text-content-secondary dark:hover:bg-fill-strong"
             type="button"
           >
             Cancel
@@ -430,7 +430,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
             {step > 1 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-300 bg-slate-100 px-3 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="inline-flex h-8 items-center gap-1 rounded-md border border-edge-strong bg-fill px-3 text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-fill dark:text-content-secondary dark:hover:bg-fill-strong"
                 type="button"
               >
                 <ChevronLeft size={14} />
@@ -441,7 +441,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
-                className="inline-flex h-8 items-center gap-1 rounded-md bg-cyan-600 px-3 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-40 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-solid px-3 text-xs font-medium text-content hover:bg-accent-solid-hover disabled:opacity-40 dark:bg-accent dark:text-accent-on dark:hover:bg-accent"
                 type="button"
               >
                 Next
@@ -452,7 +452,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               <button
                 onClick={handleCreate}
                 disabled={!isStep3Valid}
-                className="inline-flex h-8 items-center gap-1 rounded-md bg-cyan-600 px-3 text-xs font-medium text-white hover:bg-cyan-700 disabled:opacity-40 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-solid px-3 text-xs font-medium text-content hover:bg-accent-solid-hover disabled:opacity-40 dark:bg-accent dark:text-accent-on dark:hover:bg-accent"
                 type="button"
               >
                 Create

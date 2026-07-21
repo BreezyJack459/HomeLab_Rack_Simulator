@@ -21,12 +21,12 @@ export function ModelWorkspaceLayout({
     >
       {deviceLibraryOpen && (
         <aside
-          className="min-h-0 overflow-hidden rounded-3xl border border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82"
+          className="min-h-0 overflow-hidden rounded-3xl border border-edge bg-surface/82 dark:border-edge dark:bg-surface/82"
           data-testid="device-library-panel"
         >
           <Suspense
             fallback={
-              <div className="flex h-full items-center justify-center px-6 text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex h-full items-center justify-center px-6 text-sm text-content-muted">
                 Loading device library...
               </div>
             }
@@ -36,7 +36,7 @@ export function ModelWorkspaceLayout({
         </aside>
       )}
 
-      <section className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-200 bg-white/82 dark:border-slate-800 dark:bg-slate-950/82">
+      <section className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-edge bg-surface/82 dark:border-edge dark:bg-surface/82">
         {canvas}
       </section>
     </div>

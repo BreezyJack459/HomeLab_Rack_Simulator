@@ -17,9 +17,9 @@ export function RackSummaryAlertsPopover({
   const infoCount = issues.filter((issue) => issue.severity === 'info').length;
 
   return (
-    <div className="absolute right-3 top-full z-40 mt-2 w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+    <div className="absolute right-3 top-full z-40 mt-2 w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-3 shadow-xl dark:border-edge dark:bg-surface">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
           Alerts
         </span>
         <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">
@@ -46,7 +46,7 @@ export function RackSummaryAlertsPopover({
               onClick={() => onIssueSelect(issue)}
               className={`rounded-xl border p-3 text-left text-xs transition ${
                 selectedIssueId === issue.id
-                  ? 'border-cyan-400 bg-cyan-500/10'
+                  ? 'border-accent bg-accent-solid/10'
                   : issue.severity === 'critical'
                     ? 'border-red-500/25 bg-red-500/8'
                     : issue.severity === 'warning'
@@ -54,8 +54,8 @@ export function RackSummaryAlertsPopover({
                       : 'border-sky-500/20 bg-sky-500/8'
               }`}
             >
-              <div className="font-semibold text-slate-900 dark:text-white">{issue.title}</div>
-              <div className="mt-1 text-slate-500 dark:text-slate-400">{recommendationForIssue(issue)}</div>
+              <div className="font-semibold text-content">{issue.title}</div>
+              <div className="mt-1 text-content-muted">{recommendationForIssue(issue)}</div>
             </button>
           ))}
         </div>

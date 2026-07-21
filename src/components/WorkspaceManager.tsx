@@ -187,13 +187,13 @@ function WorkspaceManager({
   const manyRacks = workspace.racks.length > 4;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-lg border border-edge bg-fill/78 p-4 dark:border-edge dark:bg-surface-raised/78">
       {/* Header */}
       <div className="mb-4 flex flex-col gap-2">
         {editingName ? (
           <input
             autoFocus
-            className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm font-semibold text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="h-9 w-full rounded-md border border-edge-strong bg-surface px-2 text-sm font-semibold text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
             value={workspaceNameInput}
             onChange={(e) => setWorkspaceNameInput(e.target.value)}
             onBlur={handleSaveWorkspaceName}
@@ -209,14 +209,14 @@ function WorkspaceManager({
           <button
             type="button"
             onClick={() => setEditingName(true)}
-            className="flex items-center gap-2 text-left text-base font-semibold text-slate-800 transition hover:text-cyan-600 dark:text-slate-100 dark:hover:text-cyan-400"
+            className="flex items-center gap-2 text-left text-base font-semibold text-content transition hover:text-accent dark:text-content dark:hover:text-accent"
           >
             <Server size={18} />
             {workspace.name}
             <Pencil size={13} className="opacity-50" />
           </button>
         )}
-        <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex flex-wrap gap-3 text-xs text-content-muted">
           <span>
             {workspace.racks.length} rack{workspace.racks.length === 1 ? '' : 's'}
           </span>
@@ -236,7 +236,7 @@ function WorkspaceManager({
           <button
             type="button"
             onClick={() => scrollTabs('left')}
-            className="shrink-0 rounded-md border border-slate-300 bg-white p-1 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+            className="shrink-0 rounded-md border border-edge-strong bg-surface p-1 text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-surface-raised"
           >
             <ChevronLeft size={16} />
           </button>
@@ -257,8 +257,8 @@ function WorkspaceManager({
                   onContextMenu={(e) => handleContextMenu(e, rack.id)}
                   className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                     isActive
-                      ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/50 dark:bg-cyan-400/10 dark:text-cyan-300'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900'
+                      ? 'border-accent/50 bg-accent-solid/10 text-accent-fg dark:border-accent/50 dark:bg-accent/10 dark:text-accent-fg'
+                      : 'border-edge-strong bg-surface text-content-secondary hover:bg-fill-subtle dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-surface-raised'
                   }`}
                 >
                   <span
@@ -266,10 +266,10 @@ function WorkspaceManager({
                     title={health}
                   />
                   <span className="max-w-[8rem] truncate font-medium">{rack.name}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] text-content-faint">
                     {RACK_TYPE_LABEL[rack.rackType]}
                   </span>
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                  <span className="rounded bg-fill px-1.5 py-0.5 text-[10px] text-content-muted dark:bg-surface-raised dark:text-content-muted">
                     {rack.devices.length}
                   </span>
                 </button>
@@ -323,7 +323,7 @@ function WorkspaceManager({
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500 transition hover:border-slate-400 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed border-edge-strong px-3 py-2 text-sm text-content-muted transition hover:border-slate-400 hover:text-content-secondary dark:border-edge-strong dark:text-content-muted dark:hover:border-slate-600 dark:hover:text-content"
           >
             <Plus size={14} />
             New Rack
@@ -334,7 +334,7 @@ function WorkspaceManager({
           <button
             type="button"
             onClick={() => scrollTabs('right')}
-            className="shrink-0 rounded-md border border-slate-300 bg-white p-1 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+            className="shrink-0 rounded-md border border-edge-strong bg-surface p-1 text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-surface-raised"
           >
             <ChevronRight size={16} />
           </button>
@@ -381,7 +381,7 @@ function WorkspaceManager({
                       key={type}
                       className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
                         newRackType === type
-                          ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/50 dark:bg-cyan-400/10 dark:text-cyan-300'
+                          ? 'border-accent/50 bg-accent-solid/10 text-accent-fg dark:border-accent/50 dark:bg-accent/10 dark:text-accent-fg'
                           : ''
                       }`}
                       style={
@@ -429,7 +429,7 @@ function WorkspaceManager({
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
-                className="h-9 flex-1 rounded-md border border-cyan-500/40 bg-cyan-500/10 text-sm font-medium text-cyan-700 hover:bg-cyan-500/20 dark:text-cyan-300"
+                className="h-9 flex-1 rounded-md border border-accent/40 bg-accent-solid/10 text-sm font-medium text-accent-fg hover:bg-accent-solid-hover/20 dark:text-accent-fg"
                 onClick={handleCreateSubmit}
               >
                 Create
@@ -523,7 +523,7 @@ function WorkspaceManager({
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
-                className="h-9 flex-1 rounded-md border border-cyan-500/40 bg-cyan-500/10 text-sm font-medium text-cyan-700 hover:bg-cyan-500/20 dark:text-cyan-300"
+                className="h-9 flex-1 rounded-md border border-accent/40 bg-accent-solid/10 text-sm font-medium text-accent-fg hover:bg-accent-solid-hover/20 dark:text-accent-fg"
                 onClick={handleRenameSave}
               >
                 Save

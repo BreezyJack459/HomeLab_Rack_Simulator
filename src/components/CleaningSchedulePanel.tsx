@@ -102,7 +102,7 @@ export function CleaningSchedulePanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {localSchedule ? environmentLabels[localSchedule.environment] : '-'}
           </div>
           <div
@@ -119,7 +119,7 @@ export function CleaningSchedulePanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {interval}
           </div>
           <div

@@ -91,7 +91,7 @@ export function checklistStatusTone(status: ChecklistStatus) {
     case 'failed':
       return 'bg-red-500/10 text-red-700 dark:text-red-300';
     case 'skipped':
-      return 'bg-slate-500/10 text-slate-700 dark:text-slate-300';
+      return 'bg-content-muted/10 text-content-secondary';
     case 'pending':
     default:
       return 'bg-amber-500/10 text-amber-700 dark:text-amber-300';

@@ -38,10 +38,10 @@ function NumberField({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+    <label className="space-y-1 text-xs text-content-muted">
       {label}
       <input
-        className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
         type="number"
         min={min}
         max={max}
@@ -65,13 +65,13 @@ function PropertySection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+    <section className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
       <button
         type="button"
         onClick={() => setIsOpen((value) => !value)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-content-faint">
           {title}
         </span>
         <ChevronDown size={14} className={`transition-transform ${isOpen ? '' : '-rotate-90'}`} />
@@ -102,8 +102,8 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
 
   const defaults = getPortFaceMap(device.category);
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+    <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
         Port placement
       </div>
       <div className="space-y-1.5">
@@ -113,11 +113,11 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
           const currentFace = override ?? defaultFace;
           return (
             <div key={pt.key} className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-2">
-              <span className="pt-1 text-xs text-slate-500 dark:text-slate-400">{pt.label}</span>
+              <span className="pt-1 text-xs text-content-muted">{pt.label}</span>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="text-[10px] text-slate-400 dark:text-slate-600">default {defaultFace}</span>
+                <span className="text-[10px] text-content-faint">default {defaultFace}</span>
                 <select
-                  className="h-7 min-w-0 flex-1 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  className="h-7 min-w-0 flex-1 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                   value={override ?? ''}
                   onChange={(event) => {
                     const value = event.target.value as 'front' | 'rear' | '';
@@ -135,7 +135,7 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
                   <option value="rear">Rear</option>
                 </select>
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${currentFace === 'front' ? 'bg-cyan-400' : 'bg-orange-400'}`}
+                  className={`h-2 w-2 shrink-0 rounded-full ${currentFace === 'front' ? 'bg-accent' : 'bg-orange-400'}`}
                   title={currentFace}
                 />
               </div>
@@ -177,24 +177,24 @@ function renderPortAliases(
   const aliases = device.portAliases ?? {};
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+    <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
         Port aliases
       </div>
       {portKeys.length === 0 ? (
-        <div className="text-xs text-slate-500 dark:text-slate-400">No ports available for aliasing</div>
+        <div className="text-xs text-content-muted">No ports available for aliasing</div>
       ) : (
         <>
           {Object.keys(aliases).length > 0 && (
             <div className="mb-2 space-y-1">
               {Object.entries(aliases).map(([key, alias]) => (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">{key}</span>
-                  <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">→</span>
-                  <span className="min-w-0 flex-1 break-words text-xs text-slate-700 dark:text-slate-200">{alias}</span>
+                  <span className="shrink-0 text-xs font-medium text-content-secondary">{key}</span>
+                  <span className="shrink-0 text-xs text-content-faint">→</span>
+                  <span className="min-w-0 flex-1 break-words text-xs text-content-secondary dark:text-content">{alias}</span>
                   <button
                     type="button"
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
+                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-content-faint hover:text-red-500 dark:text-content-faint dark:hover:text-red-400"
                     onClick={() => {
                       const next = { ...aliases };
                       delete next[key];
@@ -209,7 +209,7 @@ function renderPortAliases(
           )}
           <div className="grid gap-2">
             <select
-              className="h-8 min-w-0 rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className="h-8 min-w-0 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
               value={selectedAliasKey}
               onChange={(event) => setSelectedAliasKey(event.target.value)}
             >
@@ -224,14 +224,14 @@ function renderPortAliases(
             </select>
             <input
               type="text"
-              className="h-8 min-w-0 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              className="h-8 min-w-0 rounded-md border border-edge-strong bg-surface px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
               placeholder="Alias name"
               value={aliasInput}
               onChange={(event) => setAliasInput(event.target.value)}
             />
             <button
               type="button"
-              className="inline-flex h-8 items-center justify-center rounded-md border border-slate-300 bg-slate-200 px-2 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-edge-strong bg-fill-strong px-2 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
               onClick={() => {
                 if (!selectedAliasKey || !aliasInput.trim()) return;
                 patch({
@@ -312,11 +312,11 @@ export function PropertyPanel() {
   const [aliasInput, setAliasInput] = useState('');
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-100/78 p-3.5 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-2xl border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
       >
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={15} />
@@ -330,16 +330,16 @@ export function PropertyPanel() {
       >
         <div className="overflow-hidden">
           {!device ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-sm dark:border-slate-700 dark:bg-slate-950/60">
-              <div className="font-medium text-slate-700 dark:text-slate-200">No component selected</div>
-              <div className="text-slate-500 dark:text-slate-400">
+            <div className="space-y-3 rounded-2xl border border-dashed border-edge-strong bg-surface/60 p-4 text-sm dark:border-edge-strong dark:bg-surface/60">
+              <div className="font-medium text-content-secondary dark:text-content">No component selected</div>
+              <div className="text-content-muted">
                 Select a device in the rack canvas to edit identity, physical fit, power and ports.
               </div>
               <div className="flex flex-wrap gap-2">
                 {layout.devices.length > 0 && (
                   <button
                     type="button"
-                    className="inline-flex h-8 items-center rounded-md border border-slate-300 bg-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    className="inline-flex h-8 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
                     onClick={() => {
                       selectDevice(layout.devices[0].id);
                       setViewMode('2d');
@@ -351,7 +351,7 @@ export function PropertyPanel() {
                 {layout.cables.length > 0 && (
                   <button
                     type="button"
-                    className="inline-flex h-8 items-center rounded-md border border-slate-300 bg-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    className="inline-flex h-8 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
                     onClick={() => setViewMode('cables')}
                   >
                     Open cable map
@@ -361,33 +361,33 @@ export function PropertyPanel() {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 via-white/70 to-white/30 p-3 shadow-sm dark:from-cyan-500/10 dark:via-slate-950/70 dark:to-slate-950/50">
+              <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/70 to-white/30 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
                 <div className="flex flex-col gap-3">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-fg">
                       Selection
                     </div>
-                    <div className="mt-1 truncate text-base font-semibold text-slate-900 dark:text-white">
+                    <div className="mt-1 truncate text-base font-semibold text-content">
                       {device.name}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs leading-5 text-content-muted">
                       Edit identity, fit, power and connectivity from the focused device surface.
                     </p>
                   </div>
                   <div
                     data-testid="property-selection-meta"
-                    className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300"
+                    className="grid grid-cols-2 gap-2 text-[11px] text-content-secondary"
                   >
-                    <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       {device.category}
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       U{device.positionU}{device.sizeU > 1 ? `-${device.positionU + device.sizeU - 1}` : ''}
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       {device.widthType}
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       {getDeviceMountSide(device)}
                     </span>
                   </div>
@@ -396,27 +396,27 @@ export function PropertyPanel() {
 
               <PropertySection title="Overview">
                 <div className="grid gap-3">
-                <label className="text-xs text-slate-500 dark:text-slate-400">
+                <label className="text-xs text-content-muted">
                   Name
                   <input
-                    className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.name}
                     onChange={(event) => patch({ name: event.target.value })}
                   />
                 </label>
-                <label className="text-xs text-slate-500 dark:text-slate-400">
+                <label className="text-xs text-content-muted">
                   Label
                   <input
-                    className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.label ?? ''}
                     onChange={(event) => patch({ label: event.target.value })}
                     placeholder="Optional front label"
                   />
                 </label>
-                <label className="text-xs text-slate-500 dark:text-slate-400">
+                <label className="text-xs text-content-muted">
                   Description
                   <textarea
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-edge-strong bg-surface px-2.5 py-2 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.description ?? ''}
                     onChange={(event) => patch({ description: event.target.value })}
                     placeholder="Optional notes or description"
@@ -428,10 +428,10 @@ export function PropertyPanel() {
 
               <PropertySection title="Physical">
                 <div className="space-y-3">
-                <label className="block text-xs text-slate-500 dark:text-slate-400">
+                <label className="block text-xs text-content-muted">
                   Mount side
                   <select
-                    className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={getDeviceMountSide(device)}
                     onChange={(event) => patch({ mountSide: event.target.value as ViewSide })}
                   >
@@ -441,15 +441,15 @@ export function PropertyPanel() {
                 </label>
 
                 {ENABLE_ZERO_U_PDU && device.sizeU === 0 && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
-                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                  <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                       0U Mount
                     </div>
                     <div className="grid gap-2">
-                      <label className="text-xs text-slate-500 dark:text-slate-400">
+                      <label className="text-xs text-content-muted">
                         Mount type
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.mountType ?? 'rear-rail'}
                           onChange={(event) => patch({ mountType: event.target.value as ZeroUMountType })}
                         >
@@ -457,10 +457,10 @@ export function PropertyPanel() {
                           <option value="side-rail">Side rail (outer face)</option>
                         </select>
                       </label>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">
+                      <label className="text-xs text-content-muted">
                         Side
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.mountSide0U ?? 'left'}
                           onChange={(event) => patch({ mountSide0U: event.target.value as ZeroUMountSide })}
                         >
@@ -468,10 +468,10 @@ export function PropertyPanel() {
                           <option value="right">Right</option>
                         </select>
                       </label>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">
+                      <label className="text-xs text-content-muted">
                         Outlet facing
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.outletFacing ?? 'forward'}
                           onChange={(event) => patch({ outletFacing: event.target.value as OutletFacing })}
                         >
@@ -500,10 +500,10 @@ export function PropertyPanel() {
                 </div>
 
                 <div className="grid gap-3 [grid-template-columns:minmax(0,1fr)_92px]">
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
+                  <label className="text-xs text-content-muted">
                     Width type
                     <select
-                      className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.widthType}
                       onChange={(event) => patch({ widthType: event.target.value as WidthType })}
                     >
@@ -513,10 +513,10 @@ export function PropertyPanel() {
                       <option value="custom">Custom</option>
                     </select>
                   </label>
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
+                  <label className="text-xs text-content-muted">
                     Color
                     <input
-                      className="mt-1 h-9 w-full rounded-lg border border-slate-300 bg-white p-1 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950"
+                      className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface p-1 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface"
                       type="color"
                       value={device.color}
                       onChange={(event) => patch({ color: event.target.value })}
@@ -540,10 +540,10 @@ export function PropertyPanel() {
               <PropertySection title="Power & Lifecycle">
                 <div className="grid gap-3">
                   <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
-                  <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <label className="space-y-1 text-xs text-content-muted">
                     Heat
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.heatLevel}
                       onChange={(event) => patch({ heatLevel: Number(event.target.value) as HeatLevel })}
                     >
@@ -555,10 +555,10 @@ export function PropertyPanel() {
                     </select>
                   </label>
                 </div>
-                <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                <label className="space-y-1 text-xs text-content-muted">
                   Status
                   <select
-                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.lifecycleStatus ?? 'active'}
                     onChange={(event) => patch({ lifecycleStatus: event.target.value as LifecycleStatus })}
                   >
@@ -569,10 +569,10 @@ export function PropertyPanel() {
                 </label>
 
                 {canSetShutdownPriority(device) && (
-                  <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <label className="space-y-1 text-xs text-content-muted">
                     Outage priority
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.shutdownPriority ?? 'non-critical'}
                       onChange={(event) => patch({ shutdownPriority: event.target.value as ShutdownPriority })}
                     >
@@ -585,11 +585,11 @@ export function PropertyPanel() {
 
                 {canSetShutdownPriority(device) && (
                   <div className="grid gap-3">
-                    <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                    <label className="space-y-1 text-xs text-content-muted">
                       Boot depends on
                       <select
                         multiple
-                        className="min-h-[5rem] w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                        className="min-h-[5rem] w-full rounded-lg border border-edge-strong bg-surface px-2.5 py-1.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                         value={device.bootDependsOn ?? []}
                         onChange={(event) => {
                           const options = Array.from(event.target.selectedOptions).map((o) => o.value);
@@ -622,10 +622,10 @@ export function PropertyPanel() {
                 )}
 
                 {(device.category === 'ups' || device.category === 'pdu' || (ENABLE_ZERO_U_PDU && device.category === 'pdu-0u')) && (
-                  <label className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                  <label className="space-y-1 text-xs text-content-muted">
                     Circuit
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.circuit ?? ''}
                       onChange={(event) => patch({ circuit: event.target.value ? (event.target.value as 'A' | 'B') : undefined })}
                     >
@@ -638,7 +638,7 @@ export function PropertyPanel() {
               </PropertySection>
 
               <PropertySection title="Ports & Connectivity">
-                <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
+                <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
                   <div className="grid grid-cols-2 gap-2">
                     <NumberField label="ETH" min={0} value={device.ports?.ethernet ?? 0} onChange={(value) => patchPort('ethernet', value)} />
                     <NumberField label="Fiber" min={0} value={device.ports?.fiber ?? 0} onChange={(value) => patchPort('fiber', value)} />
@@ -655,9 +655,9 @@ export function PropertyPanel() {
                       value={device.ports?.layoutColumns ?? device.ports?.ethernet ?? 1}
                       onChange={(value) => patchPort('layoutColumns', value)}
                     />
-                    <div className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                    <div className="rounded-lg border border-edge-strong bg-fill px-3 py-2 text-xs text-content-muted dark:border-edge dark:bg-surface-raised dark:text-content-muted">
                       Width used
-                      <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+                      <div className="mt-1 font-semibold text-content">
                         {Math.min(getDeviceWidthMm(device), rackUsableWidth).toFixed(0)} / {rackUsableWidth.toFixed(0)}mm
                       </div>
                     </div>
@@ -675,32 +675,32 @@ export function PropertyPanel() {
               </PropertySection>
 
               {pdu0uMeta && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                     <Zap size={13} />
                     0U PDU Status
                   </div>
-                  <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="space-y-1 text-xs text-content-secondary">
                     <div className="flex justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Outlets</span>
+                      <span className="text-content-faint">Outlets</span>
                       <span>{pdu0uMeta.outlets} total</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Used</span>
+                      <span className="text-content-faint">Used</span>
                       <span>
                         {pdu0uMeta.used} ({pdu0uMeta.outlets > 0 ? Math.round((pdu0uMeta.used / pdu0uMeta.outlets) * 100) : 0}%)
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Power budget</span>
+                      <span className="text-content-faint">Power budget</span>
                       <span>{pdu0uMeta.powerBudget}W / 2400W</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Location</span>
+                      <span className="text-content-faint">Location</span>
                       <span className="capitalize">{pdu0uMeta.location.replace('-', ' ')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400 dark:text-slate-500">Feed</span>
+                      <span className="text-content-faint">Feed</span>
                       <span>Feed {pdu0uMeta.feed}</span>
                     </div>
                   </div>

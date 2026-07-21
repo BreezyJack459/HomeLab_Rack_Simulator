@@ -183,7 +183,7 @@ export function RunbookPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {runbooks.length}
           </div>
           <div
@@ -200,7 +200,7 @@ export function RunbookPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {runbooks.reduce((sum, r) => sum + r.steps.length, 0)}
           </div>
           <div
@@ -235,7 +235,7 @@ export function RunbookPanel() {
           onClick={() => setFilter('all')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
             filter === 'all'
-              ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+              ? 'bg-accent-solid/10 text-accent-fg'
               : 'opacity-60'
           }`}
         >
@@ -248,7 +248,7 @@ export function RunbookPanel() {
             onClick={() => setFilter(cat)}
             className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
               filter === cat
-                ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                ? 'bg-accent-solid/10 text-accent-fg'
                 : 'opacity-60'
             }`}
           >

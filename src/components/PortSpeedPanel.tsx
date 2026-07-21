@@ -120,7 +120,7 @@ export function PortSpeedPanel() {
                 </div>
                 <div className="h-2 flex-1 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--theme-bg-primary)' }}>
                   <div
-                    className="h-full rounded-full bg-cyan-500"
+                    className="h-full rounded-full bg-accent-solid"
                     style={{ width: `${summary.totalPorts > 0 ? (count / summary.totalPorts) * 100 : 0}%` }}
                   />
                 </div>
@@ -143,7 +143,7 @@ export function PortSpeedPanel() {
             {Object.entries(summary.mediaCounts).map(([media, count]) => (
               <span
                 key={media}
-                className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-700 dark:text-cyan-300"
+                className="rounded bg-accent-solid/10 px-1.5 py-0.5 text-[10px] text-accent-fg"
               >
                 {media}: {count}
               </span>
@@ -170,7 +170,7 @@ export function PortSpeedPanel() {
                 </span>
                 <div className="flex gap-1.5">
                   {p.speed && (
-                    <span className="rounded bg-cyan-500/10 px-1 py-0.5 text-[10px] text-cyan-700 dark:text-cyan-300">
+                    <span className="rounded bg-accent-solid/10 px-1 py-0.5 text-[10px] text-accent-fg">
                       {p.speed}
                     </span>
                   )}
@@ -204,7 +204,7 @@ export function PortSpeedPanel() {
                 </span>
                 <div className="flex gap-1.5">
                   {c.speed && (
-                    <span className="rounded bg-cyan-500/10 px-1 py-0.5 text-[10px] text-cyan-700 dark:text-cyan-300">
+                    <span className="rounded bg-accent-solid/10 px-1 py-0.5 text-[10px] text-accent-fg">
                       {c.speed}
                     </span>
                   )}

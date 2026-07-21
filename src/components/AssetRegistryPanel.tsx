@@ -241,7 +241,7 @@ export function AssetRegistryPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.completeCount}</div>
+          <div className="text-lg font-bold text-content">{summary.completeCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Complete
           </div>
@@ -250,7 +250,7 @@ export function AssetRegistryPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.incompleteCount}</div>
+          <div className="text-lg font-bold text-content">{summary.incompleteCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Incomplete
           </div>
@@ -259,7 +259,7 @@ export function AssetRegistryPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="flex items-center justify-center gap-1 text-lg font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-center gap-1 text-lg font-bold text-content">
             <DollarSign size={14} />
             {summary.totalPurchaseValue.toFixed(0)}
           </div>
@@ -271,7 +271,7 @@ export function AssetRegistryPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.expiredWarrantyCount + summary.expiringSoonCount}
           </div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
@@ -295,7 +295,7 @@ export function AssetRegistryPanel() {
       )}
 
       {missingList.length > 0 && (
-        <div className="mb-3 flex items-start gap-2 rounded-md border border-cyan-500/30 bg-cyan-500/10 p-2.5 text-xs text-cyan-800 dark:text-cyan-100">
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-accent/30 bg-accent-solid/10 p-2.5 text-xs text-accent-fg-strong">
           <Tag size={14} className="mt-0.5 shrink-0" />
           <span>{missingList.length} device(s) are missing asset information. Expand rows below to fill in details.</span>
         </div>

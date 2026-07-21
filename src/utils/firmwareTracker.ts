@@ -69,8 +69,8 @@ export function firmwareStatusColor(status: FirmwareStatus): string {
   switch (status) {
     case 'current': return 'text-emerald-600 dark:text-emerald-400';
     case 'update-available': return 'text-amber-600 dark:text-amber-400';
-    case 'unknown': return 'text-slate-600 dark:text-slate-400';
-    case 'not-applicable': return 'text-slate-500 dark:text-slate-500';
+    case 'unknown': return 'text-content-secondary dark:text-content-muted';
+    case 'not-applicable': return 'text-content-muted dark:text-content-faint';
   }
 }
 
@@ -78,8 +78,8 @@ export function firmwareStatusBg(status: FirmwareStatus): string {
   switch (status) {
     case 'current': return 'bg-emerald-500/10 border-emerald-500/30';
     case 'update-available': return 'bg-amber-500/10 border-amber-500/30';
-    case 'unknown': return 'bg-slate-500/10 border-slate-500/30';
-    case 'not-applicable': return 'bg-slate-500/5 border-slate-500/20';
+    case 'unknown': return 'bg-content-muted/10 border-content-muted/30';
+    case 'not-applicable': return 'bg-content-muted/5 border-content-muted/20';
   }
 }
 

@@ -28,7 +28,7 @@ export function IssueBar({
 
   const listClassName =
     listMode === 'overlay'
-      ? 'absolute left-0 right-0 top-full z-50 mt-1 grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-xl thin-scrollbar dark:border-slate-800 dark:bg-slate-950 md:grid-cols-2'
+      ? 'absolute left-0 right-0 top-full z-50 mt-1 grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-edge bg-surface p-2 shadow-xl thin-scrollbar dark:border-edge dark:bg-surface md:grid-cols-2'
       : 'mt-2 grid max-h-40 gap-2 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2';
 
   return (
@@ -80,7 +80,7 @@ export function IssueBar({
               type="button"
               onClick={() => onIssueSelect(issue)}
               className={`rounded-md border p-2 text-left text-xs transition ${
-                selectedIssueId === issue.id ? 'border-cyan-300 bg-cyan-300/10' : ''
+                selectedIssueId === issue.id ? 'border-accent bg-accent/10' : ''
               }`}
               style={
                 selectedIssueId === issue.id

@@ -303,7 +303,7 @@ export function DeviceSensorPanel() {
           <button
             type="button"
             onClick={addReading}
-            className="inline-flex items-center gap-1 rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+            className="inline-flex items-center gap-1 rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
           >
             <Plus size={11} />
             Add
@@ -363,12 +363,12 @@ export function DeviceSensorPanel() {
               {(reading.recordedAt || reading.notes) && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {reading.recordedAt && (
-                    <span className="rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-400">
+                    <span className="rounded bg-content-muted/10 px-1.5 py-0.5 text-[10px] text-content-secondary dark:text-content-muted">
                       {reading.recordedAt}
                     </span>
                   )}
                   {reading.notes && (
-                    <span className="rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-400">
+                    <span className="rounded bg-content-muted/10 px-1.5 py-0.5 text-[10px] text-content-secondary dark:text-content-muted">
                       {reading.notes}
                     </span>
                   )}
@@ -383,7 +383,7 @@ export function DeviceSensorPanel() {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+          className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           <Plus size={12} />

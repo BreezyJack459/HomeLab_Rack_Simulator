@@ -68,7 +68,7 @@ function InterfaceRow({
           </span>
         )}
         {iface.dhcpReservation && (
-          <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-600 dark:text-cyan-400">
+          <span className="rounded bg-accent-solid/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
             DHCP
           </span>
         )}
@@ -334,7 +334,7 @@ function DeviceInterfaceCard({
           <button
             type="button"
             onClick={addInterface}
-            className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+            className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
           >
             Add
           </button>
@@ -461,7 +461,7 @@ export function IpAssignmentPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.totalInterfaces}
           </div>
           <div
@@ -478,7 +478,7 @@ export function IpAssignmentPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.withStaticIp}
           </div>
           <div
@@ -495,7 +495,7 @@ export function IpAssignmentPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.withVlan}
           </div>
           <div
@@ -512,7 +512,7 @@ export function IpAssignmentPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.duplicateIps + summary.duplicateMacs + summary.conflictingVlans}
           </div>
           <div

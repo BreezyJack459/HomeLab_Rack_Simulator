@@ -298,7 +298,7 @@ export function PowerBillPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {entries.length}
           </div>
           <div
@@ -315,7 +315,7 @@ export function PowerBillPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.avgMonthlyKwh.toFixed(0)}
           </div>
           <div
@@ -332,7 +332,7 @@ export function PowerBillPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.estimatedMonthlyKwh.toFixed(0)}
           </div>
           <div
@@ -474,7 +474,7 @@ export function PowerBillPanel() {
             <button
               type="button"
               onClick={addEntry}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Bill
             </button>

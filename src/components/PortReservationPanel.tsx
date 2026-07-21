@@ -64,7 +64,7 @@ function ReservationRow({
         <Lock size={13} className="shrink-0 opacity-60" />
         <span className="flex-1 truncate font-medium">{reservation.purpose}</span>
         <span className="text-[10px] opacity-60">{deviceName}</span>
-        <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-700 dark:text-cyan-300">
+        <span className="rounded bg-accent-solid/10 px-1.5 py-0.5 text-[10px] text-accent-fg">
           {reservation.portType} {reservation.portIndex + 1}
         </span>
         {isExpired && (
@@ -296,7 +296,7 @@ export function PortReservationPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalCount}</div>
+          <div className="text-lg font-bold text-content">{summary.totalCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Reserved
           </div>
@@ -332,7 +332,7 @@ export function PortReservationPanel() {
                   ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
                   : issue.severity === 'warning'
                   ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                  : 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300'
+                  : 'border-content-muted/30 bg-content-muted/10 text-content-secondary'
               }`}
             >
               <span className="font-medium">{issue.title}:</span> {issue.detail}
@@ -456,7 +456,7 @@ export function PortReservationPanel() {
             <button
               type="button"
               onClick={addReservation}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Reserve Port
             </button>

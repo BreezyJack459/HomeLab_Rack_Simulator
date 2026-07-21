@@ -154,19 +154,19 @@ export function RackDebtPanel() {
       {/* Summary */}
       <div className="mb-3 grid grid-cols-4 gap-2">
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.openCount}</div>
+          <div className="text-lg font-bold text-content">{summary.openCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Open</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.score}</div>
+          <div className="text-lg font-bold text-content">{summary.score}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Score</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.criticalCount}</div>
+          <div className="text-lg font-bold text-content">{summary.criticalCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Critical</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.health}</div>
+          <div className="text-lg font-bold text-content">{summary.health}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Health</div>
         </div>
       </div>
@@ -224,7 +224,7 @@ export function RackDebtPanel() {
             <button
               type="button"
               onClick={submitForm}
-              className="rounded bg-cyan-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-3 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Debt Item
             </button>

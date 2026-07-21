@@ -137,14 +137,14 @@ export function DcimImportPanel() {
           type="button"
           onClick={runPreview}
           disabled={!text.trim()}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-cyan-600 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-cyan-700 disabled:opacity-40"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-accent-solid px-3 py-1.5 text-[11px] font-medium text-content transition hover:bg-accent-solid-hover disabled:opacity-40"
         >
           Preview
         </button>
         <button
           type="button"
           onClick={() => setText(format === 'netbox-json' ? sampleNetbox : sampleCsv)}
-          className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+          className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           Sample
@@ -152,7 +152,7 @@ export function DcimImportPanel() {
         <button
           type="button"
           onClick={clearAll}
-          className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+          className="inline-flex items-center gap-1 rounded border px-3 py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           <X size={12} />
@@ -248,7 +248,7 @@ export function DcimImportPanel() {
             type="button"
             onClick={commitImport}
             disabled={preview.placed.length === 0}
-            className="inline-flex w-full items-center justify-center gap-1 rounded bg-cyan-600 py-1.5 text-[11px] font-medium text-white transition hover:bg-cyan-700 disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-1 rounded bg-accent-solid py-1.5 text-[11px] font-medium text-content transition hover:bg-accent-solid-hover disabled:opacity-40"
           >
             <Plus size={12} />
             Import {preview.placed.length} Device{preview.placed.length !== 1 ? 's' : ''}

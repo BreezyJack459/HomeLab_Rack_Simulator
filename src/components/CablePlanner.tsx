@@ -94,15 +94,15 @@ function DeviceListPicker({
 
   if (!activeDevices.length) {
     return (
-      <div className="rounded-md border border-dashed border-slate-200 bg-slate-100/60 p-3 text-center text-[11px] text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:text-slate-500">
+      <div className="rounded-md border border-dashed border-edge bg-fill/60 p-3 text-center text-[11px] text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
         No devices in rack.
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:border-slate-800 dark:text-slate-400 dark:text-slate-500">
+    <div className="rounded-md border border-edge bg-fill dark:border-edge dark:bg-surface">
+      <div className="flex items-center justify-between border-b border-edge px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-faint dark:border-edge dark:text-content-muted dark:text-content-faint">
         <span>Select device</span>
         <span>{activeDevices.length} devices</span>
       </div>
@@ -124,7 +124,7 @@ function DeviceListPicker({
           const rowDisabled = isDisabledRow || !hasCompatiblePort;
 
           return (
-            <div key={device.id} className="border-b border-slate-200/60 last:border-0 dark:border-slate-800/60">
+            <div key={device.id} className="border-b border-edge/60 last:border-0 dark:border-edge/60">
               {/* Device row — click to auto-connect, hover for ghost preview */}
               <div
                 className="flex items-center gap-2 px-3 py-2"
@@ -147,16 +147,16 @@ function DeviceListPicker({
                       ? 'cursor-default'
                       : rowDisabled
                         ? 'cursor-not-allowed opacity-35'
-                        : 'cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-200'
+                        : 'cursor-pointer hover:text-accent dark:hover:text-accent-fg'
                   }`}
                 >
                   <span className={`block truncate text-[13px] font-medium ${
-                    isSource ? 'text-cyan-600 dark:text-cyan-300' : rowDisabled ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'
+                    isSource ? 'text-accent-fg' : rowDisabled ? 'text-content-faint' : 'text-content'
                   }`}>
-                    {isSource && <span className="mr-1 text-cyan-400">●</span>}
+                    {isSource && <span className="mr-1 text-accent">●</span>}
                     {device.label || device.name}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="text-[10px] text-content-faint">
                     U{device.positionU}
                     {device.sizeU > 0 ? `–${device.positionU + device.sizeU - 1}` : ' (0U)'}
                   </span>
@@ -169,8 +169,8 @@ function DeviceListPicker({
                       key={s.type}
                       className={`rounded px-1 py-0.5 text-[9px] font-bold uppercase ${
                         isSelectingDest(stage) && inferredType && portTypeForCableType(inferredType) === s.type
-                          ? 'bg-cyan-500/20 text-cyan-600 dark:bg-cyan-400/20 dark:text-cyan-300'
-                          : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                          ? 'bg-accent-solid/20 text-accent dark:bg-accent/20 dark:text-accent-fg'
+                          : 'bg-fill-strong text-content-muted dark:bg-fill dark:text-content-muted'
                       }`}
                     >
                       {PORT_BADGE_LABEL[s.type] ?? s.type} ×{s.free}
@@ -183,7 +183,7 @@ function DeviceListPicker({
                   <button
                     type="button"
                     onClick={() => onDeviceClick(device.id)}
-                    className="shrink-0 rounded p-0.5 text-slate-400 dark:text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                    className="shrink-0 rounded p-0.5 text-content-faint hover:bg-fill hover:text-content-faint"
                     title="Manual port selection"
                     aria-expanded={isExpanded}
                   >
@@ -226,20 +226,20 @@ function DeviceFaceCard({
 
   if (!choices.length) {
     return (
-      <div className="rounded-md border border-dashed border-slate-200 bg-slate-100/60 p-3 text-center text-[11px] text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:text-slate-500">
+      <div className="rounded-md border border-dashed border-edge bg-fill/60 p-3 text-center text-[11px] text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
         No selectable ports on this device.
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950 p-3">
+    <div className="rounded-md border border-edge bg-fill dark:border-edge dark:bg-surface p-3">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{device.name}</div>
-          <div className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">U{device.positionU} / click a visual port</div>
+          <div className="truncate text-sm font-semibold text-content">{device.name}</div>
+          <div className="mt-0.5 text-[11px] text-content-faint">U{device.positionU} / click a visual port</div>
         </div>
-        <MousePointer2 size={15} className="mt-0.5 text-cyan-600 dark:text-cyan-300" />
+        <MousePointer2 size={15} className="mt-0.5 text-accent-fg" />
       </div>
 
       <div className="space-y-3">
@@ -253,15 +253,15 @@ function DeviceFaceCard({
           }, {});
 
           return (
-            <div key={face} className="rounded border border-slate-200 bg-gradient-to-b from-slate-200 to-slate-100 p-2 dark:border-slate-800 dark:from-slate-800 dark:to-slate-950">
-              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+            <div key={face} className="rounded border border-edge bg-gradient-to-b from-fill-strong to-fill p-2 dark:border-edge dark:from-fill dark:to-surface">
+              <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                 <span>{face} face</span>
                 <span>{faceChoices.filter((choice) => !choice.disabled).length} free</span>
               </div>
               <div className="space-y-2">
                 {Object.entries(grouped).map(([type, group]) => (
                   <div key={`${face}-${type}`}>
-                    <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">{type}</div>
+                    <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-content-faint">{type}</div>
                     <div className="grid grid-cols-6 gap-1.5">
                       {group.map((choice) => {
                         const key = portKey(choice);
@@ -286,12 +286,12 @@ function DeviceFaceCard({
                             onClick={() => onSelectChoice(choice)}
                             className={`flex h-7 min-w-0 flex-col items-center justify-center rounded-[4px] border text-[10px] font-bold leading-none transition ${
                               isSource
-                                ? 'border-cyan-700 bg-cyan-500 text-white ring-2 ring-cyan-500/40 dark:border-cyan-100 dark:bg-cyan-300 dark:text-slate-950 dark:ring-cyan-300/40'
+                                ? 'border-accent bg-accent-solid text-content ring-2 ring-accent/40 dark:border-accent dark:bg-accent dark:text-accent-on dark:ring-accent/40'
                                 : disabled
-                                  ? 'cursor-not-allowed border-slate-200 bg-slate-100/60 text-slate-400 line-through dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-600'
+                                  ? 'cursor-not-allowed border-edge bg-fill/60 text-content-faint line-through dark:border-edge dark:bg-surface-raised/60 dark:text-content-faint'
                                   : highlighted
-                                    ? 'scale-105 border-cyan-300 bg-cyan-300/15 text-cyan-800 dark:text-cyan-50'
-                                    : 'border-black/20 bg-slate-100 text-slate-800 hover:scale-105 hover:border-cyan-500 hover:bg-cyan-500/10 dark:border-white/40 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-300 dark:hover:bg-cyan-300/10'
+                                    ? 'scale-105 border-accent bg-accent/15 text-accent-fg-strong'
+                                    : 'border-black/20 bg-fill text-content hover:scale-105 hover:border-accent hover:bg-accent-solid-hover/10 dark:border-white/40 dark:bg-surface-raised dark:text-content dark:hover:border-accent dark:hover:bg-accent/10'
                             }`}
                             title={`${choice.label}${choice.speed ? ` • ${choice.speed}${choice.mediaType && choice.mediaType !== 'rj45' ? ` ${choice.mediaType}` : ''}` : ''}`}
                           >
@@ -332,17 +332,17 @@ function PairingStatusBar({
   if (!source) return null;
 
   return (
-    <div className="sticky bottom-2 z-10 rounded-md border border-cyan-400/50 bg-white/95 dark:bg-slate-950/95 p-3 shadow-xl shadow-black/30">
+    <div className="sticky bottom-2 z-10 rounded-md border border-accent/50 bg-surface/95 p-3 shadow-xl shadow-black/30">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-cyan-800 dark:text-cyan-50">
+          <div className="truncate text-sm font-semibold text-accent-fg-strong">
             {source.port.type} {source.port.index + 1} ({source.deviceName}) -&gt; ?
           </div>
-          <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-[11px] text-content-muted">
             Pick a highlighted compatible destination port.
           </div>
           {ghostPreview && hoverCable && (
-            <div className="mt-2 rounded border border-dashed border-cyan-400/40 bg-cyan-400/5 px-2 py-1 text-[11px] text-cyan-800 dark:text-cyan-100">
+            <div className="mt-2 rounded border border-dashed border-accent/40 bg-accent/5 px-2 py-1 text-[11px] text-accent-fg-strong">
               Ghost preview: {hoverCable.type} route / {hoverCable.fromPort?.type} {hoverCable.fromPort ? hoverCable.fromPort.index + 1 : ''}
               {' -> '}
               {hoverCable.toPort?.type} {hoverCable.toPort ? hoverCable.toPort.index + 1 : ''}
@@ -353,7 +353,7 @@ function PairingStatusBar({
           <button
             type="button"
             onClick={onStartOver}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill"
             title="Pick a different source"
           >
             <RotateCcw size={14} />
@@ -361,7 +361,7 @@ function PairingStatusBar({
           <button
             type="button"
             onClick={onCancel}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill"
             title="Cancel cabling"
           >
             <X size={14} />
@@ -614,18 +614,18 @@ export function CablePlanner() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-100/78 p-3.5 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-2xl border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
       >
         <div className="flex items-center gap-2">
           <Cable size={15} />
           Cables
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-slate-950 dark:text-slate-300">{layout.cables.length} routes</span>
+          <span className="rounded bg-fill px-2 py-1 text-xs text-content-secondary dark:bg-surface dark:text-content-secondary">{layout.cables.length} routes</span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
         </div>
       </button>
@@ -635,30 +635,30 @@ export function CablePlanner() {
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden space-y-3">
-          <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 via-white/80 to-white/40 p-3 shadow-sm dark:from-cyan-500/10 dark:via-slate-950/70 dark:to-slate-950/50">
+          <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/80 to-white/40 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-fg">
                   Cable flow
                 </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 text-sm font-semibold text-content">
                   {stage === 'idle'
                     ? 'Start a new cable route'
                     : isSelectingDest(stage)
                       ? 'Pick a destination port'
                       : 'Pick a source port'}
                 </div>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-[11px] leading-5 text-content-muted">
                   Quick connect for speed, or expand a device to pick an exact port face.
                 </p>
               </div>
-              <div className="shrink-0 rounded-full border border-slate-200 bg-white/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-400">
+              <div className="shrink-0 rounded-full border border-edge bg-surface/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-muted shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-muted">
                 {stage === 'idle' ? 'Ready' : isSelectingDest(stage) ? 'Step 2' : 'Step 1'}
               </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <button
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl bg-cyan-500 text-sm font-semibold text-white shadow-lg shadow-cyan-500/15 hover:bg-cyan-400 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent-solid text-sm font-semibold text-content shadow-lg shadow-accent/15 hover:bg-accent dark:text-accent-on dark:hover:bg-accent"
                 onClick={() => startPairing()}
                 type="button"
               >
@@ -669,7 +669,7 @@ export function CablePlanner() {
                 <button
                   type="button"
                   onClick={handleAutoWire}
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl border border-cyan-500 bg-white/80 px-3 text-sm font-semibold text-cyan-600 shadow-sm hover:bg-cyan-50 dark:border-cyan-400 dark:bg-slate-950/70 dark:text-cyan-300 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-2xl border border-accent bg-surface/80 px-3 text-sm font-semibold text-accent shadow-sm hover:bg-accent-subtle dark:border-accent dark:bg-surface/70 dark:text-accent-fg dark:hover:bg-surface-raised"
                 >
                   <Cable size={15} />
                   Auto-wire
@@ -677,7 +677,7 @@ export function CablePlanner() {
               )}
               {lastSourceDeviceId && stage === 'idle' && (
                 <button
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-white/80 px-3 text-xs font-medium text-slate-600 shadow-sm hover:bg-white dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:bg-slate-900"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-surface/80 px-3 text-xs font-medium text-content-secondary shadow-sm hover:bg-surface dark:border-edge-strong dark:bg-surface/70 dark:text-content-secondary dark:hover:bg-surface-raised"
                   onClick={() => startPairing(lastSourceDeviceId)}
                   type="button"
                 >
@@ -688,17 +688,17 @@ export function CablePlanner() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
             <div className="mb-2 flex items-center justify-between">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                   Quick pick
                 </div>
-                <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 text-sm font-semibold text-content">
                   Devices with free compatible ports
                 </div>
               </div>
-              <div className="text-[10px] text-slate-400 dark:text-slate-500">
+              <div className="text-[10px] text-content-faint">
                 {layout.devices.filter((d) => d.category !== 'blank').length} devices
               </div>
             </div>
@@ -713,29 +713,29 @@ export function CablePlanner() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="flex items-center justify-between rounded-2xl border border-edge bg-surface/70 px-3 py-2.5 dark:border-edge dark:bg-surface/70">
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">Ghost preview</div>
-              <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">Show a provisional route before you commit.</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">Ghost preview</div>
+              <div className="text-[11px] leading-5 text-content-muted">Show a provisional route before you commit.</div>
             </div>
             <button
               type="button"
               onClick={() => setGhostPreview((value) => !value)}
               className={`relative h-6 w-11 rounded-full border transition ${
-                ghostPreview ? 'border-cyan-500 bg-cyan-500/30 dark:border-cyan-300 dark:bg-cyan-400/30' : 'border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-900'
+                ghostPreview ? 'border-accent bg-accent-solid/30 dark:border-accent dark:bg-accent/30' : 'border-edge-strong bg-fill dark:border-edge-strong dark:bg-surface-raised'
               }`}
               aria-pressed={ghostPreview}
             >
               <span
-                className={`absolute top-0.5 h-4.5 w-4.5 rounded-full bg-white transition ${ghostPreview ? 'left-5' : 'left-0.5'}`}
+                className={`absolute top-0.5 h-4.5 w-4.5 rounded-full bg-surface transition ${ghostPreview ? 'left-5' : 'left-0.5'}`}
                 style={{ width: 18, height: 18 }}
               />
             </button>
           </div>
 
           {expandedDevice && (
-            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+            <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                 Exact port picker
               </div>
               <DeviceFaceCard
@@ -760,13 +760,13 @@ export function CablePlanner() {
           />
 
           {layout.cables.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+            <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                 Bill of materials
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
                   onClick={() => exportBomCsv(layout)}
                   type="button"
                 >
@@ -774,7 +774,7 @@ export function CablePlanner() {
                   BOM CSV
                 </button>
                 <button
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-slate-300 bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
                   onClick={() => exportBomText(layout)}
                   type="button"
                 >
@@ -782,7 +782,7 @@ export function CablePlanner() {
                   BOM Text
                 </button>
               </div>
-              <div className="mt-2 text-[10px] leading-5 text-slate-400 dark:text-slate-500">
+              <div className="mt-2 text-[10px] leading-5 text-content-faint">
                 BOM lengths include slack, service-loop allowance and bend-radius notes.
               </div>
             </div>
@@ -790,8 +790,8 @@ export function CablePlanner() {
 
           {/* ── Cable filter bar ── */}
           {layout.cables.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/70">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+            <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                 Route library
               </div>
               <div className="flex gap-1.5">
@@ -800,12 +800,12 @@ export function CablePlanner() {
                 placeholder="Filter cables…"
                 value={cableFilter}
                 onChange={(e) => setCableFilter(e.target.value)}
-                className="h-8 min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-100 px-2.5 text-[11px] text-slate-700 placeholder-slate-400 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-600"
+                className="h-8 min-w-0 flex-1 rounded-xl border border-edge-strong bg-fill px-2.5 text-[11px] text-content-secondary placeholder-content-faint outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content dark:placeholder-content-muted"
               />
               <select
                 value={cableTypeFilter}
                 onChange={(e) => setCableTypeFilter(e.target.value as CableType | 'all')}
-                className="h-8 rounded-xl border border-slate-300 bg-slate-100 px-2 text-[11px] text-slate-600 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                className="h-8 rounded-xl border border-edge-strong bg-fill px-2 text-[11px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
               >
                 <option value="all">All types</option>
                 {Array.from(new Set(layout.cables.map((c) => c.type))).sort().map((t) => (
@@ -819,7 +819,7 @@ export function CablePlanner() {
           {/* ── Grouped compact cable list ── */}
           <div className="space-y-1.5">
             {filteredCables.length === 0 && layout.cables.length > 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-100/60 p-3 text-center text-[11px] text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 dark:text-slate-500">
+              <div className="rounded-2xl border border-dashed border-edge bg-fill/60 p-3 text-center text-[11px] text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
                 No cables match the filter.
               </div>
             )}
@@ -838,27 +838,27 @@ export function CablePlanner() {
                 const groupColor = getCableDisplayColor(type as CableType, undefined);
 
                 return (
-                  <div key={type} className="rounded-2xl border border-slate-200 bg-white/70 dark:border-slate-800 dark:bg-slate-950/70">
+                  <div key={type} className="rounded-2xl border border-edge bg-surface/70 dark:border-edge dark:bg-surface/70">
                     {/* Group header */}
                     <button
                       type="button"
                       onClick={toggleGroup}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-fill-strong/50 dark:hover:bg-fill/50"
                     >
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: groupColor }} />
-                      <span className="flex-1 text-[11px] font-semibold capitalize tracking-[0.1em] text-slate-500 dark:text-slate-400">
+                      <span className="flex-1 text-[11px] font-semibold capitalize tracking-[0.1em] text-content-muted">
                         {type}
                       </span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-600">{routes.length}</span>
+                      <span className="text-[10px] text-content-faint">{routes.length}</span>
                       <ChevronDown
                         size={12}
-                        className={`shrink-0 text-slate-400 transition-transform duration-150 dark:text-slate-600 ${isGroupOpen ? '' : '-rotate-90'}`}
+                        className={`shrink-0 text-content-faint transition-transform duration-150 dark:text-content-faint ${isGroupOpen ? '' : '-rotate-90'}`}
                       />
                     </button>
 
                     {/* Compact cable rows */}
                     {isGroupOpen && (
-                      <div className="border-t border-slate-200/60 px-1.5 pb-1.5 pt-1 space-y-1 dark:border-slate-800/60">
+                      <div className="border-t border-edge/60 px-1.5 pb-1.5 pt-1 space-y-1 dark:border-edge/60">
                         {routes.map((route) => {
                           const from = deviceMap.get(route.fromDeviceId);
                           const to = deviceMap.get(route.toDeviceId);
@@ -878,10 +878,10 @@ export function CablePlanner() {
                               key={route.id}
                               className={`group cursor-pointer rounded-xl px-2 py-1.5 text-[11px] transition ${
                                 selected
-                                  ? 'bg-cyan-300/10 text-cyan-800 dark:text-cyan-100'
+                                  ? 'bg-accent/10 text-accent-fg-strong'
                                   : muted
-                                    ? 'opacity-50 hover:opacity-80 text-slate-500 dark:text-slate-400'
-                                    : 'text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800/60'
+                                    ? 'opacity-50 hover:opacity-80 text-content-muted'
+                                    : 'text-content-secondary hover:bg-fill-strong/60 dark:text-content-secondary dark:hover:bg-fill/60'
                               }`}
                               data-cable-planner-route-state={selected ? 'selected' : muted ? 'muted' : 'normal'}
                               onClick={() => selectCable(route.id)}
@@ -895,15 +895,15 @@ export function CablePlanner() {
                                 {/* From → To */}
                                 <span className="min-w-0 flex-1 truncate font-medium">
                                   {from?.name ?? '?'}
-                                  <span className="mx-1 text-slate-400 dark:text-slate-600">→</span>
+                                  <span className="mx-1 text-content-faint">→</span>
                                   {to?.name ?? '?'}
                                 </span>
                                 {/* Length */}
-                                <span className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500">{lengthStr}</span>
+                                <span className="shrink-0 text-[10px] text-content-faint">{lengthStr}</span>
                                 {/* Delete */}
                                 <button
                                   type="button"
-                                  className="shrink-0 rounded p-0.5 text-slate-400 opacity-40 transition group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 dark:text-slate-600"
+                                  className="shrink-0 rounded p-0.5 text-content-faint opacity-40 transition group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 dark:text-content-faint"
                                   onClick={(e) => { e.stopPropagation(); removeCable(route.id); }}
                                 >
                                   <Trash2 size={12} />
@@ -912,14 +912,14 @@ export function CablePlanner() {
 
                               {/* Expanded detail when selected */}
                               {selected && (
-                                <div className="mt-1 pl-4 text-[10px] text-slate-400 dark:text-slate-500">
+                                <div className="mt-1 pl-4 text-[10px] text-content-faint">
                                   <div className="mb-1 flex items-center gap-1.5">
-                                    <span className="uppercase tracking-[0.12em] text-slate-500 dark:text-slate-600">Lifecycle</span>
+                                    <span className="uppercase tracking-[0.12em] text-content-muted dark:text-content-faint">Lifecycle</span>
                                     <select
                                       value={route.lifecycleStatus ?? 'active'}
                                       onClick={(event) => event.stopPropagation()}
                                       onChange={(event) => updateCable(route.id, { lifecycleStatus: event.target.value as LifecycleStatus })}
-                                      className="h-6 rounded border border-slate-300 bg-slate-100 px-1.5 text-[10px] text-slate-600 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300"
+                                      className="h-6 rounded border border-edge-strong bg-fill px-1.5 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
                                     >
                                       <option value="active">Active</option>
                                       <option value="planned">Planned</option>
@@ -940,13 +940,13 @@ export function CablePlanner() {
                                     </span>
                                   )}
                                   {slack && (slack.serviceLoopMm > 0 || slack.bendRadiusMm > 0) && (
-                                    <span className="mt-0.5 block text-slate-400 dark:text-slate-600">
+                                    <span className="mt-0.5 block text-content-faint">
                                       {slack.serviceLoopMm > 0 ? `Service loop ${slack.serviceLoopMm}mm` : 'No service loop'}
                                       {slack.bendRadiusMm > 0 ? ` / bend >= ${slack.bendRadiusMm}mm` : ''}
                                     </span>
                                   )}
                                   {((plan?.nodes.length ?? 0) > 0 || (route.nodes?.length ?? 0) > 0) && (
-                                    <span className="mt-0.5 block text-slate-400 dark:text-slate-600">
+                                    <span className="mt-0.5 block text-content-faint">
                                       {patchLabel ? `${patchLabel} / ` : ''}
                                       {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout, plan)}
                                     </span>

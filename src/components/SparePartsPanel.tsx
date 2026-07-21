@@ -40,8 +40,8 @@ function PartRow({
   const conditionColors: Record<string, string> = {
     new: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     used: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    refurbished: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-    unknown: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+    refurbished: 'bg-accent-solid/10 text-accent',
+    unknown: 'bg-content-muted/10 text-content-secondary dark:text-content-muted',
   };
 
   function toggleCompatible(deviceId: string) {
@@ -231,7 +231,7 @@ function PartRow({
                     onClick={() => toggleCompatible(d.id)}
                     className={`rounded border px-1.5 py-0.5 text-[10px] transition ${
                       selected
-                        ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                        ? 'border-accent/40 bg-accent-solid/10 text-accent-fg'
                         : ''
                     }`}
                     style={
@@ -375,7 +375,7 @@ export function SparePartsPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.totalParts}
           </div>
           <div
@@ -392,7 +392,7 @@ export function SparePartsPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.totalQuantity}
           </div>
           <div
@@ -409,7 +409,7 @@ export function SparePartsPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {compatibles.length}
           </div>
           <div
@@ -426,7 +426,7 @@ export function SparePartsPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.missingCompatibleDevices}
           </div>
           <div
@@ -546,7 +546,7 @@ export function SparePartsPanel() {
             <button
               type="button"
               onClick={addPart}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Part
             </button>

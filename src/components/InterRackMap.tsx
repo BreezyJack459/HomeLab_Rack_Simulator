@@ -151,24 +151,24 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
 
   if (racks.length === 0 || racks.length === 1) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center rounded-xl border border-slate-200 bg-slate-900 p-8 dark:border-slate-800">
+      <div className="flex h-full min-h-[320px] items-center justify-center rounded-xl border border-edge bg-surface-raised p-8 dark:border-edge">
         <div className="text-center">
-          <MapPin size={40} className="mx-auto mb-3 text-slate-500" />
-          <p className="text-lg font-medium text-slate-300">Add more racks to see inter-rack connections</p>
-          <p className="mt-1 text-sm text-slate-500">A workspace needs at least two racks to show an inter-rack map.</p>
+          <MapPin size={40} className="mx-auto mb-3 text-content-muted" />
+          <p className="text-lg font-medium text-content-faint">Add more racks to see inter-rack connections</p>
+          <p className="mt-1 text-sm text-content-muted">A workspace needs at least two racks to show an inter-rack map.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto bg-slate-900 p-6 thin-scrollbar">
-      <div className="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+    <div className="h-full overflow-auto bg-surface-raised p-6 thin-scrollbar">
+      <div className="mb-5 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-content-faint">
         <Network size={16} />
         Inter-Rack Map
       </div>
 
-      <div className="relative min-w-max rounded-xl border border-slate-700 bg-slate-950/60 p-5 shadow-panel">
+      <div className="relative min-w-max rounded-xl border border-edge-strong bg-surface/60 p-5 shadow-panel">
         <svg
           className="block"
           data-testid="inter-rack-map-svg"
@@ -321,26 +321,26 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
         </svg>
 
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-slate-800 pt-4">
-          <span className="text-xs font-semibold text-slate-400">Cable Types</span>
+        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-edge pt-4">
+          <span className="text-xs font-semibold text-content-faint">Cable Types</span>
           {(['fiber', 'sfp+', 'cat6a', 'dac'] as const).map((type) => (
             <div key={type} className="flex items-center gap-1.5">
               <span className="inline-block h-2 w-6 rounded-full" style={{ backgroundColor: CABLE_TYPE_COLORS[type] }} />
-              <span className="text-xs capitalize text-slate-500">{type}</span>
+              <span className="text-xs capitalize text-content-muted">{type}</span>
             </div>
           ))}
           <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: HEALTH_COLORS.good }} />
-              <span className="text-xs text-slate-500">Healthy</span>
+              <span className="text-xs text-content-muted">Healthy</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: HEALTH_COLORS.warning }} />
-              <span className="text-xs text-slate-500">Warning</span>
+              <span className="text-xs text-content-muted">Warning</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: HEALTH_COLORS.critical }} />
-              <span className="text-xs text-slate-500">Critical</span>
+              <span className="text-xs text-content-muted">Critical</span>
             </div>
           </div>
         </div>
@@ -348,13 +348,13 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
 
       {/* Empty state for no cables */}
       {interRackCables.length === 0 && (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-400">
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-edge-strong bg-fill/50 px-4 py-3 text-sm text-content-faint">
           <AlertCircle size={16} className="shrink-0 text-amber-500" />
           <span className="flex-1">No inter-rack cables yet.</span>
           {onAddCable && (
             <button
               onClick={onAddCable}
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 text-xs font-medium text-cyan-300 hover:bg-cyan-500/20"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-accent/30 bg-accent-solid/10 px-2 text-xs font-medium text-accent-fg hover:bg-accent-solid-hover/20"
               type="button"
             >
               <Plus size={12} />
@@ -366,9 +366,9 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
 
       {/* Selected cable detail card */}
       {selectedCable && selectedFromRack && selectedToRack && (
-        <div className="mt-4 rounded-lg border border-slate-700 bg-slate-800/80 p-4 shadow">
+        <div className="mt-4 rounded-lg border border-edge-strong bg-fill/80 p-4 shadow">
           <div className="mb-3 flex items-center gap-2">
-            <Cable size={16} className="text-slate-400" />
+            <Cable size={16} className="text-content-faint" />
             <span className="text-sm font-semibold text-slate-200">{selectedCable.label || selectedCable.id}</span>
             <span
               className="ml-2 inline-block h-2.5 w-2.5 rounded-full"
@@ -378,8 +378,8 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
 
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">Type &amp; Length</div>
-              <div className="text-slate-300">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wider text-content-muted">Type &amp; Length</div>
+              <div className="text-content-faint">
                 {selectedCable.type}
                 {selectedCable.lengthM ? ` · ${selectedCable.lengthM}m` : ''}
               </div>
@@ -387,38 +387,38 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
 
             {selectedCable.notes && (
               <div>
-                <div className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">Notes</div>
-                <div className="text-slate-300">{selectedCable.notes}</div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wider text-content-muted">Notes</div>
+                <div className="text-content-faint">{selectedCable.notes}</div>
               </div>
             )}
 
             <div className="sm:col-span-2">
-              <div className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Route</div>
+              <div className="mb-2 text-xs font-medium uppercase tracking-wider text-content-muted">Route</div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="rounded-md bg-slate-900/60 px-3 py-2">
-                  <div className="text-xs text-slate-500">From</div>
+                <div className="rounded-md bg-surface-raised/60 px-3 py-2">
+                  <div className="text-xs text-content-muted">From</div>
                   <div className="text-slate-200">
                     {selectedFromRack.name}
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-content-faint">
                     {getDeviceName(selectedFromRack, selectedCable.fromDeviceId)}
                   </div>
-                  <div className="font-mono text-xs text-slate-500">
+                  <div className="font-mono text-xs text-content-muted">
                     {formatPortRef(selectedCable.fromPort)}
                   </div>
                 </div>
 
-                <ArrowRight size={16} className="mx-1 hidden text-slate-500 sm:block" />
+                <ArrowRight size={16} className="mx-1 hidden text-content-muted sm:block" />
 
-                <div className="rounded-md bg-slate-900/60 px-3 py-2">
-                  <div className="text-xs text-slate-500">To</div>
+                <div className="rounded-md bg-surface-raised/60 px-3 py-2">
+                  <div className="text-xs text-content-muted">To</div>
                   <div className="text-slate-200">
                     {selectedToRack.name}
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-content-faint">
                     {getDeviceName(selectedToRack, selectedCable.toDeviceId)}
                   </div>
-                  <div className="font-mono text-xs text-slate-500">
+                  <div className="font-mono text-xs text-content-muted">
                     {formatPortRef(selectedCable.toPort)}
                   </div>
                 </div>

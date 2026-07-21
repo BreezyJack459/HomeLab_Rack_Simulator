@@ -330,7 +330,7 @@ export function ThermalDistributionPanel() {
           <button
             type="button"
             onClick={addZone}
-            className="inline-flex items-center gap-1 rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+            className="inline-flex items-center gap-1 rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
           >
             <Plus size={11} />
             Add
@@ -342,7 +342,7 @@ export function ThermalDistributionPanel() {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-1 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+          className="mt-1 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           <Plus size={12} />

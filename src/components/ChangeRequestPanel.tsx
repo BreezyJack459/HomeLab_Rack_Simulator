@@ -31,10 +31,10 @@ const statusConfig: Record<
   ChangeRequestStatus,
   { label: string; color: string; icon: typeof CheckCircle2 }
 > = {
-  pending: { label: 'Pending', color: 'text-cyan-700 dark:text-cyan-300', icon: Clock },
+  pending: { label: 'Pending', color: 'text-accent-fg', icon: Clock },
   approved: { label: 'Approved', color: 'text-emerald-700 dark:text-emerald-300', icon: CheckCircle2 },
   rejected: { label: 'Rejected', color: 'text-red-700 dark:text-red-300', icon: XCircle },
-  completed: { label: 'Completed', color: 'text-slate-700 dark:text-slate-300', icon: CheckCircle2 },
+  completed: { label: 'Completed', color: 'text-content-secondary', icon: CheckCircle2 },
 };
 
 function RequestRow({
@@ -202,7 +202,7 @@ function RequestRow({
                 <button
                   type="button"
                   onClick={saveEdit}
-                  className="rounded bg-cyan-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-cyan-700"
+                  className="rounded bg-accent-solid px-2 py-0.5 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
                 >
                   Save
                 </button>
@@ -233,7 +233,7 @@ function RequestRow({
                 </div>
               )}
               {request.rollbackPlan && (
-                <div className="rounded bg-slate-500/5 px-2 py-1 opacity-70">
+                <div className="rounded bg-content-muted/5 px-2 py-1 opacity-70">
                   <span className="font-medium">Rollback:</span> {request.rollbackPlan}
                 </div>
               )}
@@ -261,7 +261,7 @@ function RequestRow({
                   <button
                     type="button"
                     onClick={approve}
-                    className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-emerald-700"
+                    className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-content hover:bg-emerald-700"
                   >
                     <CheckCircle2 size={11} className="inline mr-1" />
                     Approve
@@ -269,7 +269,7 @@ function RequestRow({
                   <button
                     type="button"
                     onClick={reject}
-                    className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-red-700"
+                    className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-medium text-content hover:bg-red-700"
                   >
                     <XCircle size={11} className="inline mr-1" />
                     Reject
@@ -281,7 +281,7 @@ function RequestRow({
                   <button
                     type="button"
                     onClick={complete}
-                    className="rounded bg-cyan-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-cyan-700"
+                    className="rounded bg-accent-solid px-2 py-0.5 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
                   >
                     <CheckCircle2 size={11} className="inline mr-1" />
                     Mark Complete
@@ -427,7 +427,7 @@ export function ChangeRequestPanel() {
             type="button"
             onClick={() => setFilter(filter === s ? 'all' : s)}
             className={`rounded-md border p-2 text-center transition ${
-              filter === s ? 'ring-1 ring-cyan-500' : ''
+              filter === s ? 'ring-1 ring-accent' : ''
             }`}
             style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
           >
@@ -531,7 +531,7 @@ export function ChangeRequestPanel() {
             <button
               type="button"
               onClick={addRequest}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Submit Request
             </button>

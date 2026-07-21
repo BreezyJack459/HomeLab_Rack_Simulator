@@ -99,7 +99,7 @@ export function PlanWorkbench({
   const reservationCount = layout.reservations?.length ?? 0;
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/85 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/75">
+    <section className="rounded-3xl border border-edge bg-surface/85 p-5 shadow-sm dark:border-edge dark:bg-surface-raised/75">
       <WorkbenchHeader<PlanLens>
         badge="Plan workbench"
         title={lensMeta[currentLens].label}

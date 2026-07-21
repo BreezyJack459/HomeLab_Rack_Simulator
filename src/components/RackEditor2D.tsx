@@ -159,7 +159,7 @@ function PortStrip({ ports, compact }: { ports?: PortLayout; compact: boolean })
   const columns = Math.max(1, Math.min(ports?.layoutColumns ?? (items.length > 16 ? 12 : items.length), items.length));
   const fixedCells = !compact && items.length <= 8;
   const colorByType = {
-    ethernet: 'border-cyan-500/60 bg-cyan-500/35 dark:border-cyan-200/60 dark:bg-cyan-300/35',
+    ethernet: 'border-accent/60 bg-accent-solid/35 dark:border-accent/60 dark:bg-accent/35',
     fiber: 'border-violet-500/60 bg-violet-500/35 dark:border-violet-200/60 dark:bg-violet-300/35',
     usb: 'border-yellow-500/60 bg-yellow-500/35 dark:border-yellow-200/60 dark:bg-yellow-300/35',
     hdmi: 'border-emerald-500/60 bg-emerald-500/35 dark:border-emerald-200/60 dark:bg-emerald-300/35',
@@ -586,8 +586,8 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   }, [selectedDeviceId, layout.devices, moveDevice, removeDevice]);
 
   return (
-    <div className="relative h-full overflow-hidden bg-slate-200 dark:bg-slate-950/55">
-      <div className="absolute left-4 top-16 z-20 flex w-40 flex-col gap-2 rounded-xl border border-slate-200 bg-white/90 p-2 shadow-panel dark:border-slate-800 dark:bg-slate-950/90">
+    <div className="relative h-full overflow-hidden bg-fill-strong dark:bg-surface/55">
+      <div className="absolute left-4 top-16 z-20 flex w-40 flex-col gap-2 rounded-xl border border-edge bg-surface/90 p-2 shadow-panel dark:border-edge dark:bg-surface/90">
         <div className="flex items-center gap-2">
           <button
             className={`${EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS} flex-1 justify-between`}
@@ -610,7 +610,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
         <button
           className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm ${
             panMode
-              ? 'bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950'
+              ? 'bg-accent-solid text-content dark:bg-accent dark:text-accent-on'
               : EDITOR_TOGGLE_INACTIVE_CLASS
           }`}
           onClick={() => setPanMode((value) => !value)}
@@ -635,7 +635,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           <button
             className={`inline-flex h-9 items-center justify-center rounded-md px-3 text-sm ${
               debugMode
-                ? 'bg-amber-500 text-slate-950 dark:bg-amber-400 dark:text-slate-950'
+                ? 'bg-amber-500 text-content dark:bg-amber-400 dark:text-accent-on'
                 : EDITOR_TOGGLE_INACTIVE_CLASS
             }`}
             onClick={toggleDebugMode}
@@ -667,14 +667,14 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               transformOrigin: 'top center'
             }}
           >
-            <div className="mb-3 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            <div className="mb-3 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-content-muted">
               <span>{layout.viewSide === 'front' ? 'Front' : 'Rear'} view</span>
               <span>Snap to U</span>
             </div>
             <div
               ref={rackRef}
               data-testid="rack-frame"
-              className="relative border-x-[16px] border-slate-400 bg-white shadow-panel dark:border-slate-700 dark:bg-slate-950"
+              className="relative border-x-[16px] border-slate-400 bg-surface shadow-panel dark:border-edge-strong dark:bg-surface"
               style={{ width: rackOuterWidth, height: rackHeight }}
               onDragOver={(event) => {
                 event.preventDefault();
@@ -694,13 +694,13 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                 return (
                   <div
                     key={unit}
-                    className={`absolute left-0 flex items-center border-b border-slate-200/90 dark:border-slate-800/90 ${
-                      occupied ? 'bg-slate-300 dark:bg-slate-900/45' : 'bg-emerald-500/[0.035]'
+                    className={`absolute left-0 flex items-center border-b border-edge/90 ${
+                      occupied ? 'bg-slate-300 dark:bg-surface-raised/45' : 'bg-emerald-500/[0.035]'
                     }`}
                     style={{ top: index * BASE_UNIT_HEIGHT, height: BASE_UNIT_HEIGHT, width: '100%' }}
                   >
-                    <div className="absolute -left-[58px] w-10 text-right text-xs font-medium text-slate-500 dark:text-slate-400">U{unit}</div>
-                    <div className="absolute -right-[58px] w-10 text-left text-xs font-medium text-slate-500 dark:text-slate-400">U{unit}</div>
+                    <div className="absolute -left-[58px] w-10 text-right text-xs font-medium text-content-muted">U{unit}</div>
+                    <div className="absolute -right-[58px] w-10 text-left text-xs font-medium text-content-muted">U{unit}</div>
                     <div className="mx-3 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-600" />
                     <div className="ml-auto mr-3 h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-600" />
                   </div>
@@ -817,7 +817,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                     data-device-category={device.category}
                     data-zero-u={deviceIsZeroU}
                     className={`absolute select-none rounded-md border px-3 shadow-lg transition ${compact ? 'py-1' : 'py-2'} ${
-                      selected ? 'border-cyan-500 dark:border-cyan-300 ring-2 ring-cyan-500/40 dark:ring-cyan-500/40 dark:ring-cyan-300/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-cyan-500/70 dark:hover:border-cyan-500/70 dark:hover:border-cyan-300/70'
+                      selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
                     } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                     style={{
                       top: top + 3,
@@ -851,7 +851,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   >
                     {selected && !deviceIsZeroU && (
                       <div
-                        className="absolute bottom-0 left-1/2 z-30 h-1.5 w-8 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-slate-500 dark:border-slate-600 bg-slate-400 dark:bg-slate-600 hover:bg-cyan-500 dark:hover:bg-cyan-300"
+                        className="absolute bottom-0 left-1/2 z-30 h-1.5 w-8 -translate-x-1/2 translate-y-1/2 cursor-ns-resize rounded-full border border-content-muted dark:border-slate-600 bg-slate-400 dark:bg-slate-600 hover:bg-accent-solid-hover dark:hover:bg-accent"
                         onPointerDown={(event) => startResize(event, device)}
                       />
                     )}
@@ -876,7 +876,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                                 title={r.label ? r.label : `${r.type} ${r.index + 1}`}
                                 aria-label={r.label ? r.label : `${r.type} ${r.index + 1}`}
                                 role="img"
-                                className="absolute z-20 hover:bg-white/20"
+                                className="absolute z-20 hover:bg-surface/20"
                                 style={{
                                   left: `${(r.x / faceWidthMm) * 100}%`,
                                   top: `${(r.y / faceHeightMm) * 100}%`,
@@ -899,7 +899,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                           {device.label || device.name}
                         </div>
                         {compact && layout.viewSide === 'rear' && (
-                          <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500/70 dark:text-slate-200/70">rear side</div>
+                          <div className="truncate text-[9px] font-medium uppercase tracking-[0.12em] text-content-muted/70 dark:text-content/70">rear side</div>
                         )}
                         {!compact && !deviceIsZeroU && (
                           <div className="rd-m truncate text-[11px]">
@@ -929,7 +929,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                               ).length;
                               if (!used) return null;
                               return (
-                                <span key={portType} className="text-[9px] font-medium text-cyan-600/90 dark:text-cyan-700/90 dark:text-cyan-700 dark:text-cyan-200/90">
+                                <span key={portType} className="text-[9px] font-medium text-accent/90 dark:text-accent-fg/90">
                                   {portType} {used}/{count}
                                 </span>
                               );
@@ -939,7 +939,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                       {selected && (
                         <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                           {getDeviceSpeedBreakdown(device).map(({ speed, count }) => (
-                            <span key={speed} className="rounded bg-slate-100 px-1 text-[9px] font-semibold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                            <span key={speed} className="rounded bg-fill px-1 text-[9px] font-semibold text-content-secondary dark:bg-surface-raised dark:text-content-secondary">
                               {speed} ×{count}
                             </span>
                           ))}
@@ -956,8 +956,8 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                     {selected && device.category === 'patch-panel' && (
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <div className="absolute inset-y-0 left-1/2 w-px border-l border-dashed border-black/10 dark:border-black/15 dark:border-white/25" />
-                        <span className="absolute left-1 top-1 text-[9px] font-medium text-slate-500 dark:text-white/40">Front</span>
-                        <span className="absolute right-1 top-1 text-[9px] font-medium text-slate-500 dark:text-white/40">Rear</span>
+                        <span className="absolute left-1 top-1 text-[9px] font-medium text-content-muted dark:text-content/40">Front</span>
+                        <span className="absolute right-1 top-1 text-[9px] font-medium text-content-muted dark:text-content/40">Rear</span>
                       </div>
                     )}
                   </div>
@@ -989,11 +989,11 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               {/* Left 0U rear/side rail */}
               {sideLeftDevices.length > 0 && (
                 <div
-                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-slate-950/85"
+                  className="absolute top-0 rounded-md border border-accent/30 bg-fill-strong shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-surface/85"
                   style={{ left: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
                 >
-                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-cyan-500/20 dark:border-cyan-300/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-200/75">
+                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-accent/20" />
+                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-accent/75 dark:text-accent-fg/75">
                     0U left rail
                   </div>
                   {sideLeftDevices.map((device) => {
@@ -1005,7 +1005,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                         data-device-id={device.id}
                         data-device-category={device.category}
                         className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
-                          selected ? 'border-cyan-500 dark:border-cyan-300 ring-2 ring-cyan-500/40 dark:ring-cyan-500/40 dark:ring-cyan-300/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-cyan-500/70 dark:hover:border-cyan-500/70 dark:hover:border-cyan-300/70'
+                          selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
                         } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                         style={{
                           top: 3,
@@ -1060,11 +1060,11 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               {/* Right 0U rear/side rail */}
               {sideRightDevices.length > 0 && (
                 <div
-                  className="absolute top-0 rounded-md border border-cyan-500/30 bg-slate-200 shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-slate-950/85"
+                  className="absolute top-0 rounded-md border border-accent/30 bg-fill-strong shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-surface/85"
                   style={{ right: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
                 >
-                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-cyan-500/20 dark:border-cyan-300/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-600/75 dark:text-cyan-200/75">
+                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-accent/20" />
+                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-accent/75 dark:text-accent-fg/75">
                     0U right rail
                   </div>
                   {sideRightDevices.map((device) => {
@@ -1076,7 +1076,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                         data-device-id={device.id}
                         data-device-category={device.category}
                         className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
-                          selected ? 'border-cyan-500 dark:border-cyan-300 ring-2 ring-cyan-500/40 dark:ring-cyan-500/40 dark:ring-cyan-300/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-cyan-500/70 dark:hover:border-cyan-500/70 dark:hover:border-cyan-300/70'
+                          selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
                         } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                         style={{
                           top: 3,
@@ -1278,7 +1278,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
 
               {dragging && (
                 <div
-                  className="pointer-events-none absolute rounded-md border-2 border-dashed border-cyan-500 dark:border-cyan-300 bg-cyan-500/10 dark:bg-cyan-300/10"
+                  className="pointer-events-none absolute rounded-md border-2 border-dashed border-accent bg-accent-solid/10 dark:bg-accent/10"
                   style={{
                     top: (layout.heightU - (dragging.previewU + dragging.sizeU - 1)) * BASE_UNIT_HEIGHT + 3,
                     left: (dragging.previewX / rackUsable) * rackWidth,
@@ -1303,11 +1303,11 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   {sideLabelGroups.map((group) => (
                     <div
                       key={group.key}
-                      className="absolute rounded-lg border border-slate-300 bg-white/92 p-2 shadow-panel backdrop-blur dark:border-slate-700/80 dark:bg-slate-950/92"
+                      className="absolute rounded-lg border border-edge-strong bg-surface/92 p-2 shadow-panel backdrop-blur dark:border-edge-strong/80 dark:bg-surface/92"
                       data-side-label-group={group.key}
                       style={{ top: group.top, width: SIDE_LABEL_WIDTH }}
                     >
-                      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-muted">
                         <span>{group.uLabel}</span>
                         <span>{group.items.length} item{group.items.length > 1 ? 's' : ''}</span>
                       </div>
@@ -1319,7 +1319,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                               key={device.id}
                               className={`flex h-6 w-full items-center gap-2 rounded border-l-4 px-2 text-left text-xs transition ${
                                 selected
-                                  ? 'border-cyan-500 bg-cyan-500/15 text-cyan-900 dark:border-cyan-300 dark:bg-cyan-300/15 dark:text-cyan-50'
+                                  ? 'border-accent bg-accent-solid/15 text-accent-fg-strong dark:border-accent dark:bg-accent/15 dark:text-accent-fg-strong'
                                   : SIDE_LABEL_ITEM_CLASS
                               }`}
                               data-side-label-device={device.id}
@@ -1351,7 +1351,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
         <>
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
           <div
-            className="fixed z-50 w-44 rounded-lg border border-slate-300 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            className="fixed z-50 w-44 rounded-lg border border-edge-strong bg-surface py-1 shadow-xl dark:border-edge-strong dark:bg-surface-raised"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             {(() => {
@@ -1359,11 +1359,11 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               if (!device) return null;
               return (
                 <>
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
                     {device.label || device.name}
                   </div>
                   <button
-                    className="flex h-8 w-full items-center px-3 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+                    className="flex h-8 w-full items-center px-3 text-xs text-content-secondary dark:text-content hover:bg-fill-strong dark:hover:bg-fill"
                     onClick={() => {
                       moveDevice(device.id, layout.heightU - device.sizeU + 1, device.xMm);
                       setContextMenu(null);
@@ -1373,7 +1373,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                     Move to bottom
                   </button>
                   <button
-                    className="flex h-8 w-full items-center px-3 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800"
+                    className="flex h-8 w-full items-center px-3 text-xs text-content-secondary dark:text-content hover:bg-fill-strong dark:hover:bg-fill"
                     onClick={() => {
                       moveDevice(device.id, 1, device.xMm);
                       setContextMenu(null);
@@ -1382,7 +1382,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                   >
                     Move to top
                   </button>
-                  <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
+                  <div className="my-1 border-t border-edge" />
                   <button
                     className="flex h-8 w-full items-center px-3 text-xs text-red-600 dark:text-red-300 hover:bg-red-500/10"
                     onClick={() => {

@@ -115,7 +115,7 @@ export function AuditWorkbench({
       : 0;
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/85 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/75">
+    <section className="rounded-3xl border border-edge bg-surface/85 p-5 shadow-sm dark:border-edge dark:bg-surface-raised/75">
       <WorkbenchHeader<AuditLens>
         badge="Audit workbench"
         title={lensMeta[currentLens].label}
@@ -174,17 +174,17 @@ export function AuditWorkbench({
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
+        <div className="rounded-2xl border border-edge bg-fill-subtle/80 p-4 dark:border-edge dark:bg-surface/50">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="text-sm font-semibold text-content">
                 Priority queue
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-content-muted">
                 Start with the highest-risk item and drive selection from here.
               </div>
             </div>
-            <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+            <div className="rounded-full border border-edge bg-surface px-3 py-1 text-xs text-content-muted dark:border-edge dark:bg-surface-raised dark:text-content-muted">
               {occupiedPct}% occupied
             </div>
           </div>
@@ -215,7 +215,7 @@ export function AuditWorkbench({
                     }}
                     className={`w-full rounded-2xl border p-3 text-left transition hover:brightness-95 dark:hover:brightness-110 ${severityClass} ${
                       active
-                        ? "ring-2 ring-cyan-500/60 dark:ring-cyan-300/60"
+                        ? "ring-2 ring-accent/60"
                         : ""
                     }`}
                   >
@@ -226,7 +226,7 @@ export function AuditWorkbench({
                           {issue.detail}
                         </div>
                       </div>
-                      <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] dark:bg-slate-950/60">
+                      <span className="rounded-full bg-surface/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] dark:bg-surface/60">
                         {issue.severity}
                       </span>
                     </div>
@@ -238,66 +238,66 @@ export function AuditWorkbench({
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 dark:border-slate-800 dark:bg-slate-900/75">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+          <div className="rounded-2xl border border-edge bg-surface/85 p-4 dark:border-edge dark:bg-surface-raised/75">
+            <div className="text-sm font-semibold text-content">
               Current focus
             </div>
             {selectedIssue ? (
               <div className="mt-3 space-y-3 text-sm">
                 <div>
-                  <div className="font-medium text-slate-900 dark:text-white">
+                  <div className="font-medium text-content">
                     {selectedIssue.title}
                   </div>
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
+                  <div className="mt-1 text-content-muted">
                     {selectedIssue.detail}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
+                <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-xs text-content-secondary dark:border-edge dark:bg-surface/60 dark:text-content-secondary">
                   {recommendationForIssue(selectedIssue)}
                 </div>
               </div>
             ) : (
-              <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+              <div className="mt-3 text-sm text-content-muted">
                 No issue is selected. Pick one from the priority queue to sync
                 the right inspector with a concrete problem.
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 dark:border-slate-800 dark:bg-slate-900/75">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+          <div className="rounded-2xl border border-edge bg-surface/85 p-4 dark:border-edge dark:bg-surface-raised/75">
+            <div className="text-sm font-semibold text-content">
               Health snapshot
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-sm dark:border-edge dark:bg-surface/60">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                   Power headroom
                 </div>
-                <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 font-semibold text-content">
                   {powerHeadroom}W
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-sm dark:border-edge dark:bg-surface/60">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                   Heat score
                 </div>
-                <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 font-semibold text-content">
                   {totals.heatScore}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-sm dark:border-edge dark:bg-surface/60">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                   Tracked domains
                 </div>
-                <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 font-semibold text-content">
                   {layout.failureDomains?.length ?? 0}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-sm dark:border-edge dark:bg-surface/60">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                   Thermal zones
                 </div>
-                <div className="mt-1 font-semibold text-slate-900 dark:text-white">
+                <div className="mt-1 font-semibold text-content">
                   {layout.thermalZones?.length ?? 0}
                 </div>
               </div>

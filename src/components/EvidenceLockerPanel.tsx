@@ -37,14 +37,14 @@ const typeIcons: Record<string, React.ReactNode> = {
 
 const typeColors: Record<string, string> = {
   receipt: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  'serial-photo': 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
+  'serial-photo': 'bg-accent-solid/10 text-accent-fg',
   'firmware-screenshot': 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
   'config-backup-hash': 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
   'warranty-pdf': 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  'install-photo': 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
+  'install-photo': 'bg-accent-solid/10 text-accent-fg',
   'test-result': 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
   'thermal-photo': 'bg-red-500/10 text-red-700 dark:text-red-300',
-  other: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  other: 'bg-content-muted/10 text-content-secondary',
 };
 
 const evidenceTypeOptions: EvidenceType[] = [
@@ -322,7 +322,7 @@ export function EvidenceLockerPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.totalRecords}
           </div>
           <div
@@ -458,7 +458,7 @@ export function EvidenceLockerPanel() {
             <button
               type="button"
               onClick={addRecord}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Record
             </button>
@@ -496,7 +496,7 @@ export function EvidenceLockerPanel() {
           type="button"
           onClick={() => setFilter('all')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
-            filter === 'all' ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'opacity-60'
+            filter === 'all' ? 'bg-accent-solid/10 text-accent-fg' : 'opacity-60'
           }`}
         >
           All
@@ -507,7 +507,7 @@ export function EvidenceLockerPanel() {
             type="button"
             onClick={() => setFilter(t)}
             className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
-              filter === t ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'opacity-60'
+              filter === t ? 'bg-accent-solid/10 text-accent-fg' : 'opacity-60'
             }`}
           >
             {t}

@@ -81,7 +81,7 @@ export function PortfolioExportPanel() {
           backgroundColor: 'var(--theme-bg-primary)',
         }}
       >
-        <div className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="text-lg font-bold text-content">
           {enabledCount}
         </div>
         <div

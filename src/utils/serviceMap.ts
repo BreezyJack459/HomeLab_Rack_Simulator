@@ -109,7 +109,7 @@ export function criticalityColor(criticality: ServiceCriticality): string {
     case 'critical': return 'text-red-600 dark:text-red-400';
     case 'high': return 'text-orange-600 dark:text-orange-400';
     case 'medium': return 'text-amber-600 dark:text-amber-400';
-    case 'low': return 'text-slate-600 dark:text-slate-400';
+    case 'low': return 'text-content-secondary dark:text-content-muted';
   }
 }
 
@@ -118,7 +118,7 @@ export function criticalityBg(criticality: ServiceCriticality): string {
     case 'critical': return 'bg-red-500/10 border-red-500/30';
     case 'high': return 'bg-orange-500/10 border-orange-500/30';
     case 'medium': return 'bg-amber-500/10 border-amber-500/30';
-    case 'low': return 'bg-slate-500/10 border-slate-500/30';
+    case 'low': return 'bg-content-muted/10 border-content-muted/30';
   }
 }
 

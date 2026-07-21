@@ -49,7 +49,7 @@ export const cableManagementPlugin: RackPluginModule = {
       render: (layout) => (
         <Suspense
           fallback={
-            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+            <div className="flex h-full items-center justify-center text-content-muted">
               Loading cable map...
             </div>
           }
@@ -68,7 +68,7 @@ export const cableManagementPlugin: RackPluginModule = {
       render: (layout) => (
         <Suspense
           fallback={
-            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+            <div className="flex h-full items-center justify-center text-content-muted">
               Loading topology...
             </div>
           }

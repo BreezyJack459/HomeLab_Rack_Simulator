@@ -14,7 +14,7 @@ const PURPOSES: Array<{ value: RackReservationPurpose; label: string }> = [
   { value: 'other', label: 'Other' }
 ];
 
-const FIELD_CLASS = 'mt-1 h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-900 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100';
+const FIELD_CLASS = 'mt-1 h-8 w-full rounded-md border border-edge-strong bg-surface px-2 text-xs text-content outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content';
 
 export function ReservationPanel() {
   const layout = useRackStore((state) => state.layout);
@@ -53,18 +53,18 @@ export function ReservationPanel() {
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-slate-100/78 p-4 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-lg border border-edge bg-fill/78 p-4 dark:border-edge dark:bg-surface-raised/78">
       <button
         type="button"
         onClick={() => setIsOpen((value) => !value)}
-        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-3 flex w-full items-center justify-between gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
       >
         <div className="flex items-center gap-2">
           <BookmarkPlus size={15} />
           Reservations
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+          <span className="rounded bg-fill px-2 py-1 text-xs text-content-secondary dark:bg-surface dark:text-content-secondary">
             {reservations.length ? `${reservations.length} / ${reservedU}U` : 'None'}
           </span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
@@ -77,11 +77,11 @@ export function ReservationPanel() {
       >
         <div className="space-y-3 overflow-hidden">
           <div className="grid grid-cols-2 gap-2">
-            <label className="col-span-2 text-xs text-slate-500 dark:text-slate-400">
+            <label className="col-span-2 text-xs text-content-muted">
               Name
               <input className={FIELD_CLASS} value={name} onChange={(event) => setName(event.target.value)} />
             </label>
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs text-content-muted">
               Start U
               <input
                 className={FIELD_CLASS}
@@ -92,7 +92,7 @@ export function ReservationPanel() {
                 onChange={(event) => setPositionU(Number(event.target.value))}
               />
             </label>
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs text-content-muted">
               Size U
               <input
                 className={FIELD_CLASS}
@@ -103,14 +103,14 @@ export function ReservationPanel() {
                 onChange={(event) => setSizeU(Number(event.target.value))}
               />
             </label>
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs text-content-muted">
               Side
               <select className={FIELD_CLASS} value={mountSide} onChange={(event) => setMountSide(event.target.value as ViewSide)}>
                 <option value="front">Front</option>
                 <option value="rear">Rear</option>
               </select>
             </label>
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs text-content-muted">
               Purpose
               <select className={FIELD_CLASS} value={purpose} onChange={(event) => setPurpose(event.target.value as RackReservationPurpose)}>
                 {PURPOSES.map((item) => (
@@ -123,7 +123,7 @@ export function ReservationPanel() {
           </div>
 
           <button
-            className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-md border border-cyan-500/35 bg-cyan-500/10 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-500/20 dark:text-cyan-100"
+            className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-md border border-accent/35 bg-accent-solid/10 text-xs font-semibold text-accent-fg-strong transition hover:bg-accent-solid-hover/20 dark:text-accent-fg-strong"
             type="button"
             onClick={handleAddReservation}
           >
@@ -134,11 +134,11 @@ export function ReservationPanel() {
           {reservations.length > 0 && (
             <div className="space-y-2">
               {reservations.map((reservation) => (
-                <div key={reservation.id} className="rounded-md border border-slate-200 bg-white p-3 text-xs dark:border-slate-800 dark:bg-slate-950">
+                <div key={reservation.id} className="rounded-md border border-edge bg-surface p-3 text-xs dark:border-edge dark:bg-surface">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="truncate font-semibold text-slate-900 dark:text-white">{reservation.name}</div>
-                      <div className="mt-0.5 text-slate-500 dark:text-slate-400">
+                      <div className="truncate font-semibold text-content">{reservation.name}</div>
+                      <div className="mt-0.5 text-content-muted">
                         U{reservation.positionU}
                         {reservation.sizeU > 1 ? `-U${reservation.positionU + reservation.sizeU - 1}` : ''} / {reservation.mountSide} / {reservation.purpose}
                       </div>
@@ -153,7 +153,7 @@ export function ReservationPanel() {
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <label className="text-slate-500 dark:text-slate-400">
+                    <label className="text-content-muted">
                       Start U
                       <input
                         className={FIELD_CLASS}
@@ -164,7 +164,7 @@ export function ReservationPanel() {
                         onChange={(event) => updateReservation(reservation.id, { positionU: Number(event.target.value) })}
                       />
                     </label>
-                    <label className="text-slate-500 dark:text-slate-400">
+                    <label className="text-content-muted">
                       Size U
                       <input
                         className={FIELD_CLASS}
@@ -175,7 +175,7 @@ export function ReservationPanel() {
                         onChange={(event) => updateReservation(reservation.id, { sizeU: Number(event.target.value) })}
                       />
                     </label>
-                    <label className="text-slate-500 dark:text-slate-400">
+                    <label className="text-content-muted">
                       Width
                       <select
                         className={FIELD_CLASS}
@@ -187,7 +187,7 @@ export function ReservationPanel() {
                         <option value="custom">Custom</option>
                       </select>
                     </label>
-                    <label className="text-slate-500 dark:text-slate-400">
+                    <label className="text-content-muted">
                       X mm
                       <input
                         className={FIELD_CLASS}
@@ -199,7 +199,7 @@ export function ReservationPanel() {
                       />
                     </label>
                     {reservation.widthType === 'custom' && (
-                      <label className="col-span-2 text-slate-500 dark:text-slate-400">
+                      <label className="col-span-2 text-content-muted">
                         Custom width mm
                         <input
                           className={FIELD_CLASS}

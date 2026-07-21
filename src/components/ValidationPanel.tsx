@@ -55,7 +55,7 @@ function IssueExplanation({ issueId }: { issueId: string }) {
   if (!explanation) return null;
 
   return (
-    <div className="mt-3 space-y-2 rounded-md border border-slate-200 bg-white/80 p-3 text-xs leading-5 dark:border-white/10 dark:bg-black/20">
+    <div className="mt-3 space-y-2 rounded-md border border-edge bg-surface/80 p-3 text-xs leading-5 dark:border-white/10 dark:bg-black/20">
       <div className="flex flex-wrap gap-2">
         <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${difficultyBadge[explanation.fixDifficulty]}`}>
           {difficultyLabel[explanation.fixDifficulty]}
@@ -118,18 +118,18 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-100/78 p-3.5 dark:border-slate-800 dark:bg-slate-900/78">
+    <section className="rounded-2xl border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
       >
         <div className="flex items-center gap-2">
           <AlertTriangle size={15} />
           Validation
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+          <span className="rounded bg-fill px-2 py-1 text-xs text-content-secondary dark:bg-surface dark:text-content-secondary">
             {issues.length ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'Clear'}
           </span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
@@ -141,19 +141,19 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
       >
         <div className="overflow-hidden">
           <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
-            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
-              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Weight</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{totals.weightKg.toFixed(1)}kg</span>
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
+              <span className="uppercase tracking-[0.18em] text-content-faint">Weight</span>
+              <span className="font-semibold text-content">{totals.weightKg.toFixed(1)}kg</span>
             </div>
-            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
-              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Power</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{totals.powerW}W</span>
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
+              <span className="uppercase tracking-[0.18em] text-content-faint">Power</span>
+              <span className="font-semibold text-content">{totals.powerW}W</span>
             </div>
-            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
-              <span className="uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Used U</span>
-              <span className="font-semibold text-slate-900 dark:text-white">
+            <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
+              <span className="uppercase tracking-[0.18em] text-content-faint">Used U</span>
+              <span className="font-semibold text-content">
                 {totals.occupiedU}
-                {totals.reservedU ? <span className="ml-1 text-[10px] font-medium text-slate-500 dark:text-slate-400">+{totals.reservedU}r</span> : null}
+                {totals.reservedU ? <span className="ml-1 text-[10px] font-medium text-content-muted">+{totals.reservedU}r</span> : null}
               </span>
             </div>
           </div>
@@ -172,7 +172,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
               <div
                 key={issue.id}
                 className={`rounded-2xl border p-3 text-sm transition hover:-translate-y-0.5 hover:shadow-sm hover:shadow-black/5 ${
-                  selectedIssueId === issue.id ? 'ring-2 ring-cyan-600/70 dark:ring-cyan-300/70' : ''
+                  selectedIssueId === issue.id ? 'ring-2 ring-accent/70' : ''
                 } ${severityStyle[issue.severity]}`}
               >
                 <button
@@ -185,7 +185,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
                     <div className="flex-1">
                       <div className="font-semibold">{issue.title}</div>
                       <p className="mt-1 text-xs leading-5 opacity-90">{issue.detail}</p>
-                      <p className="mt-2 rounded border border-slate-200 bg-slate-100 px-2 py-1.5 text-[11px] leading-4 opacity-95 dark:border-white/10 dark:bg-black/15">
+                      <p className="mt-2 rounded border border-edge bg-fill px-2 py-1.5 text-[11px] leading-4 opacity-95 dark:border-white/10 dark:bg-black/15">
                         {recommendationForIssue(issue)}
                       </p>
                     </div>

@@ -396,7 +396,7 @@ export function FailureDomainPanel() {
                   ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
                   : issue.severity === 'warning'
                     ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                    : 'border-accent/30 bg-accent-solid/10 text-accent-fg'
               }`}
             >
               <ShieldAlert size={12} className="inline mr-1" />
@@ -452,7 +452,7 @@ export function FailureDomainPanel() {
           <button
             type="button"
             onClick={addDomain}
-            className="inline-flex items-center gap-1 rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+            className="inline-flex items-center gap-1 rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
           >
             <Plus size={11} />
             Add
@@ -486,7 +486,7 @@ export function FailureDomainPanel() {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+          className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           <Plus size={12} />

@@ -10,7 +10,7 @@ import {
 } from '../utils/checklists';
 
 const FIELD_CLASS =
-  'mt-1 h-8 w-full rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-700 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200';
+  'mt-1 h-8 w-full rounded-md border border-edge-strong bg-fill px-2 text-xs text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content';
 
 interface ChecklistPanelProps {
   title: string;
@@ -75,7 +75,7 @@ export function ChecklistPanel({
           ['Pending', summary.pending, 'bg-amber-500/10 text-amber-700 dark:text-amber-300'],
           ['Passed', summary.passed, 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'],
           ['Failed', summary.failed, 'bg-red-500/10 text-red-700 dark:text-red-300'],
-          ['Skipped', summary.skipped, 'bg-slate-500/10 text-slate-700 dark:text-slate-300']
+          ['Skipped', summary.skipped, 'bg-content-muted/10 text-content-secondary']
         ] as const).map(([label, count, tone]) => (
           <div key={label} className={`rounded-md border px-3 py-2 ${tone}`} style={{ borderColor: 'var(--theme-border)' }}>
             <div className="font-medium">{label}</div>
@@ -99,15 +99,15 @@ export function ChecklistPanel({
                   <div key={item.id} className="rounded-md border p-3" style={{ borderColor: 'var(--theme-border)' }}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-slate-900 dark:text-white">{item.title}</div>
-                        <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{item.detail}</div>
+                        <div className="text-xs font-semibold text-content">{item.title}</div>
+                        <div className="mt-1 text-[11px] text-content-muted">{item.detail}</div>
                       </div>
                       <span className={`shrink-0 rounded px-2 py-1 text-[10px] font-medium ${checklistStatusTone(item.status)}`}>
                         {checklistStatusLabel(item.status)}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-[140px_1fr] gap-2">
-                      <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <label className="text-[11px] text-content-muted">
                         Status
                         <select
                           className={FIELD_CLASS}
@@ -120,7 +120,7 @@ export function ChecklistPanel({
                           <option value="skipped">Skipped</option>
                         </select>
                       </label>
-                      <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <label className="text-[11px] text-content-muted">
                         Notes
                         <input
                           className={FIELD_CLASS}

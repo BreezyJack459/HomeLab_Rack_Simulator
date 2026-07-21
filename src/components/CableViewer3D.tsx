@@ -466,22 +466,22 @@ export function CableViewer3D({ typeFilter, focusMode }: CableViewer3DProps) {
   const canvasDpr: [number, number] = [1, Math.min(window.devicePixelRatio || 1, maxDpr)];
 
   return (
-    <div className="relative h-[calc(100vh-250px)] min-h-[620px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-panel dark:border-slate-800 dark:bg-slate-950">
-      <div className="absolute left-4 top-4 z-10 max-w-sm rounded-lg border border-slate-200 bg-white/88 px-4 py-3 text-sm shadow-panel dark:border-slate-800 dark:bg-slate-950/88">
-        <div className="font-semibold text-slate-900 dark:text-white">3D cable routing</div>
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{recommendation}</div>
+    <div className="relative h-[calc(100vh-250px)] min-h-[620px] overflow-hidden rounded-xl border border-edge bg-surface shadow-panel dark:border-edge dark:bg-surface">
+      <div className="absolute left-4 top-4 z-10 max-w-sm rounded-lg border border-edge bg-surface/88 px-4 py-3 text-sm shadow-panel dark:border-edge dark:bg-surface/88">
+        <div className="font-semibold text-content">3D cable routing</div>
+        <div className="mt-1 text-xs text-content-muted">{recommendation}</div>
         <div className="mt-2 flex items-center gap-2">
           <button
             type="button"
             onClick={() => setCableRoutingMode('clean')}
-            className={`h-7 rounded border px-2 text-xs ${cableRoutingMode === 'clean' ? 'border-cyan-500 bg-cyan-500/20 text-cyan-800 dark:text-cyan-100' : 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+            className={`h-7 rounded border px-2 text-xs ${cableRoutingMode === 'clean' ? 'border-accent bg-accent-solid/20 text-accent-fg-strong' : 'border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill'}`}
           >
             Clean routing
           </button>
           <button
             type="button"
             onClick={() => setCableRoutingMode('realistic')}
-            className={`h-7 rounded border px-2 text-xs ${cableRoutingMode === 'realistic' ? 'border-cyan-500 bg-cyan-500/20 text-cyan-800 dark:text-cyan-100' : 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+            className={`h-7 rounded border px-2 text-xs ${cableRoutingMode === 'realistic' ? 'border-accent bg-accent-solid/20 text-accent-fg-strong' : 'border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill'}`}
           >
             Realistic routing
           </button>

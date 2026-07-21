@@ -31,7 +31,7 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 function RollbackStepItem({ step }: { step: RollbackStep }) {
   return (
     <div className="flex items-start gap-2 text-xs">
-      <span className="mt-0.5 shrink-0 rounded-full bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-700 dark:text-cyan-300">
+      <span className="mt-0.5 shrink-0 rounded-full bg-accent-solid/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-fg">
         {step.order}
       </span>
       <div>
@@ -118,7 +118,7 @@ export function ChangeReviewPanel() {
           <div className={`text-2xl font-bold ${riskColor[risk.level]}`}>{risk.score}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Risk Score / 100</div>
         </div>
-        <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+        <div className="mt-2 h-1.5 w-full rounded-full bg-fill-strong">
           <div
             className={`h-full rounded-full ${risk.level === 'critical' ? 'bg-red-500' : risk.level === 'high' ? 'bg-orange-500' : risk.level === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`}
             style={{ width: `${risk.score}%` }}
@@ -135,7 +135,7 @@ export function ChangeReviewPanel() {
           { label: 'Issues Δ', value: validationDelta > 0 ? `+${validationDelta}` : validationDelta },
         ].map((s) => (
           <div key={s.label} className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-            <div className="text-lg font-bold text-slate-900 dark:text-white">{s.value}</div>
+            <div className="text-lg font-bold text-content">{s.value}</div>
             <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>{s.label}</div>
           </div>
         ))}

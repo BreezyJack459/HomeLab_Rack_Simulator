@@ -104,7 +104,7 @@ function PolicyRow({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 rounded p-1 transition hover:bg-white/5"
+          className="shrink-0 rounded p-1 transition hover:bg-surface/5"
         >
           <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? '' : '-rotate-90'}`} style={{ color: 'var(--theme-text-muted)' }} />
         </button>
@@ -293,7 +293,7 @@ export function PolicyRulesPanel() {
                 type="button"
                 onClick={handleApplyPreset}
                 disabled={!selectedPreset}
-                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-surface/5 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
               >
                 <Layers size={13} />
@@ -361,7 +361,7 @@ export function PolicyRulesPanel() {
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--theme-text-muted)' }}>
                     Add Policy
                   </span>
-                  <button type="button" onClick={() => setShowAddMenu(false)} className="rounded p-1 transition hover:bg-white/5">
+                  <button type="button" onClick={() => setShowAddMenu(false)} className="rounded p-1 transition hover:bg-surface/5">
                     <X size={13} style={{ color: 'var(--theme-text-muted)' }} />
                   </button>
                 </div>
@@ -372,7 +372,7 @@ export function PolicyRulesPanel() {
                         key={type}
                         type="button"
                         onClick={() => handleAddPolicy(type)}
-                        className="w-full rounded-md border px-2.5 py-1.5 text-left text-xs transition hover:bg-white/5"
+                        className="w-full rounded-md border px-2.5 py-1.5 text-left text-xs transition hover:bg-surface/5"
                         style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
                       >
                         <div className="font-medium" style={{ color: 'var(--theme-text-primary)' }}>{policyLabel(type)}</div>
@@ -389,7 +389,7 @@ export function PolicyRulesPanel() {
                 <button
                   type="button"
                   onClick={() => setShowAddMenu(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition hover:bg-white/5"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition hover:bg-surface/5"
                   style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
                 >
                   <Plus size={13} />
@@ -399,7 +399,7 @@ export function PolicyRulesPanel() {
                   <button
                     type="button"
                     onClick={handleResetDefaults}
-                    className="flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition hover:bg-white/5"
+                    className="flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition hover:bg-surface/5"
                     style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
                   >
                     <Settings size={13} />

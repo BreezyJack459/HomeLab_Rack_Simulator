@@ -12,13 +12,13 @@ import {
 } from '../utils/procurement';
 
 const FIELD_CLASS =
-  'mt-1 h-8 w-full rounded-md border border-slate-300 bg-slate-100 px-2 text-xs text-slate-700 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200';
+  'mt-1 h-8 w-full rounded-md border border-edge-strong bg-fill px-2 text-xs text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content';
 
 const STATUS_BADGE: Record<ProcurementStatus, string> = {
   'need-to-buy': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
   ordered: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   printed: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  owned: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  owned: 'bg-content-muted/10 text-content-secondary',
   installed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
 };
 
@@ -57,7 +57,7 @@ export function BuildPlanner() {
           Build Planner
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded px-2 py-1 text-xs text-cyan-700 dark:text-cyan-300 bg-cyan-500/10">
+          <span className="rounded px-2 py-1 text-xs text-accent-fg bg-accent-solid/10">
             {items.length} items
           </span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
@@ -91,7 +91,7 @@ export function BuildPlanner() {
           <div className="flex gap-2">
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2.5 text-xs text-slate-700 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-edge-strong bg-fill px-2.5 text-xs text-content-secondary transition hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content dark:hover:bg-fill"
               onClick={() => exportProcurementCsv(layout)}
             >
               <FileSpreadsheet size={13} />
@@ -99,7 +99,7 @@ export function BuildPlanner() {
             </button>
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2.5 text-xs text-slate-700 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-edge-strong bg-fill px-2.5 text-xs text-content-secondary transition hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content dark:hover:bg-fill"
               onClick={() => exportProcurementText(layout)}
             >
               <FileText size={13} />
@@ -131,11 +131,11 @@ export function BuildPlanner() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-content">
                         <Boxes size={12} className="shrink-0" />
                         <span className="truncate">{item.label}</span>
                       </div>
-                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="mt-1 text-[11px] text-content-muted">
                         {getProcurementCategoryLabel(item.category)} / {item.quantity}
                         {item.unit ? ` ${item.unit}` : ''}
                       </div>
@@ -146,7 +146,7 @@ export function BuildPlanner() {
                   </div>
 
                   <div className="mt-2 grid grid-cols-[140px_1fr] gap-2">
-                    <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <label className="text-[11px] text-content-muted">
                       Status
                       <select
                         className={FIELD_CLASS}
@@ -160,7 +160,7 @@ export function BuildPlanner() {
                         <option value="installed">Installed</option>
                       </select>
                     </label>
-                    <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <label className="text-[11px] text-content-muted">
                       Notes
                       <input
                         className={FIELD_CLASS}

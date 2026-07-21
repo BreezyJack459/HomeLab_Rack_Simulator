@@ -76,7 +76,7 @@ function buildRackSpecificSearchItems(
       type: 'device',
       title: `${device.name}${rackSuffix}`,
       subtitle: `${device.category} · U${device.positionU}${device.sizeU > 1 ? `-${device.positionU + device.sizeU - 1}` : ''}`,
-      icon: <HardDrive size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: <HardDrive size={16} className="text-content-muted" />,
       action: wrap(() => {
         useRackStore.getState().selectDevice(device.id);
       }),
@@ -93,7 +93,7 @@ function buildRackSpecificSearchItems(
           type: 'port-alias',
           title: `${alias}${rackSuffix}`,
           subtitle: `Port alias on ${device.name} · ${portKey}`,
-          icon: <Network size={16} className="text-slate-500 dark:text-slate-400" />,
+          icon: <Network size={16} className="text-content-muted" />,
           action: wrap(() => {
             useRackStore.getState().selectDevice(device.id);
           }),
@@ -113,7 +113,7 @@ function buildRackSpecificSearchItems(
       type: 'cable',
       title: getCableLabel(cable, layout),
       subtitle: `${cable.type}${length ? ` · ${length}` : ''}${cable.speed ? ` · ${cable.speed}` : ''}`,
-      icon: <Cable size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: <Cable size={16} className="text-content-muted" />,
       action: wrap(() => {
         useRackStore.getState().selectCable(cable.id);
         useRackStore.getState().setViewMode('cables');
@@ -160,7 +160,7 @@ function buildRackSpecificSearchItems(
       type: 'device',
       title: `${res.name}${rackSuffix}`,
       subtitle: `Reservation · U${res.positionU}${res.sizeU > 1 ? `-${res.positionU + res.sizeU - 1}` : ''} · ${res.purpose}`,
-      icon: <LayoutGrid size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: <LayoutGrid size={16} className="text-content-muted" />,
       action: wrap(() => {
         useRackStore.getState().setViewMode('2d');
       }),
@@ -186,7 +186,7 @@ export function buildSearchItems(
       type: 'view',
       title: view.label,
       subtitle: `Switch to ${view.label}`,
-      icon: <span className="text-slate-500 dark:text-slate-400">{view.icon}</span>,
+      icon: <span className="text-content-muted">{view.icon}</span>,
       action: () => {
         useRackStore.getState().setViewMode(view.id);
       },
@@ -200,7 +200,7 @@ export function buildSearchItems(
     type: 'action',
     title: 'Export Layout JSON',
     subtitle: 'Download current rack as JSON file',
-    icon: <FileJson size={16} className="text-slate-500 dark:text-slate-400" />,
+    icon: <FileJson size={16} className="text-content-muted" />,
     action: () => {
       exportLayoutJson(layout);
     },
@@ -216,7 +216,7 @@ export function buildSearchItems(
       icon: (
         <ChevronRight
           size={16}
-          className="text-slate-500 dark:text-slate-400"
+          className="text-content-muted"
         />
       ),
       action: command.run,
@@ -259,7 +259,7 @@ export function buildWorkspaceSearchItems(
       type: 'inter-rack-cable',
       title: `${fromRack?.name ?? 'Unknown'}:${fromDevice?.name ?? 'Unknown'}:${fromPortLabel} → ${toRack?.name ?? 'Unknown'}:${toDevice?.name ?? 'Unknown'}:${toPortLabel}`,
       subtitle: `${cable.type}${cable.lengthM !== undefined ? ` · ${cable.lengthM}m` : ''}${cable.label ? ` · ${cable.label}` : ''}`,
-      icon: <Cable size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: <Cable size={16} className="text-content-muted" />,
       action: () => {
         useRackStore.getState().selectInterRackCable(cable.id);
       },
@@ -273,7 +273,7 @@ export function buildWorkspaceSearchItems(
       type: 'view',
       title: view.label,
       subtitle: `Switch to ${view.label}`,
-      icon: <span className="text-slate-500 dark:text-slate-400">{view.icon}</span>,
+      icon: <span className="text-content-muted">{view.icon}</span>,
       action: () => {
         useRackStore.getState().setViewMode(view.id);
       },
@@ -289,7 +289,7 @@ export function buildWorkspaceSearchItems(
       type: 'action',
       title: 'Export Layout JSON',
       subtitle: 'Download current rack as JSON file',
-      icon: <FileJson size={16} className="text-slate-500 dark:text-slate-400" />,
+      icon: <FileJson size={16} className="text-content-muted" />,
       action: () => {
         exportLayoutJson(currentRack);
       },
@@ -306,7 +306,7 @@ export function buildWorkspaceSearchItems(
       icon: (
         <ChevronRight
           size={16}
-          className="text-slate-500 dark:text-slate-400"
+          className="text-content-muted"
         />
       ),
       action: command.run,
@@ -443,14 +443,14 @@ export function CommandPalette({
       aria-modal="true"
       aria-label="Command palette"
     >
-      <div className="flex w-full max-w-xl flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex w-full max-w-xl flex-col overflow-hidden rounded-xl border border-edge-strong bg-surface shadow-2xl dark:border-edge-strong dark:bg-surface-raised">
         {/* Search input */}
-        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-          <Search size={18} className="shrink-0 text-slate-400 dark:text-slate-500" />
+        <div className="flex items-center gap-3 border-b border-edge px-4 py-3 dark:border-edge-strong">
+          <Search size={18} className="shrink-0 text-content-faint" />
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="flex-1 bg-transparent text-sm text-content outline-none placeholder:text-content-faint dark:text-content dark:placeholder:text-content-faint"
             placeholder="Search tasks, devices, cables, settings..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -459,14 +459,14 @@ export function CommandPalette({
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+              className="rounded p-0.5 text-content-faint hover:bg-fill hover:text-content-secondary dark:text-content-faint dark:hover:bg-fill dark:hover:text-content-secondary"
               type="button"
               aria-label="Clear search"
             >
               <X size={14} />
             </button>
           )}
-          <kbd className="hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500 sm:inline-block">
+          <kbd className="hidden rounded border border-edge bg-fill-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-faint dark:border-edge-strong dark:bg-fill dark:text-content-faint sm:inline-block">
             ESC
           </kbd>
         </div>
@@ -474,7 +474,7 @@ export function CommandPalette({
         {/* Results */}
         <div ref={listRef} className="max-h-[50vh] overflow-y-auto p-2">
           {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-slate-400 dark:text-slate-500">
+            <div className="flex flex-col items-center justify-center py-8 text-content-faint">
               <Search size={24} className="mb-2 opacity-50" />
               <p className="text-sm">No results found</p>
               <p className="mt-1 text-xs">Try a different search term</p>
@@ -491,7 +491,7 @@ export function CommandPalette({
 
               return (
                 <div key={category}>
-                  <div className="sticky top-0 z-10 bg-white/95 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:bg-slate-900/95 dark:text-slate-500">
+                  <div className="sticky top-0 z-10 bg-surface/95 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-content-faint dark:bg-surface-raised/95 dark:text-content-faint">
                     {category}
                   </div>
                   {items.map((item, i) => {
@@ -505,8 +505,8 @@ export function CommandPalette({
                         onMouseEnter={() => setSelectedIndex(idx)}
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
                           isSelected
-                            ? 'bg-cyan-50 dark:bg-cyan-950/30'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                            ? 'bg-accent-subtle/30'
+                            : 'hover:bg-fill-subtle dark:hover:bg-fill/60'
                         }`}
                         type="button"
                       >
@@ -515,31 +515,31 @@ export function CommandPalette({
                           <div
                             className={`truncate text-sm font-medium ${
                               isSelected
-                                ? 'text-cyan-700 dark:text-cyan-300'
-                                : 'text-slate-700 dark:text-slate-200'
+                                ? 'text-accent-fg'
+                                : 'text-content-secondary dark:text-content'
                             }`}
                           >
                             {item.title}
                           </div>
-                          <div className="truncate text-xs text-slate-400 dark:text-slate-500">
+                          <div className="truncate text-xs text-content-faint">
                             {item.subtitle}
                           </div>
                         </div>
                         {item.rackName && (
-                          <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                          <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-fill px-2 py-0.5 text-[10px] font-medium text-content-muted dark:bg-fill dark:text-content-muted">
                             <Server size={10} />
                             {item.rackName}
                           </span>
                         )}
                         {item.type === 'view' && viewMode === item.id.replace('view-', '') && (
-                          <span className="shrink-0 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-medium text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300">
+                          <span className="shrink-0 rounded-full bg-accent-subtle px-2 py-0.5 text-[10px] font-medium text-accent-fg dark:bg-accent-subtle/40 dark:text-accent-fg">
                             Active
                           </span>
                         )}
                         {isSelected && (
                           <ChevronRight
                             size={14}
-                            className="shrink-0 text-slate-300 dark:text-slate-600"
+                            className="shrink-0 text-content-faint"
                           />
                         )}
                       </button>
@@ -552,17 +552,17 @@ export function CommandPalette({
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-slate-200 px-4 py-2 text-[10px] text-slate-400 dark:border-slate-700 dark:text-slate-500">
+        <div className="flex items-center gap-4 border-t border-edge px-4 py-2 text-[10px] text-content-faint dark:border-edge-strong dark:text-content-faint">
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 dark:border-slate-700 dark:bg-slate-800">↑↓</kbd>
+            <kbd className="rounded border border-edge bg-fill-subtle px-1 py-0.5 dark:border-edge-strong dark:bg-fill">↑↓</kbd>
             Navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 dark:border-slate-700 dark:bg-slate-800">↵</kbd>
+            <kbd className="rounded border border-edge bg-fill-subtle px-1 py-0.5 dark:border-edge-strong dark:bg-fill">↵</kbd>
             Select
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 dark:border-slate-700 dark:bg-slate-800">esc</kbd>
+            <kbd className="rounded border border-edge bg-fill-subtle px-1 py-0.5 dark:border-edge-strong dark:bg-fill">esc</kbd>
             Close
           </span>
           <span className="ml-auto">{filtered.length} results</span>

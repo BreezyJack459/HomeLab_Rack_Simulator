@@ -118,7 +118,7 @@ function CredentialRow({
             <button
               type="button"
               onClick={saveEdit}
-              className="rounded bg-cyan-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-0.5 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Save
             </button>
@@ -138,7 +138,7 @@ function CredentialRow({
         ) : (
           <>
             <span className="flex-1 truncate font-medium">{credential.label}</span>
-            <span className="rounded bg-slate-500/10 px-1.5 py-0.5 text-[10px]">
+            <span className="rounded bg-content-muted/10 px-1.5 py-0.5 text-[10px]">
               {getCredentialTypeLabel(credential.type)}
             </span>
             <button
@@ -312,7 +312,7 @@ function DeviceCredentialSection({
             <button
               type="button"
               onClick={addCredential}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Credential
             </button>
@@ -458,7 +458,7 @@ export function CredentialVaultPanel() {
             <button
               type="button"
               onClick={doUnlock}
-              className="rounded bg-cyan-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-3 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               <Unlock size={12} className="inline mr-1" />
               Unlock
@@ -473,7 +473,7 @@ export function CredentialVaultPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalDevices}</div>
+          <div className="text-lg font-bold text-content">{summary.totalDevices}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Devices
           </div>
@@ -482,7 +482,7 @@ export function CredentialVaultPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalCredentials}</div>
+          <div className="text-lg font-bold text-content">{summary.totalCredentials}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Credentials
           </div>

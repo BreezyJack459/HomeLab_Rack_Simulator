@@ -30,7 +30,7 @@ function LogEntryRow({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-        <span className="rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-600 dark:text-cyan-400 uppercase">{entry.type}</span>
+        <span className="rounded bg-accent-solid/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent uppercase">{entry.type}</span>
         <span className="text-[10px] opacity-60">{entry.date}</span>
         <span className="flex-1 truncate">{entry.description}</span>
         <button type="button" onClick={onRemove} className="opacity-60 transition hover:opacity-100" style={{ color: 'var(--theme-text-muted)' }}>
@@ -214,7 +214,7 @@ function DeviceLogCard({
             <button
               type="button"
               onClick={addEntry}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Entry
             </button>
@@ -299,22 +299,22 @@ export function MaintenanceLogPanel() {
 
       <div className="mb-3 grid grid-cols-4 gap-2">
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalEntries}</div>
+          <div className="text-lg font-bold text-content">{summary.totalEntries}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Entries</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.devicesWithLogs}</div>
+          <div className="text-lg font-bold text-content">{summary.devicesWithLogs}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Logged</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="flex items-center justify-center gap-1 text-lg font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-center gap-1 text-lg font-bold text-content">
             <Clock size={14} />
             {summary.totalLaborMinutes}
           </div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Minutes</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.overdueDevices}</div>
+          <div className="text-lg font-bold text-content">{summary.overdueDevices}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Overdue</div>
         </div>
       </div>

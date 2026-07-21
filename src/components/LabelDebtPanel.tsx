@@ -11,13 +11,13 @@ import {
 const severityColors: Record<string, string> = {
   high: 'text-red-600 dark:text-red-400',
   medium: 'text-amber-600 dark:text-amber-400',
-  low: 'text-slate-500 dark:text-slate-400',
+  low: 'text-content-muted',
 };
 
 const severityBg: Record<string, string> = {
   high: 'bg-red-500/10',
   medium: 'bg-amber-500/10',
-  low: 'bg-slate-500/10',
+  low: 'bg-content-muted/10',
 };
 
 function IssueRow({ issue }: { issue: LabelDebtIssue }) {
@@ -214,7 +214,7 @@ export function LabelDebtPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {report.deviceCount}
           </div>
           <div
@@ -231,7 +231,7 @@ export function LabelDebtPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {report.cableCount}
           </div>
           <div
@@ -248,7 +248,7 @@ export function LabelDebtPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {report.totalIssues}
           </div>
           <div
@@ -280,7 +280,7 @@ export function LabelDebtPanel() {
                   ? 'bg-red-500/10 text-red-700 dark:text-red-300'
                   : f === 'medium'
                     ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                    : 'bg-accent-solid/10 text-accent-fg'
                 : 'opacity-60'
             }`}
           >

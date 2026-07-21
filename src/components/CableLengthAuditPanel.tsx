@@ -12,11 +12,11 @@ import {
 
 const statusColors: Record<string, string> = {
   exact: 'text-emerald-600 dark:text-emerald-400',
-  close: 'text-cyan-600 dark:text-cyan-400',
+  close: 'text-accent',
   mismatch: 'text-red-600 dark:text-red-400',
   'missing-planned': 'text-amber-600 dark:text-amber-400',
-  'missing-actual': 'text-slate-500 dark:text-slate-400',
-  'both-missing': 'text-slate-500 dark:text-slate-400',
+  'missing-actual': 'text-content-muted',
+  'both-missing': 'text-content-muted',
 };
 
 const statusLabels: Record<string, string> = {
@@ -151,7 +151,7 @@ export function CableLengthAuditPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {summary.totalCables}
           </div>
           <div
@@ -202,7 +202,7 @@ export function CableLengthAuditPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-500 dark:text-slate-400">
+          <div className="text-lg font-bold text-content-muted">
             {summary.missingActualCount}
           </div>
           <div
@@ -229,7 +229,7 @@ export function CableLengthAuditPanel() {
           onClick={() => setFilter('all')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
             filter === 'all'
-              ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+              ? 'bg-accent-solid/10 text-accent-fg'
               : 'opacity-60'
           }`}
         >
@@ -240,7 +240,7 @@ export function CableLengthAuditPanel() {
           onClick={() => setFilter('audited')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
             filter === 'audited'
-              ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+              ? 'bg-accent-solid/10 text-accent-fg'
               : 'opacity-60'
           }`}
         >

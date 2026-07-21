@@ -128,7 +128,7 @@ export function NetworkTopology({ layout }: Props) {
 
   if (nodes.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+      <div className="flex h-full items-center justify-center text-content-muted">
         <div className="text-center">
           <p className="text-lg font-medium">No devices to visualize</p>
           <p className="text-sm">Add devices and cables to see the network topology.</p>
@@ -138,26 +138,26 @@ export function NetworkTopology({ layout }: Props) {
   }
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-slate-900" onWheel={handleWheel}>
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-surface-raised" onWheel={handleWheel}>
       {/* Toolbar */}
       <div className="absolute left-3 top-3 z-10 flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/90 px-2 py-1 shadow">
-          <button onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.2))} className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white" title="Zoom in">
+        <div className="flex items-center gap-1 rounded-lg border border-edge-strong bg-fill/90 px-2 py-1 shadow">
+          <button onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.2))} className="rounded p-1 text-content-faint hover:bg-fill-strong hover:text-content" title="Zoom in">
             <ZoomIn size={16} />
           </button>
-          <span className="min-w-[3ch] text-center text-xs text-slate-400">{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z * 0.8))} className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white" title="Zoom out">
+          <span className="min-w-[3ch] text-center text-xs text-content-faint">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z * 0.8))} className="rounded p-1 text-content-faint hover:bg-fill-strong hover:text-content" title="Zoom out">
             <ZoomOut size={16} />
           </button>
-          <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white" title="Reset view">
+          <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="rounded p-1 text-content-faint hover:bg-fill-strong hover:text-content" title="Reset view">
             <RotateCcw size={16} />
           </button>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/90 px-2 py-1 shadow">
-          <button onClick={handleExportPng} className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white" title="Export PNG">
+        <div className="flex items-center gap-1 rounded-lg border border-edge-strong bg-fill/90 px-2 py-1 shadow">
+          <button onClick={handleExportPng} className="rounded p-1 text-content-faint hover:bg-fill-strong hover:text-content" title="Export PNG">
             <Download size={16} />
           </button>
-          <button onClick={handleExportSvg} className="rounded p-1 text-slate-300 hover:bg-slate-700 hover:text-white" title="Export SVG">
+          <button onClick={handleExportSvg} className="rounded p-1 text-content-faint hover:bg-fill-strong hover:text-content" title="Export SVG">
             <span className="text-xs font-bold">SVG</span>
           </button>
         </div>
@@ -182,17 +182,17 @@ export function NetworkTopology({ layout }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="absolute right-3 top-3 z-10 rounded-lg border border-slate-700 bg-slate-800/90 p-3 shadow">
-        <p className="mb-2 text-xs font-semibold text-slate-300">Roles</p>
+      <div className="absolute right-3 top-3 z-10 rounded-lg border border-edge-strong bg-fill/90 p-3 shadow">
+        <p className="mb-2 text-xs font-semibold text-content-faint">Roles</p>
         <div className="space-y-1.5">
           {(['gateway', 'distribution-switch', 'firewall', 'nas', 'server', 'ap', 'endpoint'] as const).map((role) => (
             <div key={role} className="flex items-center gap-2">
               <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: roleToColor(role) }} />
-              <span className="text-xs text-slate-400">{roleToLabel(role)}</span>
+              <span className="text-xs text-content-faint">{roleToLabel(role)}</span>
             </div>
           ))}
         </div>
-        <p className="mb-2 mt-3 text-xs font-semibold text-slate-300">Cable Types</p>
+        <p className="mb-2 mt-3 text-xs font-semibold text-content-faint">Cable Types</p>
         <div className="space-y-1.5">
           {(['ethernet', 'fiber', 'power', 'usb'] as const).map((type) => (
             <div key={type} className="flex items-center gap-2">
@@ -207,7 +207,7 @@ export function NetworkTopology({ layout }: Props) {
                   strokeDasharray={cableTypeToStroke(type) === 'dashed' ? '4 2' : cableTypeToStroke(type) === 'dotted' ? '1 2' : undefined}
                 />
               </svg>
-              <span className="text-xs capitalize text-slate-400">{type}</span>
+              <span className="text-xs capitalize text-content-faint">{type}</span>
             </div>
           ))}
         </div>

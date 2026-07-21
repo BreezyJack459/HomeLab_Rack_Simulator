@@ -6,39 +6,39 @@
 
 @layer components {
   .rv-a {
-    @apply bg-cyan-600 text-white dark:bg-cyan-400 dark:text-slate-950;
+    @apply bg-accent text-content dark:text-accent-on;
   }
 
   .rv-i {
-    @apply border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply border border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill;
   }
 
   .rt-s {
-    @apply h-7 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-900 outline-none hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
+    @apply h-7 rounded-md border border-edge-strong bg-fill px-2 text-content outline-none hover:bg-fill-strong dark:bg-surface-raised dark:hover:bg-fill;
   }
 
   .rt-b {
-    @apply inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-2 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply inline-flex h-7 items-center gap-1.5 rounded-md border border-edge-strong bg-fill px-2 text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill;
   }
 
   .rl-i {
-    @apply mt-1 h-9 w-full rounded-md border border-slate-300 bg-slate-100 px-2 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white;
+    @apply mt-1 h-9 w-full rounded-md border border-edge-strong bg-fill px-2 text-sm text-content outline-none dark:bg-surface;
   }
 
   .re-tb {
-    @apply inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-3 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply inline-flex h-9 items-center justify-center rounded-md border border-edge-strong bg-fill px-3 text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill;
   }
 
   .re-tbl {
-    @apply inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-slate-100 px-3 text-sm text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply inline-flex h-9 items-center gap-2 rounded-md border border-edge-strong bg-fill px-3 text-sm text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill;
   }
 
   .re-ti {
-    @apply border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply border border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill;
   }
 
   .rs-li {
-    @apply border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply border-edge-strong bg-fill text-content-secondary hover:bg-fill-strong dark:bg-surface-raised/80 dark:text-content dark:hover:bg-fill;
   }
 
   .rd-n {
@@ -168,156 +168,27 @@ textarea {
   padding: 3px 5px;
 }
 
-/* Light mode: override common hard-coded Tailwind slate classes */
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   Semantic tokens (content/surface/fill/edge/accent) switch per
+   theme by themselves and need NO entries here. This layer now
+   only covers:
+   1. Kept mid-gray slate classes used on always-dark surfaces
+      (3D overlays etc.)
+   2. Status/severity colors (red/amber/emerald/...) that are
+      intentionally outside the neutral theme tokens.
+   ============================================================ */
+
 [data-theme="light"] {
   color-scheme: light;
 }
 
-[data-theme="light"] .bg-slate-950 {
-  background-color: var(--theme-bg-primary);
-}
-[data-theme="light"] .bg-slate-900 {
-  background-color: var(--theme-bg-secondary);
-}
-[data-theme="light"] .bg-slate-800 {
-  background-color: var(--theme-bg-hover);
-}
-[data-theme="light"] .text-slate-100 {
-  color: var(--theme-text-primary);
-}
-[data-theme="light"] .text-slate-200 {
-  color: var(--theme-text-primary);
-}
-[data-theme="light"] .text-slate-300 {
-  color: var(--theme-text-secondary);
-}
-[data-theme="light"] .text-slate-400 {
-  color: var(--theme-text-secondary);
-}
-[data-theme="light"] .text-slate-500 {
-  color: var(--theme-text-muted);
-}
-[data-theme="light"] .border-slate-700 {
-  border-color: var(--theme-border-light);
-}
-[data-theme="light"] .border-slate-800 {
-  border-color: var(--theme-border);
-}
-[data-theme="light"] .text-white {
-  color: var(--theme-text-primary);
-}
-
-/* Hover states */
-[data-theme="light"] .hover\:bg-slate-800:hover {
-  background-color: var(--theme-bg-hover);
-}
-[data-theme="light"] .hover\:bg-slate-900:hover {
-  background-color: var(--theme-bg-secondary);
-}
-
-/* Placeholder text */
-[data-theme="light"] .placeholder\:text-slate-500::placeholder {
-  color: var(--theme-text-muted);
-}
-
-/* Opacity variants used in App.tsx */
-[data-theme="light"] .bg-slate-950\/82 {
-  background-color: rgb(255 255 255 / 0.95);
-}
-[data-theme="light"] .bg-slate-950\/72 {
-  background-color: rgb(255 255 255 / 0.95);
-}
-[data-theme="light"] .bg-slate-900\/78 {
-  background-color: rgb(241 245 249 / 0.95);
-}
-[data-theme="light"] .bg-slate-950\/70 {
-  background-color: rgb(255 255 255 / 0.92);
-}
-
-/* Accent colors that need to remain readable in light mode */
-[data-theme="light"] .text-cyan-100 {
-  color: #0891b2;
-}
-[data-theme="light"] .bg-cyan-400 {
-  background-color: #0891b2;
-}
-[data-theme="light"] .bg-cyan-300\/10 {
-  background-color: rgb(8 145 178 / 0.1);
-}
-[data-theme="light"] .border-cyan-300 {
-  border-color: #0891b2;
-}
-[data-theme="light"] .text-cyan-400 {
-  color: #0891b2;
-}
-
-/* ============================================================
-   LIGHT MODE: COMPLETE TAILWIND CLASS OVERRIDES
-   Covers all hard-coded dark classes used across components.
-   Phase 2 exit strategy: migrate components to dark: prefixes
-   and remove entries here as they become redundant.
-   ============================================================ */
-
-/* --- Slate backgrounds --- */
+/* --- Kept slate classes (dark-intent text/surfaces) --- */
+[data-theme="light"] .text-slate-100 { color: var(--theme-text-primary); }
+[data-theme="light"] .text-slate-200 { color: var(--theme-text-primary); }
 [data-theme="light"] .bg-slate-600 { background-color: var(--theme-border-light); }
-[data-theme="light"] .bg-slate-700 { background-color: var(--theme-bg-hover); }
 [data-theme="light"] .bg-slate-400 { background-color: #94a3b8; }
-[data-theme="light"] .bg-slate-300\/25 { background-color: rgb(203 213 225 / 0.35); }
-[data-theme="light"] .bg-slate-300\/35 { background-color: rgb(203 213 225 / 0.45); }
-[data-theme="light"] .bg-slate-800\/50 { background-color: rgb(226 232 240 / 0.6); }
-[data-theme="light"] .bg-slate-800\/60 { background-color: rgb(226 232 240 / 0.7); }
-[data-theme="light"] .bg-slate-900\/80 { background-color: rgb(241 245 249 / 0.92); }
-[data-theme="light"] .bg-slate-900\/82 { background-color: rgb(241 245 249 / 0.95); }
-[data-theme="light"] .bg-slate-950\/28 { background-color: rgb(255 255 255 / 0.75); }
-[data-theme="light"] .bg-slate-950\/55 { background-color: rgb(255 255 255 / 0.88); }
-[data-theme="light"] .bg-slate-950\/60 { background-color: rgb(255 255 255 / 0.90); }
-[data-theme="light"] .bg-slate-950\/85 { background-color: rgb(255 255 255 / 0.95); }
-[data-theme="light"] .bg-slate-950\/86 { background-color: rgb(255 255 255 / 0.95); }
-[data-theme="light"] .bg-slate-950\/88 { background-color: rgb(255 255 255 / 0.97); }
-[data-theme="light"] .bg-slate-950\/90 { background-color: rgb(255 255 255 / 0.97); }
-[data-theme="light"] .bg-slate-950\/92 { background-color: rgb(255 255 255 / 0.98); }
-[data-theme="light"] .bg-slate-950\/95 { background-color: rgb(255 255 255 / 0.99); }
-
-/* --- Slate text --- */
-[data-theme="light"] .text-slate-600 { color: var(--theme-text-secondary); }
-[data-theme="light"] .text-slate-950 { color: var(--theme-text-primary); }
-[data-theme="light"] .text-slate-200\/70 { color: oklch(from var(--theme-text-primary) l c h / 0.7); }
-[data-theme="light"] .text-slate-200\/85 { color: oklch(from var(--theme-text-primary) l c h / 0.85); }
-[data-theme="light"] .text-slate-300\/70 { color: oklch(from var(--theme-text-secondary) l c h / 0.7); }
-
-/* --- Slate borders --- */
 [data-theme="light"] .border-slate-600 { border-color: var(--theme-border-light); }
-[data-theme="light"] .border-slate-300 { border-color: var(--theme-border-light); }
-[data-theme="light"] .border-slate-300\/18 { border-color: rgb(203 213 225 / 0.4); }
-[data-theme="light"] .border-slate-700\/80 { border-color: rgb(203 213 225 / 0.8); }
-[data-theme="light"] .border-slate-800\/60 { border-color: rgb(226 232 240 / 0.8); }
-[data-theme="light"] .border-slate-800\/90 { border-color: var(--theme-border); }
-
-/* --- Slate utilities --- */
-[data-theme="light"] .divide-slate-800 > * + * { border-color: var(--theme-border); }
-[data-theme="light"] .ring-slate-700 { --tw-ring-color: var(--theme-border-light); }
-[data-theme="light"] .placeholder-slate-600::placeholder { color: var(--theme-text-muted); }
-
-/* --- Cyan accents (darken for contrast on white bg) --- */
-[data-theme="light"] .text-cyan-50  { color: #0891b2; }
-[data-theme="light"] .text-cyan-200 { color: #0369a1; }
-[data-theme="light"] .text-cyan-200\/75 { color: rgb(3 105 161 / 0.75); }
-[data-theme="light"] .text-cyan-200\/90 { color: rgb(3 105 161 / 0.90); }
-[data-theme="light"] .text-cyan-300 { color: #0369a1; }
-[data-theme="light"] .text-cyan-400\/70 { color: rgb(8 145 178 / 0.9); }
-[data-theme="light"] .bg-cyan-300   { background-color: #0891b2; }
-[data-theme="light"] .bg-cyan-500   { background-color: #0891b2; }
-[data-theme="light"] .bg-cyan-400\/5  { background-color: rgb(8 145 178 / 0.06); }
-[data-theme="light"] .bg-cyan-400\/15 { background-color: rgb(8 145 178 / 0.1); }
-[data-theme="light"] .bg-cyan-400\/25 { background-color: rgb(8 145 178 / 0.15); }
-[data-theme="light"] .bg-cyan-500\/10 { background-color: rgb(8 145 178 / 0.08); }
-[data-theme="light"] .bg-cyan-500\/20 { background-color: rgb(8 145 178 / 0.12); }
-[data-theme="light"] .bg-cyan-900    { background-color: rgb(8 145 178 / 0.1); }
-[data-theme="light"] .bg-cyan-900\/50 { background-color: rgb(8 145 178 / 0.12); }
-[data-theme="light"] .border-cyan-800  { border-color: rgb(8 145 178 / 0.3); }
-[data-theme="light"] .border-cyan-300\/20 { border-color: rgb(8 145 178 / 0.25); }
-[data-theme="light"] .border-cyan-400\/40 { border-color: rgb(8 145 178 / 0.4); }
-[data-theme="light"] .border-cyan-400\/50 { border-color: rgb(8 145 178 / 0.5); }
 
 /* --- Red / error states --- */
 [data-theme="light"] .text-red-300  { color: #b91c1c; }
@@ -342,6 +213,7 @@ textarea {
 [data-theme="light"] .text-sky-300 { color: #0284c7; }
 [data-theme="light"] .text-sky-400 { color: #0284c7; }
 [data-theme="light"] .bg-sky-500\/15 { background-color: rgb(2 132 199 / 0.1); }
+[data-theme="light"] .bg-sky-500\/10 { background-color: rgb(2 132 199 / 0.08); }
 
 /* --- Emerald / success states --- */
 [data-theme="light"] .text-emerald-400 { color: #059669; }
@@ -378,15 +250,6 @@ textarea {
 [data-theme="light"] .text-rose-100 {
   color: #be123c;
 }
-
-/* --- Missing cyan / sky accents (final patch) --- */
-[data-theme="light"] .ring-cyan-300\/40 { --tw-ring-color: rgb(8 145 178 / 0.4); }
-[data-theme="light"] .ring-cyan-300\/70 { --tw-ring-color: rgb(8 145 178 / 0.6); }
-[data-theme="light"] .bg-cyan-300\/15 { background-color: rgb(8 145 178 / 0.1); }
-[data-theme="light"] .border-cyan-500 { border-color: #0891b2; }
-[data-theme="light"] .border-cyan-500\/30 { border-color: rgb(8 145 178 / 0.3); }
-[data-theme="light"] .border-cyan-300\/70 { border-color: rgb(8 145 178 / 0.5); }
-[data-theme="light"] .bg-sky-500\/10 { background-color: rgb(2 132 199 / 0.08); }
 
 /* --- Amber / orange / yellow / violet text & borders --- */
 [data-theme="light"] .text-amber-200 { color: #b45309; }

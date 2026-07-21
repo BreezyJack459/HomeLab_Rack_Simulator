@@ -355,7 +355,7 @@ export function ServiceMapPanel() {
           className="rounded-md border p-2 text-center"
           style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalCount}</div>
+          <div className="text-lg font-bold text-content">{summary.totalCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>
             Services
           </div>
@@ -446,7 +446,7 @@ export function ServiceMapPanel() {
             <button
               type="button"
               onClick={addService}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               Add Service
             </button>
@@ -482,7 +482,7 @@ export function ServiceMapPanel() {
           type="button"
           onClick={() => setFilter('all')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
-            filter === 'all' ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'opacity-60'
+            filter === 'all' ? 'bg-accent-solid/10 text-accent-fg' : 'opacity-60'
           }`}
         >
           All
@@ -493,7 +493,7 @@ export function ServiceMapPanel() {
             type="button"
             onClick={() => setFilter(c)}
             className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
-              filter === c ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'opacity-60'
+              filter === c ? 'bg-accent-solid/10 text-accent-fg' : 'opacity-60'
             }`}
           >
             {criticalityLabel(c)}

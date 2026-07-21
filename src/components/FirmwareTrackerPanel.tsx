@@ -106,7 +106,7 @@ function FirmwareRow({
             <button
               type="button"
               onClick={save}
-              className="inline-flex items-center gap-1 rounded bg-cyan-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="inline-flex items-center gap-1 rounded bg-accent-solid px-2 py-0.5 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               <Check size={11} />
               Save
@@ -199,7 +199,7 @@ export function FirmwareTrackerPanel() {
       {/* Summary */}
       <div className="mb-3 grid grid-cols-4 gap-2">
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.trackedCount}</div>
+          <div className="text-lg font-bold text-content">{summary.trackedCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Tracked</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
@@ -211,7 +211,7 @@ export function FirmwareTrackerPanel() {
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Updates</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-600 dark:text-slate-400">{summary.unknownCount}</div>
+          <div className="text-lg font-bold text-content-secondary dark:text-content-muted">{summary.unknownCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Unknown</div>
         </div>
       </div>
@@ -224,7 +224,7 @@ export function FirmwareTrackerPanel() {
             type="button"
             onClick={() => setFilter(f)}
             className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
-              filter === f ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' : 'opacity-60'
+              filter === f ? 'bg-accent-solid/10 text-accent-fg' : 'opacity-60'
             }`}
           >
             {f}

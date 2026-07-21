@@ -47,15 +47,15 @@ export function RackSummarySettingsPanel({
   };
 
   return (
-    <div className="absolute right-0 top-full z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-950">
-      <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+    <div className="absolute right-0 top-full z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-4 shadow-2xl dark:border-edge dark:bg-surface">
+      <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
         Layout settings
       </div>
       <div className="grid gap-3">
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs text-content-muted">
           Rack type
           <select
-            className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="mt-1 h-9 w-full rounded-xl border border-edge-strong bg-surface px-3 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
             value={layout.rackType}
             onChange={(event) => onRackTypeChange(event.target.value as RackType)}
           >
@@ -63,11 +63,11 @@ export function RackSummarySettingsPanel({
             <option value="19in">19-inch rack</option>
           </select>
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400" htmlFor="rack-height-select">
+        <label className="text-xs text-content-muted" htmlFor="rack-height-select">
           Height
           <select
             id="rack-height-select"
-            className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="mt-1 h-9 w-full rounded-xl border border-edge-strong bg-surface px-3 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
             value={layout.heightU}
             onChange={(event) => onRackHeightChange(Number(event.target.value))}
           >
@@ -78,19 +78,19 @@ export function RackSummarySettingsPanel({
             ))}
           </select>
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs text-content-muted">
           Rack depth
           <div className="mt-1 space-y-2">
             <div className="relative">
               <input
-                className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 pr-12 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="h-9 w-full rounded-xl border border-edge-strong bg-surface px-3 pr-12 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
                 type="number"
                 min={100}
                 step={25}
                 value={layout.rackDepthMm}
                 onChange={(event) => onRackDepthChange(Math.max(100, Number(event.target.value) || 100))}
               />
-              <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-xs text-slate-400 dark:text-slate-500">
+              <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-xs text-content-faint">
                 mm
               </span>
             </div>
@@ -104,8 +104,8 @@ export function RackSummarySettingsPanel({
                     onClick={() => onRackDepthChange(depth)}
                     className={`inline-flex h-7 items-center rounded-full px-2.5 text-[11px] font-medium transition ${
                       active
-                        ? 'bg-cyan-500 text-white'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-700 dark:hover:text-cyan-300'
+                        ? 'bg-accent-solid text-content'
+                        : 'border border-edge bg-surface text-content-secondary hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg'
                     }`}
                   >
                     {depth} mm
@@ -113,12 +113,12 @@ export function RackSummarySettingsPanel({
                 );
               })}
             </div>
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-              <span className="font-medium text-slate-700 dark:text-slate-200">
+            <div className="rounded-xl border border-edge/80 bg-fill-subtle/80 px-3 py-2 text-[11px] text-content-muted dark:border-edge dark:bg-surface-raised/60 dark:text-content-muted">
+              <span className="font-medium text-content-secondary dark:text-content">
                 Usable depth:
               </span>{' '}
               {depthSummary.usableDepthMm} mm
-              <div className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+              <div className="mt-1 text-[10px] text-content-faint">
                 {layout.rackDepthMm} - front {depthSummary.frontDoorClearanceMm} - rear {depthSummary.rearDoorClearanceMm} - cable {depthSummary.rearCableClearanceMm} = {depthSummary.usableDepthMm} mm
               </div>
               {depthSummary.frontDoorClearanceMm === 0 &&
@@ -132,21 +132,21 @@ export function RackSummarySettingsPanel({
                 <button
                   type="button"
                   onClick={applyRecommendedClearance}
-                  className="inline-flex h-7 items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 text-[11px] font-medium text-cyan-700 hover:bg-cyan-500/15 dark:text-cyan-300"
+                  className="inline-flex h-7 items-center rounded-full border border-accent/30 bg-accent-solid/10 px-2.5 text-[11px] font-medium text-accent-fg hover:bg-accent-solid-hover/15 dark:text-accent-fg"
                 >
                   Apply typical
                 </button>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                <span className="text-[10px] text-content-faint">
                   Suggestion: front {recommendedClearance.front} / rear {recommendedClearance.rear} / cable {recommendedClearance.cable} mm
                 </span>
               </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
-              <label className="text-[11px] text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] text-content-muted">
                 Front clearance
                 <div className="relative mt-1">
                   <input
-                    className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-8 w-full rounded-xl border border-edge-strong bg-surface px-3 pr-10 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
                     type="number"
                     min={0}
                     step={10}
@@ -155,16 +155,16 @@ export function RackSummarySettingsPanel({
                       onFrontDoorClearanceChange(Math.max(0, Number(event.target.value) || 0))
                     }
                   />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-content-faint">
                     mm
                   </span>
                 </div>
               </label>
-              <label className="text-[11px] text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] text-content-muted">
                 Rear clearance
                 <div className="relative mt-1">
                   <input
-                    className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-8 w-full rounded-xl border border-edge-strong bg-surface px-3 pr-10 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
                     type="number"
                     min={0}
                     step={10}
@@ -173,16 +173,16 @@ export function RackSummarySettingsPanel({
                       onRearDoorClearanceChange(Math.max(0, Number(event.target.value) || 0))
                     }
                   />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-content-faint">
                     mm
                   </span>
                 </div>
               </label>
-              <label className="text-[11px] text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] text-content-muted">
                 Cable reserve
                 <div className="relative mt-1">
                   <input
-                    className="h-8 w-full rounded-xl border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                    className="h-8 w-full rounded-xl border border-edge-strong bg-surface px-3 pr-10 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
                     type="number"
                     min={0}
                     step={10}
@@ -191,7 +191,7 @@ export function RackSummarySettingsPanel({
                       onRearCableClearanceChange(Math.max(0, Number(event.target.value) || 0))
                     }
                   />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-slate-400 dark:text-slate-500">
+                  <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[10px] text-content-faint">
                     mm
                   </span>
                 </div>
@@ -199,10 +199,10 @@ export function RackSummarySettingsPanel({
             </div>
           </div>
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs text-content-muted">
           Lifecycle filter
           <select
-            className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="mt-1 h-9 w-full rounded-xl border border-edge-strong bg-surface px-3 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
             value={lifecycleFilter}
             onChange={(event) => onLifecycleFilterChange(event.target.value as LifecycleViewFilter)}
           >
@@ -213,10 +213,10 @@ export function RackSummarySettingsPanel({
             <option value="decommissioning">Decommissioning only</option>
           </select>
         </label>
-        <label className="text-xs text-slate-500 dark:text-slate-400">
+        <label className="text-xs text-content-muted">
           Power budget
           <input
-            className="mt-1 h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="mt-1 h-9 w-full rounded-xl border border-edge-strong bg-surface px-3 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
             type="number"
             min={1}
             value={layout.powerBudgetW}

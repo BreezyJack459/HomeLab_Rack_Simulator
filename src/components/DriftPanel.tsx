@@ -113,7 +113,7 @@ export function DriftPanel() {
                       ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
                       : item.severity === 'review'
                         ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                        : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                        : 'border-accent/30 bg-accent-solid/10 text-accent-fg'
                   }`}
                 >
                   <ShieldAlert size={12} className="inline mr-1" />

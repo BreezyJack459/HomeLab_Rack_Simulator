@@ -125,7 +125,7 @@ export function HomelabGuidePanel() {
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] uppercase tracking-[0.16em] transition hover:bg-cyan-500/10"
+          className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] uppercase tracking-[0.16em] transition hover:bg-accent-solid-hover/10"
           style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
         >
           <RotateCcw size={11} />
@@ -142,7 +142,7 @@ export function HomelabGuidePanel() {
             </span>
             <div className="h-1.5 flex-1 rounded-full" style={{ backgroundColor: 'var(--theme-bg-primary)' }}>
               <div
-                className="h-full rounded-full bg-cyan-500 transition-all"
+                className="h-full rounded-full bg-accent-solid transition-all"
                 style={{ width: `${((currentQ + 1) / QUESTIONS.length) * 100}%` }}
               />
             </div>
@@ -183,7 +183,7 @@ export function HomelabGuidePanel() {
                   >
                     <div className="flex items-center justify-between">
                       <span>{opt.label}</span>
-                      {selected && <ArrowRight size={14} className="text-cyan-500" />}
+                      {selected && <ArrowRight size={14} className="text-accent" />}
                     </div>
                   </button>
                 );
@@ -195,7 +195,7 @@ export function HomelabGuidePanel() {
             <button
               type="button"
               onClick={() => setShowReport(true)}
-              className="inline-flex w-full items-center justify-center gap-1 rounded bg-cyan-600 py-2 text-[12px] font-medium text-white transition hover:bg-cyan-700"
+              className="inline-flex w-full items-center justify-center gap-1 rounded bg-accent-solid py-2 text-[12px] font-medium text-content transition hover:bg-accent-solid-hover"
             >
               <Lightbulb size={14} />
               Generate My Guide
@@ -265,8 +265,8 @@ export function HomelabGuidePanel() {
                     {d.reason}
                   </div>
                   <div className="mt-1 flex gap-2 text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
-                    <span className="rounded bg-slate-500/10 px-1.5 py-0.5">{d.category}</span>
-                    <span className="rounded bg-slate-500/10 px-1.5 py-0.5">Buy {d.newOrUsed}</span>
+                    <span className="rounded bg-content-muted/10 px-1.5 py-0.5">{d.category}</span>
+                    <span className="rounded bg-content-muted/10 px-1.5 py-0.5">Buy {d.newOrUsed}</span>
                   </div>
                 </div>
               ))}
@@ -287,7 +287,7 @@ export function HomelabGuidePanel() {
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-content"
                       style={{ backgroundColor: '#0891b2' }}
                     >
                       {p.phase}
@@ -334,7 +334,7 @@ export function HomelabGuidePanel() {
                 a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+              className="inline-flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
               style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
             >
               <Download size={12} />
@@ -343,7 +343,7 @@ export function HomelabGuidePanel() {
             <button
               type="button"
               onClick={() => setShowReport(false)}
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-cyan-500/10"
+              className="inline-flex flex-1 items-center justify-center gap-1 rounded border py-1.5 text-[11px] font-medium transition hover:bg-accent-solid-hover/10"
               style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}
             >
               <ChevronLeft size={12} />

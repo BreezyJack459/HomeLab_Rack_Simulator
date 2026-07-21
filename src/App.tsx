@@ -421,16 +421,16 @@ function WorkspaceHero({
   children?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+    <section className="rounded-3xl border border-edge bg-surface/80 p-5 shadow-sm dark:border-edge dark:bg-surface-raised/70">
       <div className="flex items-start gap-3">
-        <div className="rounded-2xl bg-cyan-500/12 p-3 text-cyan-700 dark:text-cyan-300">
+        <div className="rounded-2xl bg-accent-solid/12 p-3 text-accent-fg">
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-content">
             {title}
           </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-content-muted">
             {description}
           </p>
         </div>
@@ -459,15 +459,15 @@ function WorkspaceActionPanel({
   }>;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white/85 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/75">
+    <section className="rounded-3xl border border-edge bg-surface/85 p-4 shadow-sm dark:border-edge dark:bg-surface-raised/75">
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-content-faint">
           {badge}
         </div>
-        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-slate-900 dark:text-white">
+        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-content">
           {title}
         </h3>
-        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-sm leading-6 text-content-muted">
           {description}
         </p>
       </div>
@@ -477,12 +477,12 @@ function WorkspaceActionPanel({
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              className="rounded-2xl border border-slate-200 bg-white/75 px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-950/70"
+              className="rounded-2xl border border-edge bg-surface/75 px-3 py-2 shadow-sm dark:border-edge dark:bg-surface/70"
             >
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                 {metric.label}
               </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+              <div className="mt-1 text-lg font-semibold text-content">
                 {metric.value}
               </div>
             </div>
@@ -498,8 +498,8 @@ function WorkspaceActionPanel({
             onClick={action.onClick}
             className={`rounded-2xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${
               action.primary
-                ? 'border-cyan-500/35 bg-cyan-500/12 text-cyan-800 shadow-cyan-500/10 dark:text-cyan-200'
-                : 'border-slate-200 bg-white/80 text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-200'
+                ? 'border-accent/35 bg-accent-solid/12 text-accent-fg-strong shadow-accent/10 dark:text-accent-fg'
+                : 'border-edge bg-surface/80 text-content-secondary dark:border-edge dark:bg-surface/60 dark:text-content'
             }`}
           >
             <div className="text-sm font-medium">{action.label}</div>
@@ -715,7 +715,7 @@ function App() {
           render3d: (canvasLayout) => (
             <Suspense
               fallback={
-                <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+                <div className="flex h-full items-center justify-center text-content-muted">
                   Loading 3D…
                 </div>
               }
@@ -1231,12 +1231,12 @@ function App() {
       );
       return (
         <>
-          <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/10 p-4 text-sm text-cyan-900 dark:text-cyan-100">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
+          <div className="rounded-2xl border border-accent/25 bg-accent-solid/10 p-4 text-sm text-accent-fg-strong">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-fg">
               Next step
             </div>
             <div className="mt-2 font-semibold">Start with the rack, not the settings.</div>
-            <p className="mt-1 text-xs leading-5 text-cyan-800/80 dark:text-cyan-100/75">
+            <p className="mt-1 text-xs leading-5 text-accent-fg-strong/80 dark:text-accent-fg-strong/75">
               Add a device, connect existing gear, or open rack settings when
               you need to change size, power budget, or filters.
             </p>
@@ -1244,21 +1244,21 @@ function App() {
               <button
                 type="button"
                 onClick={handleAddDeviceTask}
-                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+                className="rounded-xl border border-accent/30 bg-surface/75 px-3 py-2 text-left text-xs font-medium text-accent-fg-strong hover:bg-surface/60 dark:text-accent-fg-strong dark:hover:bg-surface"
               >
                 Add device
               </button>
               <button
                 type="button"
                 onClick={handleAddCableTask}
-                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+                className="rounded-xl border border-accent/30 bg-surface/75 px-3 py-2 text-left text-xs font-medium text-accent-fg-strong hover:bg-surface/60 dark:text-accent-fg-strong dark:hover:bg-surface"
               >
                 Connect cable
               </button>
               <button
                 type="button"
                 onClick={handleOpenRackSettingsTask}
-                className="rounded-xl border border-cyan-500/30 bg-white/75 px-3 py-2 text-left text-xs font-medium text-cyan-800 hover:bg-white dark:bg-slate-950/60 dark:text-cyan-100 dark:hover:bg-slate-950"
+                className="rounded-xl border border-accent/30 bg-surface/75 px-3 py-2 text-left text-xs font-medium text-accent-fg-strong hover:bg-surface/60 dark:text-accent-fg-strong dark:hover:bg-surface"
               >
                 Rack settings
               </button>
@@ -1453,7 +1453,7 @@ function App() {
     }
     if (panels.length === 0) {
       return (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-400">
+        <div className="rounded-2xl border border-dashed border-edge-strong bg-surface/60 p-4 text-sm text-content-muted dark:border-edge-strong dark:bg-surface/60 dark:text-content-muted">
           Use Search to jump to a task, or choose a lens in the main workspace
           to show the related controls here.
         </div>
@@ -1473,7 +1473,7 @@ function App() {
         type: "quick-action",
         title: "Add device",
         subtitle: "Open the device library and place hardware in the rack",
-        icon: <Box size={16} className="text-cyan-600 dark:text-cyan-300" />,
+        icon: <Box size={16} className="text-accent-fg" />,
         action: handleAddDeviceTask,
         category: "Quick tasks",
       },
@@ -1487,7 +1487,7 @@ function App() {
         icon: (
           <AlertTriangle
             size={16}
-            className="text-cyan-600 dark:text-cyan-300"
+            className="text-accent-fg"
           />
         ),
         action: handleFixAlertsTask,
@@ -1501,7 +1501,7 @@ function App() {
         icon: (
           <SlidersHorizontal
             size={16}
-            className="text-cyan-600 dark:text-cyan-300"
+            className="text-accent-fg"
           />
         ),
         action: handleOpenRackSettingsTask,
@@ -1512,7 +1512,7 @@ function App() {
         type: "quick-action",
         title: "Load sample",
         subtitle: "Seed the current rack with a working sample layout",
-        icon: <Box size={16} className="text-slate-500 dark:text-slate-400" />,
+        icon: <Box size={16} className="text-content-muted" />,
         action: () => setSamplePickerOpen(true),
         category: "Quick tasks",
       },
@@ -1522,7 +1522,7 @@ function App() {
         title: "Import rack",
         subtitle: "Import an existing rack JSON file",
         icon: (
-          <Upload size={16} className="text-slate-500 dark:text-slate-400" />
+          <Upload size={16} className="text-content-muted" />
         ),
         action: () => fileInputRef.current?.click(),
         category: "Quick tasks",
@@ -1535,7 +1535,7 @@ function App() {
         icon: (
           <Settings2
             size={16}
-            className="text-slate-500 dark:text-slate-400"
+            className="text-content-muted"
           />
         ),
         action: () => {
@@ -1552,7 +1552,7 @@ function App() {
         icon: (
           <HardDrive
             size={16}
-            className="text-slate-500 dark:text-slate-400"
+            className="text-content-muted"
           />
         ),
         action: () => {
@@ -1569,7 +1569,7 @@ function App() {
         title: "Connect cable",
         subtitle: "Switch to cable view and use the cable planner",
         icon: (
-          <Cable size={16} className="text-cyan-600 dark:text-cyan-300" />
+          <Cable size={16} className="text-accent-fg" />
         ),
         action: handleAddCableTask,
         category: "Quick tasks",
@@ -1584,7 +1584,7 @@ function App() {
       title: WORKSPACE_META[workspaceId].title,
       subtitle: WORKSPACE_META[workspaceId].description,
       icon: (
-        <span className="text-cyan-600 dark:text-cyan-300">
+        <span className="text-accent-fg">
           {WORKSPACE_META[workspaceId].icon}
         </span>
       ),
@@ -1598,7 +1598,7 @@ function App() {
       title: panel.title,
       subtitle: `${panel.workspace} workspace`,
       icon: (
-        <Settings2 size={16} className="text-slate-500 dark:text-slate-400" />
+        <Settings2 size={16} className="text-content-muted" />
       ),
       action: () => {
         setCurrentWorkspace(panel.workspace);
@@ -1659,7 +1659,7 @@ function App() {
         icon: (
           <Settings2
             size={16}
-            className="text-slate-500 dark:text-slate-400"
+            className="text-content-muted"
           />
         ),
         action: blockedReason
@@ -1690,7 +1690,7 @@ function App() {
       return (
         <Suspense
           fallback={
-            <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400">
+            <div className="flex h-full items-center justify-center text-content-muted">
               Loading faceplate gallery…
             </div>
           }
@@ -1818,7 +1818,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen max-w-full overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-screen w-screen max-w-full overflow-hidden bg-fill-subtle text-content dark:bg-surface dark:text-content">
       <PrimaryNav
         currentWorkspace={currentWorkspace}
         onSelectWorkspace={setCurrentWorkspace}
@@ -1851,8 +1851,8 @@ function App() {
                   onClick={toggleDeviceLibrary}
                   className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
                     deviceLibraryOpen
-                      ? "border-cyan-500/40 bg-cyan-500/12 text-cyan-700 dark:text-cyan-300"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+                      ? "border-accent/40 bg-accent-solid/12 text-accent-fg"
+                      : "border-edge bg-surface text-content-secondary hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
                   }`}
                 >
                   {deviceLibraryOpen ? (
@@ -1969,12 +1969,12 @@ function App() {
 
         {confirmAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-80 rounded-lg border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-              <div className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">
+            <div className="w-80 rounded-lg border border-edge-strong bg-fill p-5 shadow-xl dark:border-edge-strong dark:bg-surface-raised">
+              <div className="mb-3 text-sm font-semibold text-content">
                 {confirmAction.type === "new" && "Start a new layout?"}
                 {confirmAction.type === "sample" && "Load sample layout?"}
               </div>
-              <div className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+              <div className="mb-4 text-xs text-content-muted">
                 {confirmAction.type === "new"
                   ? "This will clear all devices and cables."
                   : "This will replace your current rack with the selected sample."}
@@ -1988,7 +1988,7 @@ function App() {
                   Confirm
                 </button>
                 <button
-                  className="h-9 flex-1 rounded-md border border-slate-300 bg-slate-200 text-sm text-slate-700 hover:bg-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  className="h-9 flex-1 rounded-md border border-edge-strong bg-fill-strong text-sm text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
                   onClick={() => setConfirmAction(null)}
                   type="button"
                 >
@@ -2002,22 +2002,22 @@ function App() {
         {samplePickerOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div
-              className="w-full max-w-2xl rounded-3xl border border-slate-300 bg-slate-100 p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+              className="w-full max-w-2xl rounded-3xl border border-edge-strong bg-fill p-5 shadow-xl dark:border-edge-strong dark:bg-surface-raised"
               data-testid="sample-picker-modal"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                  <div className="text-lg font-semibold text-content">
                     Load sample layout
                   </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="text-sm text-content-muted">
                     Choose a sample to seed the current rack.
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSamplePickerOpen(false)}
-                  className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="rounded-full border border-edge-strong bg-surface px-3 py-1 text-xs text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
                 >
                   Close
                 </button>
@@ -2031,12 +2031,12 @@ function App() {
                       setSamplePickerOpen(false);
                       handleLoadSample(sample.id);
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-left hover:border-cyan-300 hover:bg-cyan-50/60 dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-cyan-700 dark:hover:bg-cyan-950/20"
+                    className="rounded-2xl border border-edge bg-surface/80 p-4 text-left hover:border-accent hover:bg-accent-subtle/60 dark:border-edge dark:bg-surface/60 dark:hover:border-accent dark:hover:bg-accent-subtle/20"
                   >
-                    <div className="font-medium text-slate-900 dark:text-white">
+                    <div className="font-medium text-content">
                       {sample.name}
                     </div>
-                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="mt-2 text-xs text-content-muted">
                       {sample.devices.length} devices • {sample.cables.length}{" "}
                       cables • {sample.heightU}U
                     </div>

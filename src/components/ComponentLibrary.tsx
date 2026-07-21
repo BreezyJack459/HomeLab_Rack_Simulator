@@ -91,15 +91,15 @@ export function ComponentLibrary() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-slate-200 p-4 dark:border-slate-800">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Homelab Rack Simulator</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <div className="border-b border-edge p-4 dark:border-edge">
+        <h1 className="text-lg font-semibold text-content">Homelab Rack Simulator</h1>
+        <p className="mt-1 text-sm text-content-muted">
           Drag devices into the current {viewSide} side or add them to the first free U.
         </p>
-        <label className="mt-4 flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-slate-100 px-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        <label className="mt-4 flex h-10 items-center gap-2 rounded-md border border-edge-strong bg-fill px-3 text-sm text-content-secondary dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary">
           <Search size={16} />
           <input
-            className="min-w-0 flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+            className="min-w-0 flex-1 bg-transparent text-content outline-none placeholder:text-content-faint dark:text-content dark:placeholder:text-content-faint"
             placeholder="Search devices"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -108,9 +108,9 @@ export function ComponentLibrary() {
       </div>
 
       {/* Category dropdown */}
-      <div className="relative border-b border-slate-200 p-3 dark:border-slate-800" ref={ref}>
+      <div className="relative border-b border-edge p-3 dark:border-edge" ref={ref}>
         <button
-          className="flex h-9 w-full items-center justify-between rounded-md border border-slate-300 bg-slate-100 px-3 text-sm text-slate-900 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+          className="flex h-9 w-full items-center justify-between rounded-md border border-edge-strong bg-fill px-3 text-sm text-content hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill"
           onClick={() => setOpen((v) => !v)}
           onKeyDown={(event) => {
             if (event.key === 'Escape' && open) {
@@ -121,12 +121,12 @@ export function ComponentLibrary() {
           type="button"
         >
           <span>{selectedLabel}</span>
-          <ChevronDown size={15} className={`text-slate-500 transition dark:text-slate-400 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown size={15} className={`text-content-muted transition dark:text-content-muted ${open ? 'rotate-180' : ''}`} />
         </button>
         {open && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-            <div className="absolute left-3 right-3 top-12 z-20 max-h-72 overflow-y-auto rounded-md border border-slate-300 bg-slate-100 py-1 shadow-xl thin-scrollbar dark:border-slate-700 dark:bg-slate-900">
+            <div className="absolute left-3 right-3 top-12 z-20 max-h-72 overflow-y-auto rounded-md border border-edge-strong bg-fill py-1 shadow-xl thin-scrollbar dark:border-edge-strong dark:bg-surface-raised">
               {visibleCategories.map((item) => {
                 const count = counts.get(item.id) ?? 0;
                 if (count === 0 && item.id !== 'all') return null;
@@ -135,8 +135,8 @@ export function ComponentLibrary() {
                     key={item.id}
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition ${
                       category === item.id
-                        ? 'bg-cyan-500/15 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-50'
-                        : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+                        ? 'bg-accent-solid/15 text-accent-fg dark:bg-accent/15 dark:text-accent-fg-strong'
+                        : 'text-content-secondary hover:bg-fill-strong hover:text-content-secondary dark:hover:bg-fill dark:hover:text-content'
                     }`}
                     onClick={() => {
                       setCategory(item.id);
@@ -145,7 +145,7 @@ export function ComponentLibrary() {
                     type="button"
                   >
                     <span>{item.label}</span>
-                    <span className="ml-3 text-xs text-slate-400 dark:text-slate-500">{count}</span>
+                    <span className="ml-3 text-xs text-content-faint">{count}</span>
                   </button>
                 );
               })}
@@ -155,12 +155,12 @@ export function ComponentLibrary() {
         {/* Active filter pill */}
         {category !== 'all' && (
           <button
-            className="mt-2 inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-xs text-cyan-700 hover:bg-cyan-500/25 dark:bg-cyan-400/15 dark:text-cyan-200 dark:hover:bg-cyan-400/25"
+            className="mt-2 inline-flex items-center gap-1 rounded-full bg-accent-solid/15 px-2.5 py-0.5 text-xs text-accent-fg hover:bg-accent-solid-hover/25 dark:bg-accent/15 dark:text-accent-fg dark:hover:bg-accent/25"
             onClick={() => setCategory('all')}
             type="button"
           >
             {selectedLabel}
-            <span className="text-cyan-600/70 dark:text-cyan-400/70">×</span>
+            <span className="text-accent/70">×</span>
           </button>
         )}
       </div>
@@ -171,10 +171,10 @@ export function ComponentLibrary() {
             <article
               key={device.id}
               data-device-category={device.category}
-              className={`rounded-lg border bg-slate-100/82 p-3 transition dark:bg-slate-900/82 ${
+              className={`rounded-lg border bg-fill/82 p-3 transition dark:bg-surface-raised/82 ${
                 device.rackMountable === false
                   ? 'border-amber-400/35'
-                  : 'border-slate-200 hover:border-cyan-500/70 dark:border-slate-800 dark:hover:border-cyan-400/70'
+                  : 'border-edge hover:border-accent/70 dark:border-edge dark:hover:border-accent/70'
               }`}
               draggable={device.rackMountable !== false}
               onDragStart={(event) => {
@@ -193,26 +193,26 @@ export function ComponentLibrary() {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <h2 className="truncate text-sm font-semibold text-slate-900 dark:text-white">{device.name}</h2>
+                    <h2 className="truncate text-sm font-semibold text-content">{device.name}</h2>
                     <span
-                      className={`shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-950 ${
-                        device.rackMountable === false ? 'text-amber-700 dark:text-amber-200' : 'text-slate-600 dark:text-slate-300'
+                      className={`shrink-0 rounded bg-fill px-2 py-0.5 text-xs dark:bg-surface ${
+                        device.rackMountable === false ? 'text-amber-700 dark:text-amber-200' : 'text-content-secondary'
                       }`}
                     >
                       {device.rackMountable === false ? 'External' : `${device.defaultU}U`}
                     </span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{device.description}</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-600 dark:text-slate-300">
-                    <span className="rounded bg-slate-100 px-2 py-0.5 dark:bg-slate-950">{device.widthType}</span>
-                    <span className="rounded bg-slate-100 px-2 py-0.5 dark:bg-slate-950">{device.depthMm}mm</span>
-                    <span className="rounded bg-slate-100 px-2 py-0.5 dark:bg-slate-950">{device.weightKg}kg</span>
-                    <span className="rounded bg-slate-100 px-2 py-0.5 dark:bg-slate-950">{device.powerW}W</span>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-content-muted">{device.description}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-content-secondary">
+                    <span className="rounded bg-fill px-2 py-0.5 dark:bg-surface">{device.widthType}</span>
+                    <span className="rounded bg-fill px-2 py-0.5 dark:bg-surface">{device.depthMm}mm</span>
+                    <span className="rounded bg-fill px-2 py-0.5 dark:bg-surface">{device.weightKg}kg</span>
+                    <span className="rounded bg-fill px-2 py-0.5 dark:bg-surface">{device.powerW}W</span>
                   </div>
                 </div>
               </div>
               <button
-                className="mt-3 inline-flex h-8 w-full items-center justify-center gap-2 rounded-md bg-slate-200 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:disabled:bg-slate-950 dark:disabled:text-slate-500"
+                className="mt-3 inline-flex h-8 w-full items-center justify-center gap-2 rounded-md bg-fill-strong text-sm font-medium text-content hover:bg-slate-300 disabled:cursor-not-allowed disabled:bg-fill disabled:text-content-faint dark:bg-fill dark:text-content dark:hover:bg-fill-strong dark:disabled:bg-surface dark:disabled:text-content-faint"
                 onClick={() => addDeviceFromTemplate(device.id)}
                 disabled={device.rackMountable === false}
                 type="button"

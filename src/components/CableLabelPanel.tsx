@@ -114,7 +114,7 @@ export function CableLabelPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {labels.length}
           </div>
           <div
@@ -154,7 +154,7 @@ export function CableLabelPanel() {
             backgroundColor: 'var(--theme-bg-primary)',
           }}
         >
-          <div className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="text-lg font-bold text-content">
             {inconsistentIds.size}
           </div>
           <div
@@ -182,7 +182,7 @@ export function CableLabelPanel() {
           onClick={() => setFilter('all')}
           className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
             filter === 'all'
-              ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+              ? 'bg-accent-solid/10 text-accent-fg'
               : 'opacity-60'
           }`}
         >

@@ -57,15 +57,15 @@ export function TopContextBar({
   ];
 
   return (
-    <div className="border-b border-slate-200/80 bg-gradient-to-r from-white via-slate-50 to-white px-4 py-2.5 dark:border-slate-800 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div className="border-b border-edge/80 bg-gradient-to-r from-white via-fill-subtle to-white px-4 py-2.5 dark:border-edge dark:from-surface dark:via-surface dark:to-surface-raised">
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+            <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
               {primaryMeta.map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-slate-200 bg-white/80 px-2 py-0.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/70"
+                  className="rounded-full border border-edge bg-surface/80 px-2 py-0.5 shadow-sm dark:border-edge dark:bg-surface/70"
                 >
                   {item}
                 </span>
@@ -73,7 +73,7 @@ export function TopContextBar({
             </div>
             <div className="mt-1.5 flex min-w-0 items-center gap-3">
               <input
-                className="w-full min-w-0 bg-transparent text-xl font-semibold tracking-tight text-slate-900 outline-none placeholder:text-slate-500 dark:text-white dark:placeholder:text-slate-500"
+                className="w-full min-w-0 bg-transparent text-xl font-semibold tracking-tight text-content outline-none placeholder:text-content-muted dark:text-content dark:placeholder:text-content-faint"
                 value={layout.name}
                 onChange={(event) => onRenameLayout(event.target.value)}
                 aria-label="Layout name"
@@ -82,7 +82,7 @@ export function TopContextBar({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-            <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+            <div className="inline-flex flex-wrap items-center gap-1.5 rounded-full border border-edge/80 bg-surface/80 p-1 shadow-sm dark:border-edge dark:bg-surface/70">
               {viewModes.map((definition) => {
                 const active = viewMode === definition.id;
                 return (
@@ -92,8 +92,8 @@ export function TopContextBar({
                     onClick={() => onToggleViewMode(definition.id)}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
                       active
-                        ? 'bg-cyan-500 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900'
+                        ? 'bg-accent-solid text-content shadow-sm'
+                        : 'text-content-secondary hover:bg-fill dark:text-content-secondary dark:hover:bg-surface-raised'
                     }`}
                   >
                     {definition.icon}
@@ -107,8 +107,8 @@ export function TopContextBar({
                   onClick={() => onToggleViewMode('gallery')}
                   className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
                     viewMode === 'gallery'
-                      ? 'bg-cyan-500 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900'
+                      ? 'bg-accent-solid text-content shadow-sm'
+                      : 'text-content-secondary hover:bg-fill dark:text-content-secondary dark:hover:bg-surface-raised'
                   }`}
                 >
                   <LayoutGrid size={14} />
@@ -117,7 +117,7 @@ export function TopContextBar({
               ) : null}
               {pluginToggles.length > 0 ? (
                 <>
-                  <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
+                  <div className="mx-0.5 h-5 w-px bg-fill-strong dark:bg-fill" />
                   {pluginToggles.map((plugin) => (
                     <button
                       key={plugin.id}
@@ -126,10 +126,10 @@ export function TopContextBar({
                       onClick={plugin.onToggle}
                       className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
                         plugin.disabled
-                          ? 'cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600'
+                          ? 'cursor-not-allowed bg-fill text-content-faint dark:bg-surface-raised dark:text-content-faint'
                           : plugin.enabled
                             ? 'bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/18 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+                            : 'bg-fill text-content-muted hover:bg-fill-strong dark:bg-surface-raised dark:text-content-muted dark:hover:bg-fill'
                       }`}
                     >
                       {plugin.label}
@@ -139,7 +139,7 @@ export function TopContextBar({
               ) : null}
               {toolbarActions.length > 0 ? (
                 <>
-                  <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
+                  <div className="mx-0.5 h-5 w-px bg-fill-strong dark:bg-fill" />
                   {toolbarActions.map((action) => (
                     <button
                       key={action.id}
@@ -152,15 +152,15 @@ export function TopContextBar({
                   ))}
                 </>
               ) : null}
-              <div className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-800" />
-              <div className="inline-flex items-center rounded-full bg-slate-100 p-1 dark:bg-slate-900">
+              <div className="mx-0.5 h-5 w-px bg-fill-strong dark:bg-fill" />
+              <div className="inline-flex items-center rounded-full bg-fill p-1 dark:bg-surface-raised">
                 <button
                   type="button"
                   onClick={() => onSetViewSide('front')}
                   className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium transition ${
                     layout.viewSide === 'front'
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                      ? 'bg-surface-raised text-content dark:bg-white dark:text-accent-on'
+                      : 'bg-fill text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill'
                   }`}
                 >
                   Front
@@ -170,8 +170,8 @@ export function TopContextBar({
                   onClick={() => onSetViewSide('rear')}
                   className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium transition ${
                     layout.viewSide === 'rear'
-                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                      ? 'bg-surface-raised text-content dark:bg-white dark:text-accent-on'
+                      : 'bg-fill text-content-secondary hover:bg-fill-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:bg-fill'
                   }`}
                 >
                   Rear
@@ -180,11 +180,11 @@ export function TopContextBar({
               <button
                 type="button"
                 onClick={onOpenCommand}
-                className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 shadow-sm hover:border-cyan-300 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+                className="inline-flex h-8 items-center gap-2 rounded-full border border-edge bg-surface px-3 text-xs font-medium text-content-secondary shadow-sm hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
               >
                 <Search size={14} />
                 Search
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                <span className="inline-flex items-center gap-1 rounded-full bg-fill px-2 py-0.5 text-[10px] text-content-faint dark:bg-fill dark:text-content-faint">
                   <Command size={10} />
                   K
                 </span>

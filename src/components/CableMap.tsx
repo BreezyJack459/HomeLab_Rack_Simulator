@@ -313,22 +313,22 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
   }, [layout.cables]);
 
   return (
-    <div className="h-full overflow-auto bg-slate-100/55 p-8 thin-scrollbar dark:bg-slate-950/55">
+    <div className="h-full overflow-auto bg-fill/55 p-8 thin-scrollbar dark:bg-surface/55">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-content-muted">
             <Network size={16} />
             Cable Map
           </div>
-          <p className="mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-2 max-w-3xl text-sm text-content-muted">
             Patch panels and nearby devices route directly; longer runs leave into side cable trays before dropping vertically.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center gap-1 rounded-lg border border-edge bg-fill p-1 dark:border-edge dark:bg-surface-raised">
             <button
               className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                mapView === '2d' ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                mapView === '2d' ? 'bg-accent-solid text-content dark:bg-accent dark:text-accent-on' : 'text-content-secondary hover:bg-fill-strong hover:text-content-secondary dark:hover:bg-fill dark:hover:text-content'
               }`}
               onClick={() => setMapView('2d')}
               type="button"
@@ -338,7 +338,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             </button>
             <button
               className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                mapView === '3d' ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                mapView === '3d' ? 'bg-accent-solid text-content dark:bg-accent dark:text-accent-on' : 'text-content-secondary hover:bg-fill-strong hover:text-content-secondary dark:hover:bg-fill dark:hover:text-content'
               }`}
               onClick={() => setMapView('3d')}
               type="button"
@@ -348,7 +348,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             </button>
             <button
               className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-                mapView === 'table' ? 'bg-cyan-500 text-white dark:bg-cyan-400 dark:text-slate-950' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                mapView === 'table' ? 'bg-accent-solid text-content dark:bg-accent dark:text-accent-on' : 'text-content-secondary hover:bg-fill-strong hover:text-content-secondary dark:hover:bg-fill dark:hover:text-content'
               }`}
               onClick={() => setMapView('table')}
               type="button"
@@ -357,9 +357,9 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
               Table
             </button>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white/80 px-4 py-3 text-right dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="text-2xl font-semibold text-slate-900 dark:text-white">{routeSummary}</div>
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+          <div className="rounded-lg border border-edge bg-surface/80 px-4 py-3 text-right dark:border-edge dark:bg-surface-raised/80">
+            <div className="text-2xl font-semibold text-content">{routeSummary}</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-content-faint">
               {typeFilter === 'all' ? 'routes' : `${cableMeta[typeFilter].label} routes`}
             </div>
           </div>
@@ -370,35 +370,35 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
         <button
           className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition ${
             typeFilter === 'all'
-              ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100'
-              : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-slate-100'
+              ? 'border-accent bg-accent/10 text-accent-fg-strong'
+              : 'border-edge bg-fill text-content-secondary hover:border-edge-strong hover:text-content dark:border-edge dark:bg-surface-raised dark:text-content-secondary dark:hover:border-edge-strong dark:hover:text-content'
           }`}
           onClick={() => handleSetTypeFilter('all')}
           type="button"
         >
           All
-          <span className="text-slate-400 dark:text-slate-500">{layout.cables.length}</span>
+          <span className="text-content-faint">{layout.cables.length}</span>
         </button>
         {(Object.keys(cableMeta) as CableType[]).map((type) => (
           <button
             key={type}
             className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition ${
               typeFilter === type
-                ? 'border-cyan-500 bg-cyan-500/10 text-cyan-800 dark:border-cyan-300 dark:bg-cyan-300/10 dark:text-cyan-100'
-                : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-slate-100'
+                ? 'border-accent bg-accent-solid/10 text-accent-fg-strong dark:border-accent dark:bg-accent/10 dark:text-accent-fg-strong'
+                : 'border-edge bg-fill text-content-secondary hover:border-edge-strong hover:text-content dark:border-edge dark:bg-surface-raised dark:text-content-secondary dark:hover:border-edge-strong dark:hover:text-content'
             }`}
             onClick={() => handleSetTypeFilter(type)}
             type="button"
           >
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cableMeta[type].color }} />
             {cableMeta[type].label}
-            <span className="text-slate-400 dark:text-slate-500">{cableCounts[type]}</span>
+            <span className="text-content-faint">{cableCounts[type]}</span>
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2 rounded-md border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-slate-900">
+        <div className="ml-auto flex items-center gap-2 rounded-md border border-edge bg-fill p-1 dark:border-edge dark:bg-surface-raised">
           <button
             className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition ${
-              focusMode === 'dim' ? 'bg-slate-300 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              focusMode === 'dim' ? 'bg-slate-300 text-content dark:bg-fill-strong dark:text-content' : 'text-content-muted hover:bg-fill-strong hover:text-content-muted dark:hover:bg-fill dark:hover:text-content'
             }`}
             onClick={() => setFocusMode('dim')}
             type="button"
@@ -408,7 +408,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
           </button>
           <button
             className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition ${
-              focusMode === 'hide' ? 'bg-slate-300 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              focusMode === 'hide' ? 'bg-slate-300 text-content dark:bg-fill-strong dark:text-content' : 'text-content-muted hover:bg-fill-strong hover:text-content-muted dark:hover:bg-fill dark:hover:text-content'
             }`}
             onClick={() => setFocusMode('hide')}
             type="button"
@@ -418,7 +418,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
           </button>
           {hasSelectedCable && (
             <button
-              className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium text-content-muted transition hover:bg-fill-strong hover:text-content-muted dark:hover:bg-fill dark:hover:text-content"
               onClick={() => selectCable(null)}
               type="button"
             >
@@ -439,11 +439,11 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
           selectedCableId={selectedCableId}
         />
       ) : mapView === '3d' ? (
-        <Suspense fallback={<div className="flex h-96 items-center justify-center text-slate-500 dark:text-slate-400">Loading 3D cable routing…</div>}>
+        <Suspense fallback={<div className="flex h-96 items-center justify-center text-content-muted">Loading 3D cable routing…</div>}>
           <CableViewer3D typeFilter={typeFilter} focusMode={focusMode} />
         </Suspense>
       ) : (
-      <div className="relative min-w-max rounded-xl border border-slate-200 bg-white/88 p-5 shadow-panel dark:border-slate-800 dark:bg-slate-950/88">
+      <div className="relative min-w-max rounded-xl border border-edge bg-surface/88 p-5 shadow-panel dark:border-edge dark:bg-surface/88">
         <svg
           className="block"
           data-testid="cable-map-svg"

@@ -17,8 +17,8 @@ export function LensChip<T extends string>({ lens, active, onClick, meta }: Lens
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-[11px] font-medium transition ${
         active
-          ? 'border-cyan-500/45 bg-cyan-500/12 text-cyan-700 shadow-sm shadow-cyan-500/10 dark:text-cyan-300'
-          : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800'
+          ? 'border-accent/45 bg-accent-solid/12 text-accent-fg shadow-sm shadow-accent/10 dark:text-accent-fg'
+          : 'border-edge bg-surface/80 text-content-secondary hover:border-edge-strong hover:bg-fill dark:border-edge dark:bg-surface-raised/70 dark:text-content-secondary dark:hover:border-edge-strong dark:hover:bg-fill'
       }`}
     >
       {data.icon}
@@ -43,7 +43,7 @@ export function SnapshotCard({ title, value, detail, tone = 'default', onClick }
       ? 'border-red-500/35 bg-red-500/10 text-red-700 dark:text-red-300'
       : tone === 'warn'
         ? 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-        : 'border-slate-200 bg-white/85 text-slate-700 dark:border-slate-800 dark:bg-slate-900/75 dark:text-slate-200';
+        : 'border-edge bg-surface/85 text-content-secondary dark:border-edge dark:bg-surface-raised/75 dark:text-content';
 
   return (
     <button
@@ -72,7 +72,7 @@ export function MetricCard({ label, value, tone = 'default' }: MetricCardProps) 
       ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
       : tone === 'warn'
         ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-        : 'border-slate-200 bg-white/80 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200';
+        : 'border-edge bg-surface/80 text-content-secondary dark:border-edge dark:bg-surface-raised/70 dark:text-content';
   return (
     <div className={`rounded-2xl border p-4 ${toneClass}`}>
       <div className="text-[10px] font-semibold uppercase tracking-[0.22em] opacity-70">{label}</div>
@@ -105,11 +105,11 @@ export function WorkbenchHeader<T extends string>({
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
       <div>
-        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-content-faint">
           {badge}
         </div>
-        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-slate-900 dark:text-white">{title}</h3>
-        <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+        <h3 className="mt-1.5 text-[1.05rem] font-semibold text-content">{title}</h3>
+        <p className="mt-1 max-w-xl text-sm leading-6 text-content-muted">{description}</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {lenses.map((lens) => (

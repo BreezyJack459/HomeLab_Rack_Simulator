@@ -214,7 +214,7 @@ function DeviceBackupCard({
           <button
             type="button"
             onClick={addBackup}
-            className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+            className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
           >
             Add
           </button>
@@ -281,19 +281,19 @@ export function BackupVerificationPanel() {
       {/* Summary */}
       <div className="mb-3 grid grid-cols-4 gap-2">
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.devicesWithBackups}</div>
+          <div className="text-lg font-bold text-content">{summary.devicesWithBackups}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Tracked</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.totalBackups}</div>
+          <div className="text-lg font-bold text-content">{summary.totalBackups}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Backups</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.passRate}%</div>
+          <div className="text-lg font-bold text-content">{summary.passRate}%</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Pass rate</div>
         </div>
         <div className="rounded-md border p-2 text-center" style={{ borderColor: 'var(--theme-border)', backgroundColor: 'var(--theme-bg-primary)' }}>
-          <div className="text-lg font-bold text-slate-900 dark:text-white">{summary.overdueRestoreCount}</div>
+          <div className="text-lg font-bold text-content">{summary.overdueRestoreCount}</div>
           <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--theme-text-muted)' }}>Overdue</div>
         </div>
       </div>

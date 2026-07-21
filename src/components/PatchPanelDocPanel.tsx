@@ -65,10 +65,10 @@ function PortDocRow({
             jack?.state === 'patched'
               ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
               : jack?.state === 'landed'
-              ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+              ? 'bg-accent-solid/10 text-accent-fg'
               : jack?.state === 'dark-patch'
               ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-              : 'bg-slate-500/10 text-slate-700 dark:text-slate-300'
+              : 'bg-content-muted/10 text-content-secondary'
           }`}
         >
           {stateLabel}
@@ -198,7 +198,7 @@ function PortDocRow({
             <button
               type="button"
               onClick={save}
-              className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-700"
+              className="rounded bg-accent-solid px-2 py-1 text-[11px] font-medium text-content hover:bg-accent-solid-hover"
             >
               <Save size={11} className="inline mr-1" />
               Save
@@ -265,7 +265,7 @@ function PatchPanelSection({
               className={`rounded px-2 py-1 text-[10px] ${
                 issue.severity === 'warning'
                   ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                  : 'bg-slate-500/10 text-slate-700 dark:text-slate-300'
+                  : 'bg-content-muted/10 text-content-secondary'
               }`}
             >
               {issue.detail}

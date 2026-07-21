@@ -8,9 +8,9 @@ const MAX_DISPLAY_WIDTH = 400;
 
 export function FaceplateGallery() {
   return (
-    <div className="h-full overflow-y-auto bg-slate-950 p-6 text-slate-100">
+    <div className="h-full overflow-y-auto bg-surface p-6 text-slate-100">
       <h1 className="mb-2 text-2xl font-bold">Faceplate Gallery</h1>
-      <p className="mb-6 text-sm text-slate-400">
+      <p className="mb-6 text-sm text-content-faint">
         Review vendored faceplate images and procedural layouts. Front/rear faces
         are stacked so both are visible without horizontal scrolling.
       </p>
@@ -27,7 +27,7 @@ export function FaceplateGallery() {
             return (
               <div
                 key={template.id}
-                className="min-w-0 rounded border border-slate-700 bg-slate-900 p-4"
+                className="min-w-0 rounded border border-edge-strong bg-surface-raised p-4"
               >
                 <h2 className="mb-3 text-sm font-semibold">{template.name}</h2>
                 <div className="flex flex-col gap-3">
@@ -36,7 +36,7 @@ export function FaceplateGallery() {
                     const isRaster = artifact.kind === 'image';
                     return (
                       <div key={face}>
-                        <div className="mb-1 text-xs uppercase text-slate-400">
+                        <div className="mb-1 text-xs uppercase text-content-faint">
                           {face} {isRaster ? '(image)' : '(generated)'}
                         </div>
                         <FaceplatePreview
@@ -73,7 +73,7 @@ function FaceplatePreview({
       <img
         src={artifact.path}
         alt={`${template.name} ${face}`}
-        className="block w-full max-w-full rounded border border-slate-700 bg-black object-contain"
+        className="block w-full max-w-full rounded border border-edge-strong bg-black object-contain"
         style={{
           maxWidth: `${MAX_DISPLAY_WIDTH}px`,
           aspectRatio,
@@ -87,7 +87,7 @@ function FaceplatePreview({
   const svg = getFaceplateSvg(template, face);
   return (
     <div
-      className="w-full max-w-full overflow-hidden rounded border border-slate-700 bg-black [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full [&>svg]:!w-full]"
+      className="w-full max-w-full overflow-hidden rounded border border-edge-strong bg-black [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full [&>svg]:!w-full]"
       dangerouslySetInnerHTML={{ __html: svg }}
       style={{
         maxWidth: `${MAX_DISPLAY_WIDTH}px`,

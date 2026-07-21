@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
     shortLabel: 'Rack',
     description: 'Edit rack layout, cables and ports',
     icon: <Monitor size={18} />,
-    accent: 'from-cyan-500/25 to-sky-500/10',
+    accent: 'from-accent/25 to-sky-500/10',
   },
   {
     id: 'audit',
@@ -67,12 +67,12 @@ interface PrimaryNavProps {
 
 export function PrimaryNav({ currentWorkspace, onSelectWorkspace }: PrimaryNavProps) {
   return (
-    <aside className="flex w-[92px] shrink-0 flex-col border-r border-slate-200/80 bg-gradient-to-b from-slate-100 via-white to-slate-100 p-3 dark:border-slate-800 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <aside className="flex w-[92px] shrink-0 flex-col border-r border-edge/80 bg-gradient-to-b from-fill via-white to-fill p-3 dark:border-edge dark:from-surface dark:via-surface dark:to-surface-raised">
       <div className="mb-3 px-1.5 py-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-content-faint">
           Tasks
         </div>
-        <div className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+        <div className="mt-1 text-[11px] leading-5 text-content-muted">
           Flow
         </div>
       </div>
@@ -86,8 +86,8 @@ export function PrimaryNav({ currentWorkspace, onSelectWorkspace }: PrimaryNavPr
               onClick={() => onSelectWorkspace(item.id)}
               className={`group relative overflow-hidden rounded-[22px] border px-2 py-3 text-center transition ${
                 active
-                  ? 'border-cyan-400/30 bg-slate-950 text-white shadow-lg shadow-cyan-500/15 dark:bg-slate-900'
-                  : 'border-slate-200/80 bg-white/70 text-slate-500 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:text-slate-900 hover:shadow-sm dark:border-slate-800 dark:bg-slate-950/65 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white'
+                  ? 'border-accent/30 bg-surface text-content shadow-lg shadow-accent/15 dark:bg-surface-raised'
+                  : 'border-edge/80 bg-surface/70 text-content-muted hover:-translate-y-0.5 hover:border-edge-strong hover:bg-surface hover:text-content hover:shadow-sm dark:border-edge dark:bg-surface/65 dark:text-content-muted dark:hover:border-edge-strong dark:hover:bg-surface-raised dark:hover:text-content'
               }`}
               title={item.description}
             >
@@ -99,14 +99,14 @@ export function PrimaryNav({ currentWorkspace, onSelectWorkspace }: PrimaryNavPr
               <span
                 className={`relative mx-auto flex h-10 w-10 items-center justify-center rounded-2xl border ${
                   active
-                    ? 'border-white/10 bg-white/10 text-white'
-                    : 'border-slate-200 bg-slate-50 text-slate-400 group-hover:border-cyan-200 group-hover:bg-cyan-50 group-hover:text-cyan-600 dark:border-slate-800 dark:bg-slate-900 dark:group-hover:border-cyan-900 dark:group-hover:bg-cyan-950/40 dark:group-hover:text-cyan-300'
+                    ? 'border-white/10 bg-surface/10 text-content'
+                    : 'border-edge bg-fill-subtle text-content-faint group-hover:border-accent group-hover:bg-accent-subtle group-hover:text-accent dark:border-edge dark:bg-surface-raised dark:group-hover:border-accent dark:group-hover:bg-accent-subtle/40 dark:group-hover:text-accent-fg'
                 }`}
               >
                 {item.icon}
               </span>
               <span className="relative mt-2 text-[11px] font-semibold">{item.label}</span>
-              <span className={`relative text-[10px] ${active ? 'text-cyan-100' : 'text-slate-400 dark:text-slate-500'}`}>
+              <span className={`relative text-[10px] ${active ? 'text-accent-fg-strong' : 'text-content-faint'}`}>
                 {item.shortLabel}
               </span>
             </button>
