@@ -8,13 +8,29 @@ async function openDeviceLibrary(page: import('@playwright/test').Page) {
   }
 }
 
-async function openFileMenu(page: import('@playwright/test').Page) {
-  await page.locator('[data-testid="more-dropdown"] summary').click();
+// The action bar groups actions into three dropdown menus:
+// Create (new/sample/import), Actions (cable/alerts/undo), File & export.
+async function openMenu(page: import('@playwright/test').Page, testId: string) {
+  await page.locator(`[data-testid="${testId}"] summary`).click();
+}
+
+const openCreateMenu = (page: import('@playwright/test').Page) =>
+  openMenu(page, 'create-dropdown');
+const openActionsMenu = (page: import('@playwright/test').Page) =>
+  openMenu(page, 'actions-dropdown');
+const openFileMenu = (page: import('@playwright/test').Page) =>
+  openMenu(page, 'more-dropdown');
+
+// Device count is shown as a "Devices" summary chip in the rack summary bar.
+function deviceCountChip(page: import('@playwright/test').Page, count: number | string) {
+  return page
+    .locator('[data-testid="rack-summary"]')
+    .getByText(new RegExp(`^Devices\\s*${count}$`));
 }
 
 async function clearLayout(page: any) {
-  // Click New to clear any existing layout
-  await openFileMenu(page);
+  // Click "New rack layout" in the Create menu to clear any existing layout
+  await openCreateMenu(page);
   await page.getByRole('button', { name: 'New rack layout' }).click();
 
   // Handle confirmation dialog if it appears (layout had devices)
@@ -24,7 +40,22 @@ async function clearLayout(page: any) {
   }
 
   // Wait for device count to show 0
-  await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+  await expect(deviceCountChip(page, 0)).toBeVisible();
+}
+
+async function loadFirstSample(page: any) {
+  await openCreateMenu(page);
+  await page.getByRole('button', { name: 'Load sample' }).click();
+
+  // Select the first sample from the modal
+  await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
+  await page.locator('[data-testid="sample-picker-modal"] button').filter({ hasText: /devices/ }).first().click();
+
+  // If confirmation dialog appears (layout was not empty), confirm it
+  const confirmButton = page.getByRole('button', { name: 'Confirm' });
+  if (await confirmButton.isVisible().catch(() => false)) {
+    await confirmButton.click();
+  }
 }
 
 test.describe('Rack Simulator Smoke Tests', () => {
@@ -41,12 +72,15 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
   test('loads app with default layout', async ({ page }) => {
     await expect(page).toHaveTitle(/Homelab Rack Simulator/i);
-    await expect(page.getByText('Layout clear')).toBeVisible();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 0)).toBeVisible();
+    // No validation issues on an empty rack
+    await expect(
+      page.locator('[data-testid="rack-summary"]').getByRole('button', { name: '0' }),
+    ).toBeVisible();
   });
 
   test('switches between 2D, 3D, and Cables views', async ({ page }) => {
-    const activeClass = /bg-cyan-500/;
+    const activeClass = /bg-accent-solid/;
 
     // 2D is default and active
     await expect(page.getByRole('button', { name: '2D', exact: true })).toHaveClass(activeClass);
@@ -65,31 +99,31 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('adds a device from component library', async ({ page }) => {
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 0)).toBeVisible();
 
     await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
 
     // Verify device count increased
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
   });
 
   test('cable planner shows ports after device selection', async ({ page }) => {
     await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
     await page.getByRole('button', { name: /Add to/ }).first().click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/2 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 2)).toBeVisible();
 
-    // CablePlanner "Add cable" button should be visible
+    // CablePlanner "Add cable" button should be visible in the inspector
     await expect(page.getByRole('button', { name: 'Add cable' })).toBeVisible();
   });
 
   test('exports and imports layout JSON', async ({ page }) => {
     await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
 
-    // Export JSON
+    // Export JSON from the File & export menu
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       (async () => {
@@ -104,15 +138,18 @@ test.describe('Rack Simulator Smoke Tests', () => {
     // Clear layout
     await clearLayout(page);
 
-    // Import the JSON back
+    // Import the JSON back via the Create menu
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      page.getByRole('button', { name: 'Import rack' }).click(),
+      (async () => {
+        await openCreateMenu(page);
+        await page.getByRole('button', { name: 'Import rack' }).click();
+      })(),
     ]);
     await fileChooser.setFiles(downloadPath!);
 
     // Verify layout restored
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
   });
 
   test('toggles theme between dark and light', async ({ page }) => {
@@ -132,43 +169,34 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('loads a sample layout', async ({ page }) => {
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 0)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Load sample' }).click();
-
-    // Select the first sample from the modal
-    await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
-    await page.locator('[data-testid="sample-picker-modal"] button').filter({ hasText: /devices/ }).first().click();
-
-    // If confirmation dialog appears (unlikely since layout is empty), confirm it
-    const confirmButton = page.getByRole('button', { name: 'Confirm' });
-    if (await confirmButton.isVisible().catch(() => false)) {
-      await confirmButton.click();
-    }
+    await loadFirstSample(page);
 
     // Verify devices loaded (not 0 devices)
-    const deviceText = page.locator('[data-testid="context-stats"]').getByText(/devices/);
-    await expect(deviceText).not.toHaveText('0 devices');
+    await expect(deviceCountChip(page, '[1-9]')).toBeVisible();
   });
 
   test('undo and redo after adding device', async ({ page }) => {
     await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
 
-    // Undo
+    // Undo (in the Actions menu)
+    await openActionsMenu(page);
     await page.getByRole('button', { name: 'Undo' }).click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 0)).toBeVisible();
 
     // Redo
+    await openActionsMenu(page);
     await page.getByRole('button', { name: 'Redo' }).click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
   });
 
   test('deletes a selected device', async ({ page }) => {
     await openDeviceLibrary(page);
     await page.getByRole('button', { name: /Add to/ }).first().click();
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/1 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 1)).toBeVisible();
 
     // Click on the device in the rack to select it
     await page.locator('[data-device-id]').first().click();
@@ -177,30 +205,23 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await page.getByRole('button', { name: 'Remove component' }).click();
 
     // Verify device removed
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/0 devices/)).toBeVisible();
+    await expect(deviceCountChip(page, 0)).toBeVisible();
   });
 
   test('shows validation alerts when rack constraints are exceeded', async ({ page }) => {
     // Load a sample layout with devices
-    await page.getByRole('button', { name: 'Load sample' }).click();
-
-    // Select the first sample from the modal
-    await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
-    await page.locator('[data-testid="sample-picker-modal"] button').filter({ hasText: /devices/ }).first().click();
-
-    const confirmButton = page.getByRole('button', { name: 'Confirm' });
-    if (await confirmButton.isVisible().catch(() => false)) {
-      await confirmButton.click();
-    }
+    await loadFirstSample(page);
 
     // Verify devices loaded
-    await expect(page.locator('[data-testid="context-stats"]').getByText(/devices/)).not.toHaveText('0 devices');
+    await expect(deviceCountChip(page, '[1-9]')).toBeVisible();
 
+    // Shrink the rack to 6U so devices no longer fit
     await page.getByRole('button', { name: 'Tune' }).click();
     await page.getByLabel('Height').selectOption('6');
 
-    // Verify validation alerts appear (not "Layout clear")
-    await expect(page.getByText('Layout clear')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open alerts' })).toBeVisible();
+    // Verify the alerts button shows a non-zero issue count
+    await expect(
+      page.locator('[data-testid="rack-summary"]').getByRole('button', { name: /^[1-9]\d*$/ }),
+    ).toBeVisible();
   });
 });
