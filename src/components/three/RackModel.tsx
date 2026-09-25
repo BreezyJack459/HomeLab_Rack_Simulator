@@ -5,6 +5,8 @@ import { RACK_SPECS } from '../../utils/rackMath';
 import { useRackStore } from '../../store/rackStore';
 import { DeviceModel } from './DeviceModel';
 import { UNIT_BOX_GEOMETRY } from './sharedGeometries';
+import { useThemeStore } from '../../store/themeStore';
+import { getRackWorldDimensions } from '../../utils/rackGeometry';
 
 const U_HEIGHT = 0.18;
 const POST_SIZE = 0.045;
@@ -18,25 +20,23 @@ function Rail({ position, scale }: { position: [number, number, number]; scale: 
   return (
     <mesh position={position} scale={scale} castShadow receiveShadow>
       <primitive attach="geometry" object={UNIT_BOX_GEOMETRY} />
-      <meshStandardMaterial color="#334155" metalness={0.45} roughness={0.34} />
+      <meshStandardMaterial color="#475569" metalness={0.25} roughness={0.65} />
     </mesh>
   );
 }
 
 function RackModelComponent({ layout }: RackModelProps) {
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
-  const rackHeight = layout.heightU * U_HEIGHT;
-  const width = layout.rackType === '10in' ? 1.95 : 3.72;
-  const depth = Math.max(1.4, Math.min(3.3, layout.rackDepthMm / 210));
-  const bottom = -rackHeight / 2;
+  const light = useThemeStore((state) => state.theme === 'light');
+  const { rackHeight, rackWidth: width, rackDepth: depth, bottom } = getRackWorldDimensions(layout);
   const label = RACK_SPECS[layout.rackType].label;
 
   return (
-    <group position={[0, 0.1, 0]}>
+    <group>
       <Text
         position={[0, rackHeight / 2 + 0.28, depth / 2 + 0.08]}
         fontSize={0.12}
-        color="#e5e7eb"
+        color={light ? '#334155' : '#e5e7eb'}
         anchorX="center"
         anchorY="middle"
       >
@@ -71,9 +71,11 @@ function RackModelComponent({ layout }: RackModelProps) {
                 />
               </>
             )}
-            <Rail position={[0, y, -depth / 2]} scale={[width + POST_SIZE, 0.014, POST_SIZE]} />
-            <Rail position={[-width / 2, y, 0]} scale={[POST_SIZE, 0.014, depth + POST_SIZE]} />
-            <Rail position={[width / 2, y, 0]} scale={[POST_SIZE, 0.014, depth + POST_SIZE]} />
+            {isTopOrBottom && <>
+              <Rail position={[0, y, -depth / 2]} scale={[width + POST_SIZE, 0.045, POST_SIZE]} />
+              <Rail position={[-width / 2, y, 0]} scale={[POST_SIZE, 0.045, depth + POST_SIZE]} />
+              <Rail position={[width / 2, y, 0]} scale={[POST_SIZE, 0.045, depth + POST_SIZE]} />
+            </>}
           </group>
         );
       })}
@@ -85,6 +87,7 @@ function RackModelComponent({ layout }: RackModelProps) {
 
       {layout.devices.map((device) => (
         <DeviceModel
+          devices={layout.devices}
           key={device.id}
           device={device}
           rackType={layout.rackType}
@@ -104,8 +107,8 @@ function RackModelComponent({ layout }: RackModelProps) {
           <Text
             key={unit}
             position={[-width / 2 - 0.14, y, depth / 2 + 0.02]}
-            fontSize={0.045}
-            color="#94a3b8"
+            fontSize={0.06}
+            color={light ? '#475569' : '#cbd5e1'}
             anchorX="right"
             anchorY="middle"
           >

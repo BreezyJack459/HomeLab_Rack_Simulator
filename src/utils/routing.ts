@@ -11,6 +11,7 @@ import type {
   PortRef,
   RackLayout
 } from '../types/rack';
+import { anchorLabel, isCableRouteAnchor, manualRoutePoints, portLeadPoints, routeLengthMm } from './manualCableRoute';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
 import { resolvePortFace } from './portLayout';
 import { getDeviceXRange } from './rackMath';
@@ -698,9 +699,28 @@ export function calculateCablePlan(cable: CableRoute, layout: RackLayout): Cable
   const fromFace = portFace(from, cable.fromPort);
   const toFace = portFace(to, cable.toPort);
   const rail = preferredRail(layout, discipline, cable, from, to);
-  const waypoints = buildWaypoints(layout, cable, discipline, from, to, fromFace, toFace, rail);
+  const manualPoints = cable.manualPath !== undefined ? manualRoutePoints(cable, layout) : null;
+  const waypoints: CableWaypoint[] = manualPoints ? [
+    { id: 'manual-start', role: 'port', label: from.name, deviceId: from.id, port: cable.fromPort, nodeType: 'device' },
+    ...portLeadPoints(layout, from.id, cable.fromPort).slice(1).map((_, i): CableWaypoint => ({ id: `manual-exit-${i}`, role: 'face-exit', label: 'Connector lead-out' })),
+    ...(Array.isArray(cable.manualPath) ? cable.manualPath.filter(isCableRouteAnchor) : []).map((anchor, i): CableWaypoint => ({
+      id: `manual-${i}`, role: anchor.kind === 'channel' ? 'side-tray' : 'horizontal-manager',
+      label: anchorLabel(anchor, layout), deviceId: anchor.kind === 'manager' ? anchor.deviceId : '',
+      nodeType: anchor.kind === 'manager' ? 'h-manager' : anchor.side === 'left' ? 'v-rail-left' : 'v-rail-right',
+      rail: anchor.side, face: anchor.kind === 'channel' ? anchor.face : undefined,
+    })),
+    ...portLeadPoints(layout, to.id, cable.toPort).slice(1).map((_, i): CableWaypoint => ({ id: `manual-entry-${i}`, role: 'face-exit', label: 'Connector lead-in' })),
+    { id: 'manual-end', role: 'port', label: to.name, deviceId: to.id, port: cable.toPort, nodeType: 'device' },
+  ] : buildWaypoints(layout, cable, discipline, from, to, fromFace, toFace, rail);
   const nodes = buildNodes(waypoints);
-  const { baseLengthMm, segments } = segmentLengthForWaypoints(layout, cable, discipline, from, to, rail, waypoints);
+  const { baseLengthMm, segments } = manualPoints ? {
+    baseLengthMm: routeLengthMm(manualPoints, layout),
+    segments: manualPoints.slice(1).map((point, i): CableSegment => ({
+      from: waypoints[i].id, to: waypoints[i + 1].id, kind: 'tray-run',
+      separation: discipline === 'power' ? 'power' : 'data', minBendRadiusMm: renderHints(cable, discipline, rail).bendRadiusMm,
+      lengthMm: routeLengthMm([manualPoints[i], point], layout),
+    })),
+  } : segmentLengthForWaypoints(layout, cable, discipline, from, to, rail, waypoints);
   const slackMm = slackForDiscipline(discipline);
   const estimatedLengthMm = baseLengthMm + slackMm;
   const standardLengthMm = standardCableLength(estimatedLengthMm);
@@ -721,7 +741,7 @@ export function calculateCablePlan(cable: CableRoute, layout: RackLayout): Cable
     standardLengthMm,
     slackMm,
     render: renderHints(cable, discipline, rail),
-    warnings: planWarnings(layout, cable, discipline, from, to, rail, estimatedLengthMm),
+    warnings: manualPoints ? (manualPoints.length ? [] : [{ code: 'manual-route', severity: 'warning', message: 'A custom routing point or port is missing. Redraw this cable.' }]) : planWarnings(layout, cable, discipline, from, to, rail, estimatedLengthMm),
     pathLabel: waypoints.map((item) => item.label).join(' -> ')
   };
 }

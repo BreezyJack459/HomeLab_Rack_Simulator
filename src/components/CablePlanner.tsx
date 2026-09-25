@@ -1,3 +1,4 @@
+import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import {
   Cable,
   ChevronDown,
@@ -11,9 +12,11 @@ import {
   X
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { useRackStore } from '../store/rackStore';
 import type { CableRoute, CableType, LifecycleStatus, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
 import { getCableDisplayColor } from '../utils/cableColors';
+import { matchesCableQuery } from '../utils/cableQuery';
 import { calculateCablePlan, estimateCableLength, getCableSlackBudget, pathDescription } from '../utils/routing';
 import { formatCableLength, getDeviceXRange, RACK_SPECS } from '../utils/rackMath';
 import { exportBomCsv, exportBomText } from '../utils/exporters';
@@ -376,8 +379,13 @@ function portRefFromChoice(choice: PortChoice): PortRef {
   return { type: choice.type, index: choice.index, side: choice.side };
 }
 
-export function CablePlanner() {
-  const layout = useRackStore((state) => state.layout);
+export function CablePlanner({ compact = false }: { compact?: boolean }) {
+  const connectionRequested = useCableWorkspaceStore(s => s.connectionRequested);
+  useEffect(() => {
+    if (connectionRequested) { startPairing(); setIsOpen(true); useCableWorkspaceStore.getState().consumeConnectionRequest(); }
+  }, [connectionRequested]);
+  const storedLayout = useRackStore((state) => state.layout);
+  const layout = useMemo(() => withoutHiddenZeroUPdu(storedLayout), [storedLayout]);
   const addCable = useRackStore((state) => state.addCable);
   const addCables = useRackStore((state) => state.addCables);
   const removeCable = useRackStore((state) => state.removeCable);
@@ -396,8 +404,11 @@ export function CablePlanner() {
   const [hoveredDeviceId, setHoveredDeviceId] = useState<string | null>(null);
   const [ghostPreview, setGhostPreview] = useState(false);
   const [lastSourceDeviceId, setLastSourceDeviceId] = useState<string | null>(null);
-  const [cableFilter, setCableFilter] = useState('');
-  const [cableTypeFilter, setCableTypeFilter] = useState<CableType | 'all'>('all');
+  const cableFilter = useCableWorkspaceStore((state) => state.query);
+  const setCableFilter = useCableWorkspaceStore((state) => state.setQuery);
+  const hiddenTypes = useCableWorkspaceStore((state) => state.hiddenTypes);
+  const showAllTypes = useCableWorkspaceStore((state) => state.showAllTypes);
+  const focusMode = useCableWorkspaceStore((state) => state.focusMode);
   const [expandedCableGroups, setExpandedCableGroups] = useState<Record<string, boolean>>({});
 
   const deviceMap = useMemo(() => {
@@ -458,17 +469,13 @@ export function CablePlanner() {
   const filteredCables = useMemo(() => {
     const q = cableFilter.trim().toLowerCase();
     return layout.cables.filter((route) => {
-      if (cableTypeFilter !== 'all' && route.type !== cableTypeFilter) return false;
-      if (!q) return true;
-      const from = deviceMap.get(route.fromDeviceId);
-      const to = deviceMap.get(route.toDeviceId);
-      return (
-        (from?.name.toLowerCase().includes(q) ?? false) ||
-        (to?.name.toLowerCase().includes(q) ?? false) ||
-        route.type.toLowerCase().includes(q)
-      );
+      const selected = selectedCableIds.has(route.id);
+      if (compact) return route.id === selectedCableId;
+      if (hiddenTypes.includes(route.type) && !selected) return false;
+      if (focusMode === 'hide' && selectedCableId !== null && !selected) return false;
+      return matchesCableQuery(route, layout, q);
     });
-  }, [layout.cables, cableTypeFilter, cableFilter, deviceMap]);
+  }, [compact, layout.cables, cableFilter, deviceMap, focusMode, hiddenTypes, selectedCableId, selectedCableIds]);
 
   // Sync ghost preview cable into store so CableViewer3D can render it as a 3D tube
   useEffect(() => {
@@ -635,7 +642,7 @@ export function CablePlanner() {
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden space-y-3">
-          <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/80 to-white/40 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
+          {(!compact || !selectedCableId || stage !== 'idle') && <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/80 to-white/40 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-fg">
@@ -686,9 +693,9 @@ export function CablePlanner() {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
 
-          <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+          {(!compact || stage !== 'idle') && <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
             <div className="mb-2 flex items-center justify-between">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
@@ -711,9 +718,9 @@ export function CablePlanner() {
               onAutoConnect={handleAutoConnect}
               onHoverDevice={setHoveredDeviceId}
             />
-          </div>
+          </div>}
 
-          <div className="flex items-center justify-between rounded-2xl border border-edge bg-surface/70 px-3 py-2.5 dark:border-edge dark:bg-surface/70">
+          {(!compact || stage !== 'idle') && <div className="flex items-center justify-between rounded-2xl border border-edge bg-surface/70 px-3 py-2.5 dark:border-edge dark:bg-surface/70">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">Ghost preview</div>
               <div className="text-[11px] leading-5 text-content-muted">Show a provisional route before you commit.</div>
@@ -731,7 +738,7 @@ export function CablePlanner() {
                 style={{ width: 18, height: 18 }}
               />
             </button>
-          </div>
+          </div>}
 
           {expandedDevice && (
             <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
@@ -760,10 +767,8 @@ export function CablePlanner() {
           />
 
           {layout.cables.length > 0 && (
-            <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
-                Bill of materials
-              </div>
+            <details open={!compact} className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+              <summary className="mb-2 cursor-pointer text-xs font-semibold text-content-muted">Export cable BOM</summary>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
@@ -785,11 +790,11 @@ export function CablePlanner() {
               <div className="mt-2 text-[10px] leading-5 text-content-faint">
                 BOM lengths include slack, service-loop allowance and bend-radius notes.
               </div>
-            </div>
+            </details>
           )}
 
           {/* ── Cable filter bar ── */}
-          {layout.cables.length > 0 && (
+          {!compact && layout.cables.length > 0 && (
             <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
               <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
                 Route library
@@ -802,23 +807,22 @@ export function CablePlanner() {
                 onChange={(e) => setCableFilter(e.target.value)}
                 className="h-8 min-w-0 flex-1 rounded-xl border border-edge-strong bg-fill px-2.5 text-[11px] text-content-secondary placeholder-content-faint outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content dark:placeholder-content-muted"
               />
-              <select
-                value={cableTypeFilter}
-                onChange={(e) => setCableTypeFilter(e.target.value as CableType | 'all')}
-                className="h-8 rounded-xl border border-edge-strong bg-fill px-2 text-[11px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
-              >
-                <option value="all">All types</option>
-                {Array.from(new Set(layout.cables.map((c) => c.type))).sort().map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
+              {hiddenTypes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={showAllTypes}
+                  className="h-8 rounded-xl border border-edge-strong bg-fill px-2 text-[11px] text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                >
+                  Show all types
+                </button>
+              )}
             </div>
             </div>
           )}
 
           {/* ── Grouped compact cable list ── */}
           <div className="space-y-1.5">
-            {filteredCables.length === 0 && layout.cables.length > 0 && (
+            {!compact && filteredCables.length === 0 && layout.cables.length > 0 && (
               <div className="rounded-2xl border border-dashed border-edge bg-fill/60 p-3 text-center text-[11px] text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
                 No cables match the filter.
               </div>
@@ -864,7 +868,7 @@ export function CablePlanner() {
                           const to = deviceMap.get(route.toDeviceId);
                           const plan = calculateCablePlan(route, layout);
                           const selected = selectedCableIds.has(route.id);
-                          const muted = selectedCableId !== null && !selected;
+                          const muted = focusMode === 'dim' && selectedCableId !== null && !selected;
                           const displayColor = getCableDisplayColor(route.type, route.color);
                           const slack = getCableSlackBudget(layout, route);
                           const lengthStr = plan
@@ -913,6 +917,29 @@ export function CablePlanner() {
                               {/* Expanded detail when selected */}
                               {selected && (
                                 <div className="mt-1 pl-4 text-[10px] text-content-faint">
+                                  <div className="mb-1.5 grid gap-1.5">
+                                    <label className="grid gap-1">
+                                      <span className="uppercase tracking-[0.12em] text-content-muted">Cable label</span>
+                                      <input
+                                        value={route.label ?? ''}
+                                        placeholder={route.id}
+                                        onClick={(event) => event.stopPropagation()}
+                                        onChange={(event) => updateCable(route.id, { label: event.target.value || undefined })}
+                                        className="h-7 rounded border border-edge-strong bg-fill px-2 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                                      />
+                                    </label>
+                                    <label className="grid gap-1">
+                                      <span className="uppercase tracking-[0.12em] text-content-muted">Notes</span>
+                                      <textarea
+                                        value={route.notes ?? ''}
+                                        placeholder="Installation or service notes"
+                                        rows={2}
+                                        onClick={(event) => event.stopPropagation()}
+                                        onChange={(event) => updateCable(route.id, { notes: event.target.value || undefined })}
+                                        className="resize-none rounded border border-edge-strong bg-fill px-2 py-1.5 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                                      />
+                                    </label>
+                                  </div>
                                   <div className="mb-1 flex items-center gap-1.5">
                                     <span className="uppercase tracking-[0.12em] text-content-muted dark:text-content-faint">Lifecycle</span>
                                     <select
@@ -951,6 +978,17 @@ export function CablePlanner() {
                                       {pathDescription(route, plan?.nodes ?? route.nodes ?? [], layout, plan)}
                                     </span>
                                   )}
+                                  {plan?.warnings.map((warning) => (
+                                    <div
+                                      key={`${route.id}-${warning.code}`}
+                                      className="mt-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-300"
+                                    >
+                                      <div className="font-semibold">{warning.message}</div>
+                                      <div className="mt-0.5 opacity-80">
+                                        Review the route, increase cable length, or add the recommended manager before installation.
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>

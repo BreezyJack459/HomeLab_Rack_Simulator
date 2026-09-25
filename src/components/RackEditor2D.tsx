@@ -1,14 +1,19 @@
+import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { Bug, Move, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { DragEvent, PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { DragEvent, PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getTemplateById, templateFromDevice } from '../data/deviceCatalog';
+import { useDeviceDragStore, type LibraryDragSource } from '../store/deviceDragStore';
+import { getPlacementFeedback, placementDraft } from '../utils/devicePlacement';
 import { useRackStore } from '../store/rackStore';
 import type { DeviceCategory, DeviceTemplate, PlacedDevice, PortLayout, RackLayout, RackReservation, ViewSide } from '../types/rack';
-import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceFaceSizeMm, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { clampDevicePosition, clampDeviceX, getCenterOfGravityU, getDeviceFaceSizeMm, getDeviceMountSide, getDeviceSpatialZone, getDeviceWidthMm, getDeviceXRange, getZeroUEarSide, isZeroU, RACK_SPECS, zeroUHeightMm, zeroUBottomMm } from '../utils/rackMath';
 import { getPortFaceMap, type PortSlot } from '../utils/portLayout';
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { getReservationXRange } from '../utils/reservations';
 import { calculateCablePlan, pathDescription } from '../utils/routing';
-import { getFaceplateArtifact, getHitRegions, type PortHitRegion } from '../utils/faceplateSvg';
+import { getFaceplateArtifact, getHitRegions, resolveFaceplateUrl, type PortHitRegion } from '../utils/faceplateSvg';
+import { NEW_SHELL } from '../utils/featureFlags';
+import { isTrayShelf, getSupportingTray, shelfDeckHeight, shelfThickness, deviceBodyHeightMm, U_HEIGHT_MM } from '../utils/rackMath';
 
 const BASE_UNIT_HEIGHT = 34;
 const SIDE_LABEL_OFFSET = 78;
@@ -21,6 +26,10 @@ const FIXED_PORT_CELL_WIDTH = 18;
 const SIDE_STRIP_WIDTH = 110;
 const SIDE_STRIP_GAP = 16;
 const RACK_FRAME_BORDER_PX = 16;
+const AUTO_FIT_WIDTH_RATIO = 0.75;
+const MIN_EDITOR_ZOOM = 0.45;
+const MAX_EDITOR_ZOOM = 1.8;
+const CANVAS_HORIZONTAL_PADDING_PX = 64;
 const EDITOR_TOOL_BUTTON_CLASS = 're-tb';
 const EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS = 're-tbl';
 const EDITOR_TOGGLE_INACTIVE_CLASS = 're-ti';
@@ -222,8 +231,9 @@ function cableHighlightStyle(highlighted: boolean): React.CSSProperties | undefi
 
 export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, highlightedDeviceIds = [] }: RackEditor2DProps) {
   const rackRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const storeLayout = useRackStore((state) => state.layout);
-  const layout = layoutOverride ?? storeLayout;
+  const layout = useMemo(() => withoutHiddenZeroUPdu(layoutOverride ?? storeLayout), [layoutOverride, storeLayout]);
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const editorZoom = useRackStore((state) => state.editorZoom);
   const editorPan = useRackStore((state) => state.editorPan);
@@ -240,12 +250,26 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   const redo = useRackStore((state) => state.redo);
   const setEditorZoom = useRackStore((state) => state.setEditorZoom);
   const setEditorPan = useRackStore((state) => state.setEditorPan);
+  const libraryDragSource = useDeviceDragStore(s => s.source);
+  const [libraryPreview, setLibraryPreview] = useState<PlacedDevice | null>(null);
+  const dragCancelled = useRef(false);
+  useEffect(() => { if (!libraryDragSource) setLibraryPreview(null); }, [libraryDragSource]);
+  useEffect(() => {
+    const end = () => { setLibraryPreview(null); useDeviceDragStore.getState().end(); };
+    const cancel = () => { dragCancelled.current = true; setDragging(null); end(); };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') cancel(); };
+    window.addEventListener('dragend', end);
+    window.addEventListener('blur', cancel);
+    window.addEventListener('keydown', escape);
+    return () => { window.removeEventListener('dragend', end); window.removeEventListener('blur', cancel); window.removeEventListener('keydown', escape); };
+  }, []);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [panMode, setPanMode] = useState(false);
   const [panning, setPanning] = useState<PanState | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [contextMenu, setContextMenu] = useState<null | { x: number; y: number; deviceId: string }>(null);
   const [resizing, setResizing] = useState<null | { deviceId: string; startY: number; originalSizeU: number; originalPositionU: number }>(null);
+  const [autoFitEnabled, setAutoFitEnabled] = useState(true);
   const highlightedDeviceIdSet = useMemo(() => new Set(highlightedDeviceIds), [highlightedDeviceIds]);
   const selectedCableDeviceIds = useMemo(() => {
     if (!selectedCableId) return new Set<string>();
@@ -279,19 +303,26 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
 
   const rackDevices = useMemo(
     () => visibleDevices.filter((device) => !isZeroU(device)),
-    [visibleDevices]
+    [visibleDevices, layout.viewSide]
+  );
+  const hasSideLabels = useMemo(
+    () => !NEW_SHELL && rackDevices.some((device) => {
+      const visual = deviceVisual(layout, device, rackWidth);
+      return device.sizeU === 1 || visual.width < SIDE_LABEL_MIN_WIDTH;
+    }),
+    [layout, rackDevices, rackWidth],
   );
   const visibleReservations = useMemo(
     () => (layout.reservations ?? []).filter((reservation) => reservation.mountSide === layout.viewSide),
     [layout.reservations, layout.viewSide]
   );
   const sideLeftDevices = useMemo(
-    () => visibleDevices.filter((device) => isZeroU(device) && getZeroUEarSide(device) === 'left'),
-    [visibleDevices]
+    () => visibleDevices.filter((device) => isZeroU(device) && getZeroUEarSide(device) === (layout.viewSide === 'rear' ? 'right' : 'left')),
+    [visibleDevices, layout.viewSide]
   );
   const sideRightDevices = useMemo(
-    () => visibleDevices.filter((device) => isZeroU(device) && getZeroUEarSide(device) === 'right'),
-    [visibleDevices]
+    () => visibleDevices.filter((device) => isZeroU(device) && getZeroUEarSide(device) === (layout.viewSide === 'rear' ? 'left' : 'right')),
+    [visibleDevices, layout.viewSide]
   );
   const ghostDevices = useMemo(() => {
     if (!debugMode) return [];
@@ -303,7 +334,39 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     });
   }, [layout.devices, layout.viewSide, debugMode]);
 
+  const zeroUSideSpace = sideLeftDevices.length || sideRightDevices.length ? SIDE_STRIP_WIDTH + SIDE_STRIP_GAP : 0;
+
+  const fitRackToViewport = useCallback(() => {
+    const viewportWidth = viewportRef.current?.clientWidth ?? 0;
+    if (viewportWidth <= 0) return;
+
+    const usableWidth = Math.max(0, viewportWidth - CANVAS_HORIZONTAL_PADDING_PX);
+    const fitWidth = rackOuterWidth + zeroUSideSpace * 2 + (hasSideLabels ? SIDE_LABEL_OFFSET + SIDE_LABEL_WIDTH : 0);
+    const widthZoom = (usableWidth * (NEW_SHELL ? 0.95 : AUTO_FIT_WIDTH_RATIO)) / fitWidth;
+    const heightZoom = NEW_SHELL ? Math.max(100, (viewportRef.current?.clientHeight ?? 0) - 110) / (layout.heightU * BASE_UNIT_HEIGHT + 32) : MAX_EDITOR_ZOOM;
+    const nextZoom = Math.max(
+      zeroUSideSpace ? 0.15 : MIN_EDITOR_ZOOM,
+      Math.min(MAX_EDITOR_ZOOM, widthZoom, heightZoom),
+    );
+    setEditorZoom(nextZoom);
+    setEditorPan({ x: 0, y: 0 });
+  }, [hasSideLabels, layout.heightU, rackOuterWidth, zeroUSideSpace, setEditorPan, setEditorZoom]);
+
+  useEffect(() => {
+    if (!autoFitEnabled) return undefined;
+    const viewport = viewportRef.current;
+    if (!viewport) return undefined;
+
+    fitRackToViewport();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(() => fitRackToViewport());
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [autoFitEnabled, fitRackToViewport]);
+
   const sideLabelGroups = useMemo(() => {
+    if (NEW_SHELL) return [];
     const groups = new Map<
       string,
       {
@@ -383,23 +446,89 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     return clampDevicePosition(layout, sizeU, layout.heightU - topIndex - sizeU + 1);
   }
 
-  function xFromClientX(clientX: number, device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU'>, offsetX = 0) {
+  function xFromClientX(
+    clientX: number,
+    device: Pick<PlacedDevice, 'widthType' | 'customWidthMm' | 'sizeU'>,
+    offsetX = 0,
+  ) {
     const rackRect = rackRef.current?.getBoundingClientRect();
     if (!rackRect) return 0;
-    const rawLeft = clientX - rackRect.left - RACK_FRAME_BORDER_PX - offsetX;
+    const scale = rackRect.width / rackOuterWidth || 1;
+    const rawLeft =
+      (clientX - rackRect.left - offsetX) / scale - RACK_FRAME_BORDER_PX;
     return clampDeviceX(layout, device, (rawLeft / rackWidth) * rackUsable);
+  }
+
+  function libraryDropCandidate(
+    source: LibraryDragSource,
+    clientX: number,
+    clientY: number,
+  ) {
+    const original =
+      source.kind === 'inventory'
+        ? storeLayout.unplacedDevices?.find((d) => d.id === source.id)
+        : getTemplateById(source.id);
+    if (!original) return null;
+    const draft = placementDraft(original, layout.viewSide);
+    const scale =
+      (rackRef.current?.getBoundingClientRect().width ?? rackOuterWidth) /
+      rackOuterWidth;
+    const halfWidth =
+      ((Math.min(getDeviceWidthMm(draft), rackUsable) / rackUsable) *
+        rackWidth *
+        scale) /
+      2;
+    return {
+      ...draft,
+      positionU: positionFromClientY(clientY, isZeroU(draft) ? zeroUHeightMm(layout, draft) / U_HEIGHT_MM : draft.sizeU),
+      xMm: xFromClientX(clientX, draft, halfWidth),
+    };
+  }
+
+  function handleLibraryDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!libraryDragSource) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect =
+      libraryDragSource.kind === 'inventory' ? 'move' : 'copy';
+    const candidate = libraryDropCandidate(
+      libraryDragSource,
+      event.clientX,
+      event.clientY,
+    );
+    setLibraryPreview((previous) =>
+      previous?.id === candidate?.id &&
+      previous?.positionU === candidate?.positionU &&
+      previous?.xMm === candidate?.xMm
+        ? previous
+        : candidate,
+    );
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
+    const inventoryId = event.dataTransfer.getData(
+      'application/x-rack-inventory',
+    );
     const templateId = event.dataTransfer.getData('application/x-rack-template');
-    if (!templateId) return;
-    const template = getTemplateById(templateId);
-    if (!template) return;
-    const positionU = positionFromClientY(event.clientY, template.defaultU);
-    const templateWidthPx = (Math.min(getDeviceWidthMm(template), rackUsable) / rackUsable) * rackWidth;
-    const xMm = xFromClientX(event.clientX, { widthType: template.widthType, customWidthMm: template.customWidthMm, sizeU: template.defaultU }, templateWidthPx / 2);
-    addDeviceFromTemplate(templateId, positionU, xMm);
+    const source: LibraryDragSource | null =
+      libraryDragSource ??
+      (inventoryId
+        ? { kind: 'inventory', id: inventoryId }
+        : templateId
+          ? { kind: 'template', id: templateId }
+          : null);
+    if (!source) return;
+    const candidate = libraryDropCandidate(source, event.clientX, event.clientY);
+    if (candidate) {
+      // The store validates again against the latest, unfiltered layout.
+      if (source.kind === 'inventory')
+        useRackStore
+          .getState()
+          .placeInventoryDevice(source.id, candidate.positionU, candidate.xMm);
+      else addDeviceFromTemplate(source.id, candidate.positionU, candidate.xMm);
+    }
+    setLibraryPreview(null);
+    useDeviceDragStore.getState().end();
   }
 
   function startDeviceDrag(event: PointerEvent<HTMLDivElement>, device: PlacedDevice) {
@@ -407,9 +536,10 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
     selectDevice(device.id);
+    dragCancelled.current = false;
     setDragging({
       deviceId: device.id,
-      sizeU: device.sizeU,
+      sizeU: isZeroU(device) ? zeroUHeightMm(layout, device) / U_HEIGHT_MM : device.sizeU,
       offsetX: event.clientX - rect.left,
       offsetY: event.clientY - rect.top,
       previewU: device.positionU,
@@ -453,7 +583,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     }
 
     function handleUp() {
-      if (dragging) moveDevice(dragging.deviceId, dragging.previewU, dragging.previewX);
+      if (dragging && !dragCancelled.current) moveDevice(dragging.deviceId, dragging.previewU, dragging.previewX);
       setDragging(null);
     }
 
@@ -516,6 +646,13 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
   // Keyboard shortcuts: Delete, Arrow nudge, Space pan
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      // Form editing owns its keys, including macOS Delete (Backspace),
+      // cursor movement, spaces and native text undo/redo.
+      const target = event.target;
+      if (event.defaultPrevented || event.isComposing || (target instanceof Element &&
+        target.closest('input, textarea, select, button, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="spinbutton"]'))) {
+        return;
+      }
       if (event.key === ' ') {
         event.preventDefault();
         setSpacePressed(true);
@@ -585,13 +722,28 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
     };
   }, [selectedDeviceId, layout.devices, moveDevice, removeDevice]);
 
+  const movingDevice = dragging ? storeLayout.devices.find(d => d.id === dragging.deviceId) : undefined;
+  const placementPreview = movingDevice && dragging ? { ...movingDevice, positionU: dragging.previewU, xMm: dragging.previewX } : libraryPreview;
+  const feedback = placementPreview ? getPlacementFeedback(storeLayout, placementPreview) : null;
+
   return (
     <div className="relative h-full overflow-hidden bg-fill-strong dark:bg-surface/55">
-      <div className="absolute left-4 top-16 z-20 flex w-40 flex-col gap-2 rounded-xl border border-edge bg-surface/90 p-2 shadow-panel dark:border-edge dark:bg-surface/90">
+      {placementPreview && feedback && <div role="status" data-testid="placement-feedback" className={`pointer-events-none absolute left-3 right-3 top-3 z-40 rounded-xl border bg-surface/95 px-3 py-2 shadow-panel ${!feedback.allowed ? 'border-red-500 text-red-600 dark:text-red-300' : feedback.warning ? 'border-amber-500 text-amber-700 dark:text-amber-300' : 'border-emerald-500 text-emerald-700 dark:text-emerald-300'}`}>
+        <div className="text-xs font-semibold">{!feedback.allowed ? 'Cannot place' : feedback.warning ? 'Can place with warning' : 'Ready to place'} · {placementPreview.name} · U{placementPreview.positionU}{placementPreview.sizeU > 1 ? `–U${placementPreview.positionU + placementPreview.sizeU - 1}` : ''}</div>
+        <div className="mt-1 text-xs">{feedback.problem?.message ?? feedback.warning?.message ?? 'Release to place here. Esc to cancel.'}</div>
+      </div>}
+      <div
+        className={`absolute z-20 flex gap-2 rounded-xl border border-edge bg-surface/90 p-2 shadow-panel dark:border-edge dark:bg-surface/90 ${
+          NEW_SHELL ? 'bottom-16 right-3 items-center xl:bottom-3' : 'left-4 top-16 w-40 flex-col'
+        }`}
+      >
         <div className="flex items-center gap-2">
           <button
             className={`${EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS} flex-1 justify-between`}
-            onClick={() => setEditorZoom(editorZoom - 0.1)}
+            onClick={() => {
+              setAutoFitEnabled(false);
+              setEditorZoom(Math.max(zeroUSideSpace ? 0.15 : MIN_EDITOR_ZOOM, editorZoom - 0.1));
+            }}
             type="button"
             title="Zoom out"
           >
@@ -600,7 +752,10 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           </button>
           <button
             className={EDITOR_TOOL_BUTTON_CLASS}
-            onClick={() => setEditorZoom(editorZoom + 0.1)}
+            onClick={() => {
+              setAutoFitEnabled(false);
+              setEditorZoom(editorZoom + 0.1);
+            }}
             type="button"
             title="Zoom in"
           >
@@ -618,19 +773,22 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           title="Toggle pan mode"
         >
           <Move size={15} />
-          Pan
+          {!NEW_SHELL && 'Pan'}
         </button>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex gap-2">
           <button
-            className={EDITOR_TOOL_BUTTON_CLASS}
+            className={`${EDITOR_TOOL_BUTTON_WITH_LABEL_CLASS} justify-center gap-1.5`}
             onClick={() => {
-              setEditorZoom(1);
-              setEditorPan({ x: 0, y: 0 });
+              setAutoFitEnabled(true);
+              fitRackToViewport();
             }}
             type="button"
-            title="Reset view"
+            title="Fit rack to canvas"
+            aria-pressed={autoFitEnabled}
+            data-testid="fit-rack-button"
           >
             <RotateCcw size={15} />
+            <span>Fit</span>
           </button>
           <button
             className={`inline-flex h-9 items-center justify-center rounded-md px-3 text-sm ${
@@ -648,9 +806,12 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
       </div>
 
       <div
+        ref={viewportRef}
+        data-testid="rack-editor-viewport"
         className={`h-full w-full overflow-auto thin-scrollbar ${panMode || spacePressed ? 'cursor-grab' : ''}`}
         onPointerDown={(event) => {
           if (!panMode && !spacePressed) return;
+          setAutoFitEnabled(false);
           setPanning({
             startX: event.clientX,
             startY: event.clientY,
@@ -663,6 +824,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
           <div
             className="relative"
             style={{
+              width: rackOuterWidth + zeroUSideSpace * 2,
               transform: `translate(${editorPan.x}px, ${editorPan.y}px) scale(${editorZoom})`,
               transformOrigin: 'top center'
             }}
@@ -675,11 +837,9 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               ref={rackRef}
               data-testid="rack-frame"
               className="relative border-x-[16px] border-slate-400 bg-surface shadow-panel dark:border-edge-strong dark:bg-surface"
-              style={{ width: rackOuterWidth, height: rackHeight }}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'copy';
-              }}
+              style={{ width: rackOuterWidth, height: rackHeight, marginLeft: zeroUSideSpace }}
+              onDragOver={handleLibraryDragOver}
+              onDragLeave={event => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setLibraryPreview(null); }}
               onDrop={handleDrop}
               onClick={() => {
                 selectDevice(null);
@@ -795,14 +955,27 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
               {rackDevices.map((device) => {
                 const deviceIsZeroU = isZeroU(device);
                 const rackHeightPx = layout.heightU * BASE_UNIT_HEIGHT;
-                const top = deviceIsZeroU ? 0 : (layout.heightU - (device.positionU + device.sizeU - 1)) * BASE_UNIT_HEIGHT;
-                const height = deviceIsZeroU ? rackHeightPx : device.sizeU * BASE_UNIT_HEIGHT;
+                const tray = getSupportingTray(layout, device);
+                const preciseHeight = tray || device.physicalHeightMm !== undefined;
+                const height = deviceIsZeroU ? rackHeightPx : preciseHeight ? deviceBodyHeightMm(device) / U_HEIGHT_MM * BASE_UNIT_HEIGHT : device.sizeU * BASE_UNIT_HEIGHT;
+                const top = deviceIsZeroU ? 0 : (layout.heightU - device.positionU + 1) * BASE_UNIT_HEIGHT - height - (tray ? shelfDeckHeight(tray) / U_HEIGHT_MM * BASE_UNIT_HEIGHT : 0);
                 const visual = deviceVisual(layout, device, rackWidth);
                 const width = deviceIsZeroU ? Math.max(160, visual.width) : visual.width;
                 const left = deviceIsZeroU && width > visual.width
                   ? visual.left - (width - visual.width) / 2
                   : visual.left;
                 const selected = selectedDeviceId === device.id;
+                if (isTrayShelf(device)) return <div key={device.id} data-device-id={device.id} data-device-category="shelf" data-shelf-style="tray"
+                  className="pointer-events-none absolute" style={{ top, left, width, height, zIndex: 4 }}>
+                  <div className={`absolute inset-x-0 bottom-0 border-x-2 ${selected ? 'border-accent' : 'border-content-muted'}`} style={{ height: device.sizeU * BASE_UNIT_HEIGHT }} />
+                  <div role="button" tabIndex={0} aria-label={device.name} title={`${device.name}: thin tray at U${device.positionU}, ${shelfThickness(device)} mm thick`}
+                    className={`pointer-events-auto absolute inset-x-0 cursor-move rounded-sm border ${selected ? 'border-accent bg-accent-solid ring-2 ring-accent/40' : 'border-content-muted bg-fill-strong'}`}
+                    style={{ height: Math.max(5, shelfThickness(device) / U_HEIGHT_MM * BASE_UNIT_HEIGHT), bottom: Math.max(0, device.shelfDeckOffsetMm ?? 0) / U_HEIGHT_MM * BASE_UNIT_HEIGHT }}
+                    onPointerDown={event => startDeviceDrag(event, device)} onClick={event => { event.stopPropagation(); selectDevice(device.id); }}
+                    onKeyDown={event => { if (event.key === 'Enter') { event.stopPropagation(); selectDevice(device.id); } }}>
+                    <span className="absolute right-1 top-full whitespace-nowrap rounded bg-surface px-1 text-[9px] text-content-muted">{device.name} · tray</span>
+                  </div>
+                </div>;
                 const compact = !deviceIsZeroU && height <= 42;
                 const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
                 const template = getTemplateById(device.templateId) ?? templateFromDevice(device);
@@ -820,10 +993,10 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                       selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
                     } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
                     style={{
-                      top: top + 3,
+                      top: top + (preciseHeight ? 0 : 3),
                       left,
                       width,
-                      height: height - 6,
+                      height: preciseHeight ? height : height - 6,
                       background:
                         device.category === 'printed-mount'
                           ? `repeating-linear-gradient(45deg, ${device.color}, ${device.color} 8px, rgba(15, 23, 42, 0.85) 8px, rgba(15, 23, 42, 0.85) 16px)`
@@ -831,7 +1004,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                             ? `linear-gradient(135deg, rgba(15, 23, 42, 0.98), ${device.color}88)`
                             : `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
                       zIndex: deviceIsZeroU ? 5 : undefined,
-                      borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : device.category === 'printed-mount' ? 'dashed' : undefined,
+                      borderStyle: device.lifecycleStatus === 'planned' || device.category === 'printed-mount' || device.mountingSupport === 'printed-mount' ? 'dashed' : undefined,
                       filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
                       ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
                       ...cableHighlightStyle(highlighted),
@@ -847,7 +1020,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                       selectDevice(device.id);
                       setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
                     }}
-                    title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: ${layout.viewSide} view, ${deviceIsZeroU ? '0U (side)' : `${device.sizeU}U at U${device.positionU}`}`}
+                    title={`${device.name}${device.mountingSupport === 'printed-mount' ? ' [3D-printed mount]' : ''}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: ${layout.viewSide} view, ${deviceIsZeroU ? '0U (side)' : `${device.sizeU}U at U${device.positionU}`}`}
                   >
                     {selected && !deviceIsZeroU && (
                       <div
@@ -861,7 +1034,7 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                         style={{ aspectRatio: faceAspect }}
                       >
                         {artifact.kind === 'image' ? (
-                          <img src={artifact.path} alt="" className="pointer-events-none h-full w-full object-contain" />
+                          <img src={resolveFaceplateUrl(artifact.path)} alt="" className="pointer-events-none h-full w-full object-contain" />
                         ) : (
                           <div
                             className="pointer-events-none h-full w-full"
@@ -986,147 +1159,38 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                 );
               })}
 
-              {/* Left 0U rear/side rail */}
-              {sideLeftDevices.length > 0 && (
-                <div
-                  className="absolute top-0 rounded-md border border-accent/30 bg-fill-strong shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-surface/85"
-                  style={{ left: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
-                >
-                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-accent/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-accent/75 dark:text-accent-fg/75">
-                    0U left rail
-                  </div>
-                  {sideLeftDevices.map((device) => {
+              {/* Independent 0U lanes are included in the canvas fit bounds. Rear view mirrors screen sides only. */}
+              {([sideLeftDevices, sideRightDevices] as const).map((devices, screenSide) => devices.length > 0 && (
+                <div key={screenSide} className="absolute top-0 rounded-md border border-edge-strong bg-fill"
+                  style={{ left: screenSide === 0 ? -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP) : rackWidth + SIDE_STRIP_GAP, width: SIDE_STRIP_WIDTH, height: rackHeight }}>
+                  <div className="absolute -top-6 w-full text-center text-xs text-content-muted">0U · {getZeroUEarSide(devices[0])} rail</div>
+                  {devices.map(device => {
+                    const heightMm = zeroUHeightMm(layout, device);
+                    const bottomMm = dragging?.deviceId === device.id ? (dragging.previewU - 1) * U_HEIGHT_MM : zeroUBottomMm(device);
                     const selected = selectedDeviceId === device.id;
-                    const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
-                    return (
-                      <div
-                        key={device.id}
-                        data-device-id={device.id}
-                        data-device-category={device.category}
-                        className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
-                          selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
-                        } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
-                        style={{
-                          top: 3,
-                          left: 0,
-                          width: SIDE_STRIP_WIDTH,
-                          height: rackHeight - 6,
-                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
-                          borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
-                          filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
-                          ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
-                        }}
-                        onPointerDown={(event) => startDeviceDrag(event, device)}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          selectDevice(device.id);
-                        }}
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          selectDevice(device.id);
-                          setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
-                        }}
-                        title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: 0U ${device.mountType ?? 'rear-rail'} (left rail)`}
-                      >
-                        <div className="flex h-full flex-col justify-between overflow-hidden py-1">
-                          <div className="min-w-0">
-                            <div className="rd-n truncate text-xs font-semibold">{device.label || device.name}</div>
-                            {device.category === 'pdu-0u' ? (() => {
-                              const meta = getPdu0uMeta(device, layout);
-                              return (
-                                <>
-                                  <div className="rd-m truncate text-[10px]">
-                                    {meta.used}/{meta.outlets} outlets · {meta.powerBudget}W
-                                  </div>
-                                  <div className="rd-mm truncate text-[9px] font-medium uppercase tracking-[0.1em]">
-                                    Feed {meta.feed} · {device.mountType ?? '0U rail'}
-                                  </div>
-                                </>
-                              );
-                            })() : (
-                              <div className="rd-m truncate text-[10px]">0U rail / {device.powerW}W</div>
-                            )}
-                          </div>
-                          <PortStrip ports={portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, true)} compact={false} />
-                        </div>
+                    const meta = getPdu0uMeta(device, layout);
+                    return <div key={device.id} data-device-id={device.id} data-device-category={device.category}
+                      role="button" tabIndex={0} aria-label={`${device.name}: 0U ${getZeroUEarSide(device)} rail, ${Math.round(heightMm)} mm long`}
+                      className={`absolute select-none rounded border bg-surface p-2 text-content ${selected ? 'border-accent ring-2 ring-accent/40' : 'border-edge-strong'} ${layout.viewSide === 'front' && !selected ? 'opacity-60' : ''}`}
+                      style={{ top: (layout.heightU * U_HEIGHT_MM - bottomMm - heightMm) / U_HEIGHT_MM * BASE_UNIT_HEIGHT,
+                        height: heightMm / U_HEIGHT_MM * BASE_UNIT_HEIGHT, width: SIDE_STRIP_WIDTH }}
+                      onPointerDown={event => startDeviceDrag(event, device)}
+                      onClick={event => { event.stopPropagation(); selectDevice(device.id); }}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectDevice(device.id); } }}
+                      title={`${device.name} · ${Math.round(heightMm)} mm · ${Math.round(bottomMm)} mm above base · ${meta.used}/${meta.outlets} outlets used`}>
+                      <div className="flex h-full min-h-0 flex-col gap-1 overflow-hidden">
+                        <div className="truncate text-xs font-semibold">{device.label || device.name}</div>
+                        <div className="text-[11px] text-content-muted">{Math.round(heightMm)} mm · 0U</div>
+                        {layout.viewSide === 'front' ? <div className="text-xs text-content-muted">Behind rack</div> :
+                          <div className="grid min-h-0 flex-1 gap-1" style={{ gridTemplateRows: `repeat(${Math.max(1, meta.outlets)}, minmax(0, 1fr))` }}>
+                            {Array.from({ length: meta.outlets }, (_, index) => <div key={index} className="flex min-h-0 items-center justify-center gap-2 rounded-sm border border-edge-strong bg-fill-strong text-[10px] text-content-secondary"><span>{index + 1}</span><span aria-hidden="true">▮ ▮</span></div>)}
+                          </div>}
+                        <div className="mt-auto text-[11px] text-content-muted">{Math.round(bottomMm)} mm above base</div>
                       </div>
-                    );
+                    </div>;
                   })}
                 </div>
-              )}
-
-              {/* Right 0U rear/side rail */}
-              {sideRightDevices.length > 0 && (
-                <div
-                  className="absolute top-0 rounded-md border border-accent/30 bg-fill-strong shadow-[0_0_30px_rgba(14,165,233,0.12)] dark:bg-surface/85"
-                  style={{ right: -(SIDE_STRIP_WIDTH + SIDE_STRIP_GAP), width: SIDE_STRIP_WIDTH, height: rackHeight }}
-                >
-                  <div className="pointer-events-none absolute inset-1 rounded border border-dashed border-accent/20" />
-                  <div className="pointer-events-none absolute -top-6 left-0 right-0 text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-accent/75 dark:text-accent-fg/75">
-                    0U right rail
-                  </div>
-                  {sideRightDevices.map((device) => {
-                    const selected = selectedDeviceId === device.id;
-                    const highlighted = highlightedDeviceIdSet.has(device.id) || selectedCableDeviceIds.has(device.id);
-                    return (
-                      <div
-                        key={device.id}
-                        data-device-id={device.id}
-                        data-device-category={device.category}
-                        className={`absolute select-none rounded-md border px-2 shadow-lg transition ${
-                          selected ? 'border-accent ring-2 ring-accent/40 dark:ring-accent/40' : 'border-black/10 dark:border-black/10 dark:border-white/20 hover:border-accent/70 dark:hover:border-accent/70 dark:hover:border-accent/70'
-                        } ${dragging?.deviceId === device.id ? 'opacity-55' : device.lifecycleStatus === 'planned' ? 'opacity-60' : device.lifecycleStatus === 'decommissioning' ? 'opacity-50' : ''}`}
-                        style={{
-                          top: 3,
-                          left: 0,
-                          width: SIDE_STRIP_WIDTH,
-                          height: rackHeight - 6,
-                          background: `linear-gradient(135deg, ${device.color}, rgba(15, 23, 42, 0.96))`,
-                          borderStyle: device.lifecycleStatus === 'planned' ? 'dashed' : undefined,
-                          filter: device.lifecycleStatus === 'decommissioning' ? 'grayscale(0.6)' : undefined,
-                          ...serviceabilityDeviceStyle(serviceabilityOverlay, highlighted),
-                        }}
-                        onPointerDown={(event) => startDeviceDrag(event, device)}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          selectDevice(device.id);
-                        }}
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          selectDevice(device.id);
-                          setContextMenu({ x: event.clientX, y: event.clientY, deviceId: device.id });
-                        }}
-                        title={`${device.name}${device.lifecycleStatus && device.lifecycleStatus !== 'active' ? ` [${device.lifecycleStatus}]` : ''}: 0U ${device.mountType ?? 'rear-rail'} (right rail)`}
-                      >
-                        <div className="flex h-full flex-col justify-between overflow-hidden py-1">
-                          <div className="min-w-0">
-                            <div className="rd-n truncate text-xs font-semibold">{device.label || device.name}</div>
-                            {device.category === 'pdu-0u' ? (() => {
-                              const meta = getPdu0uMeta(device, layout);
-                              return (
-                                <>
-                                  <div className="rd-m truncate text-[10px]">
-                                    {meta.used}/{meta.outlets} outlets · {meta.powerBudget}W
-                                  </div>
-                                  <div className="rd-mm truncate text-[9px] font-medium uppercase tracking-[0.1em]">
-                                    Feed {meta.feed} · {device.mountType ?? '0U rail'}
-                                  </div>
-                                </>
-                              );
-                            })() : (
-                              <div className="rd-m truncate text-[10px]">0U rail / {device.powerW}W</div>
-                            )}
-                          </div>
-                          <PortStrip ports={portsForView(device.ports, layout.viewSide, device.category, device.portFaceOverrides, true)} compact={false} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              ))}
 
               {/* Debug overlay */}
               {debugMode && (
@@ -1276,20 +1340,18 @@ export function RackEditor2D({ layoutOverride, serviceabilityOverlay = false, hi
                 </svg>
               )}
 
-              {dragging && (
+              {placementPreview && feedback && (
                 <div
-                  className="pointer-events-none absolute rounded-md border-2 border-dashed border-accent bg-accent-solid/10 dark:bg-accent/10"
+                  data-testid="device-placement-preview"
+                  data-placement-state={!feedback.allowed ? 'blocked' : feedback.warning ? 'warning' : 'valid'}
+                  data-position-u={placementPreview.positionU}
+                  data-position-x={placementPreview.xMm}
+                  className={`pointer-events-none absolute z-40 rounded-md border-2 border-dashed ${!feedback.allowed ? 'border-red-500 bg-red-500/25' : feedback.warning ? 'border-amber-500 bg-amber-500/20' : 'border-emerald-500 bg-emerald-500/20'}`}
                   style={{
-                    top: (layout.heightU - (dragging.previewU + dragging.sizeU - 1)) * BASE_UNIT_HEIGHT + 3,
-                    left: (dragging.previewX / rackUsable) * rackWidth,
-                    width:
-                      (Math.min(
-                        getDeviceWidthMm(layout.devices.find((device) => device.id === dragging.deviceId) ?? { widthType: layout.rackType, customWidthMm: undefined }),
-                        rackUsable
-                      ) /
-                        rackUsable) *
-                      rackWidth,
-                    height: dragging.sizeU * BASE_UNIT_HEIGHT - 6
+                    top: Math.max(0, (layout.heightU - (placementPreview.positionU + placementPreview.sizeU - 1)) * BASE_UNIT_HEIGHT + 3),
+                    left: ((placementPreview.xMm ?? 0) / rackUsable) * rackWidth,
+                    width: Math.min(getDeviceWidthMm(placementPreview), rackUsable) / rackUsable * rackWidth,
+                    height: Math.min(placementPreview.sizeU, layout.heightU) * BASE_UNIT_HEIGHT - 6,
                   }}
                 />
               )}

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PropertyPanel } from './PropertyPanel';
 import { useRackStore } from '../store/rackStore';
@@ -56,16 +56,30 @@ describe('PropertyPanel selection summary', () => {
     });
   });
 
-  it('keeps selection metadata in its own stacked grid instead of forcing a side-by-side row', () => {
+  it('wraps compact metadata below the device name without squeezing the name', () => {
     render(<PropertyPanel />);
 
     const meta = screen.getByTestId('property-selection-meta');
-    expect(meta).toHaveClass('grid', 'grid-cols-2');
+    expect(meta).toHaveClass('flex', 'flex-wrap');
     expect(meta).not.toHaveClass('shrink-0');
     expect(meta.parentElement).toHaveClass('flex-col');
     expect(screen.getByText('cable-management')).toBeInTheDocument();
     expect(screen.getByText('U19')).toBeInTheDocument();
     expect(screen.getByText('19in')).toBeInTheDocument();
     expect(screen.getByText('front')).toBeInTheDocument();
+  });
+
+  it('lets compact equipment use a printed mount and keeps the chosen model URL', () => {
+    useRackStore.setState({ layout: { ...layout, devices: [{ ...layout.devices[0], category: 'router', widthType: 'shelf', customWidthMm: 150 }] } });
+    render(<PropertyPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dimensions & placement' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Mounting support' }), { target: { value: 'printed-mount' } });
+    expect(screen.getByText('3D-printed mount')).toBeVisible();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Printed mount model URL' }), { target: { value: 'https://example.com/mount' } });
+    expect(useRackStore.getState().layout.devices[0]).toMatchObject({ mountingSupport: 'printed-mount', printedMountUrl: 'https://example.com/mount', category: 'router', widthType: 'shelf' });
+    expect(screen.getByRole('link', { name: 'Open bracket generator ↗' })).toHaveAttribute('href', 'https://leprachuan.github.io/rack-mount-generator/');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Mounting support' }), { target: { value: 'shelf' } });
+    expect(screen.queryByText('3D-printed mount')).not.toBeInTheDocument();
+    expect(useRackStore.getState().layout.devices[0].mountingSupport).toBe('shelf');
   });
 });

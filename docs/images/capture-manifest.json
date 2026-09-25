@@ -1,0 +1,103 @@
+{
+  "capturedAt": "2026-09-18T09:52:45.554Z",
+  "source": "Local Vite working tree, isolated Chromium contexts",
+  "captures": [
+    {
+      "file": "build-2d.png",
+      "description": "Build: bundled 19-inch home cloud, library search and selected switch properties.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "build-3d.png",
+      "description": "Build: 3D overview of the bundled home cloud rack.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "cable-map.png",
+      "description": "Cable: 2D map with the sample data and power connections.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "cable-3d.png",
+      "description": "Cable: rear-angle 3D routing, including actual review states.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "topology.png",
+      "description": "Cable: logical topology of the sample rack.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "check.png",
+      "description": "Check: sample-rack issues and validation overview; warnings are intentionally retained.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "inventory.png",
+      "description": "Build: two example unplaced devices in My devices, separate from installed totals.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "plugins.png",
+      "description": "Tools / Settings: plugin management with optional packs.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "thin-tray.png",
+      "description": "Illustrative 8U fixture: a 52.3 mm Mini PC plus 10 mm clearance shares its starting U with a thin tray.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "zero-u-pdu.png",
+      "description": "Bundled home cloud plus a catalog 0U PDU, viewed from the rear angle.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "draw-route.png",
+      "description": "Illustrative two-server fixture: route draft through two existing channel points, with endpoint/length preview.",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    {
+      "file": "tablet.png",
+      "description": "900px tablet layout using the bundled 10-inch edge lab.",
+      "viewport": {
+        "width": 900,
+        "height": 1100
+      }
+    }
+  ],
+  "pageErrors": []
+}

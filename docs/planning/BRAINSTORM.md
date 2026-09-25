@@ -1,5 +1,7 @@
 # BRAINSTORM.md — Homelab Rack Simulator: Ideas, Moonshots & Fun
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../dev/ARCHITECTURE.md) and [documentation index](../README.md) for present behavior. This document does not authorize new implementation.
+
 > ⚠️ **This file is for brainstorming and entertainment only.**
 > Agents should NOT implement items from this file unless explicitly asked.
 > For production-ready tasks, see "TASKS.md".

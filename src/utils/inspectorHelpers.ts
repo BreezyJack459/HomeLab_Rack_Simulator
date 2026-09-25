@@ -1,22 +1,28 @@
 import type { AppWorkspace, AuditLens } from '../types/appShell';
 import type { ValidationIssue } from '../types/rack';
-import { WORKSPACE_META } from '../types/panelRegistry';
+
+export type WorkspaceMetaLike = {
+  title: string;
+  description: string;
+};
 
 export function getInspectorTitle(
   currentWorkspace: AppWorkspace,
-  selectedIssue: ValidationIssue | null
+  selectedIssue: ValidationIssue | null,
+  workspaceMeta: WorkspaceMetaLike
 ): string {
   if (currentWorkspace === 'audit' && selectedIssue) {
     return selectedIssue.title;
   }
-  return WORKSPACE_META[currentWorkspace].title;
+  return workspaceMeta.title;
 }
 
 export function getInspectorDescription(
   currentWorkspace: AppWorkspace,
   currentAuditLens: AuditLens,
   hasSelection: boolean,
-  selectedIssue: ValidationIssue | null
+  selectedIssue: ValidationIssue | null,
+  workspaceMeta: WorkspaceMetaLike
 ): string {
   if (currentWorkspace === 'model') {
     return hasSelection
@@ -43,5 +49,5 @@ export function getInspectorDescription(
     return 'Start with the issue queue, then open deeper checks only when you need them.';
   }
 
-  return WORKSPACE_META[currentWorkspace].description;
+  return workspaceMeta.description;
 }

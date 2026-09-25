@@ -1,5 +1,7 @@
 # Auto-wire Cables — Design Spec
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Goal
 Add a one-click **Auto-wire** button to the Cable Planner that generates sensible cable routes for the current rack layout.
 

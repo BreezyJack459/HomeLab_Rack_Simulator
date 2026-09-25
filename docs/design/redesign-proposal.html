@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RackSim Workspace Redesign — Proposal v2</title>
+<style>
+  :root{--bg:#07101e;--panel:#0c1728;--panel2:#111f33;--edge:#26364d;--text:#e8eef7;--muted:#91a1b7;--faint:#65758e;--cyan:#22c4e7;--cyan-dim:#0d3340;--green:#35c78a;--amber:#f4b632;--red:#ef6b6b;--violet:#9b72f2;--orange:#f28b2c;--blue:#5b8cff}
+  *{box-sizing:border-box}html{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}body{margin:0}a{color:var(--cyan)}
+  .page{max-width:1280px;margin:auto;padding:54px 32px 90px}.kicker{color:var(--cyan);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}.hero h1{max-width:900px;margin:12px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.045em}.lead{max-width:880px;margin:0;color:var(--muted);font-size:17px;line-height:1.65}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.badge{padding:6px 9px;border:1px solid var(--edge);border-radius:7px;background:var(--panel);color:var(--muted);font-size:12px}.badge.accent{border-color:#17687a;background:var(--cyan-dim);color:#8be8f4}
+  section{margin-top:72px}h2{margin:0 0 10px;font-size:28px;letter-spacing:-.025em}h3{margin:0 0 8px;font-size:17px}.sub{max-width:850px;margin:0 0 24px;color:var(--muted);line-height:1.6}.rule{height:1px;background:linear-gradient(90deg,var(--edge),transparent);margin:24px 0}
+  .decision{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.card{border:1px solid var(--edge);border-radius:12px;background:var(--panel);padding:20px}.card p{color:var(--muted);line-height:1.55}.card ul{margin:12px 0 0;padding-left:18px;color:var(--muted);line-height:1.65}.strong{color:var(--text);font-weight:700}.ok{color:var(--green)}.warn{color:var(--amber)}
+  .shell{overflow:hidden;border:1px solid var(--edge);border-radius:14px;background:#081321;box-shadow:0 22px 60px rgba(0,0,0,.34)}.global{height:52px;display:flex;align-items:center;gap:22px;padding:0 16px;border-bottom:1px solid var(--edge);background:#091426}.brand{font-weight:800}.nav{display:flex;align-self:stretch;gap:22px}.nav span{display:flex;align-items:center;border-bottom:3px solid transparent;color:var(--muted);font-size:12px}.nav .on{border-color:var(--cyan);color:var(--text);font-weight:700}.search{margin-left:auto;border:1px solid var(--edge);border-radius:8px;padding:8px 12px;color:var(--faint);font-size:11px}.local{height:48px;display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid var(--edge);background:#0b1627}.health{padding:6px 9px;border:1px solid #715b26;border-radius:7px;background:#211c10;color:#ffd36a;font-size:10px}.metrics{color:var(--muted);font-size:10px}.views{display:flex;gap:2px;margin-left:auto;padding:3px;border-radius:8px;background:#111f33}.views span{padding:7px 12px;border-radius:6px;color:var(--muted);font-size:10px}.views .on{background:var(--cyan);color:#06131d;font-weight:700}.body{height:490px;display:grid;grid-template-columns:48px 1fr 320px}.tools{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0;border-right:1px solid var(--edge)}.tool{width:31px;height:31px;display:grid;place-items:center;border-radius:7px;color:var(--faint)}.tool.on{background:var(--cyan-dim);color:var(--cyan)}.canvas{position:relative;display:grid;place-items:center;background:radial-gradient(circle at center,#13263a,#07111d 72%)}.rack-mini{width:54%;height:82%;padding:12px;border:5px solid #324259;background:#111d2d;box-shadow:22px 24px 38px rgba(0,0,0,.3)}.dev{height:7%;margin-bottom:5px;padding:5px 7px;border-left:4px solid #62748b;background:#152239;color:#dfeaf5;font-size:8px}.dev.c{border-color:var(--cyan)}.dev.b{border-color:var(--blue)}.dev.v{border-color:var(--violet)}.dev.o{height:26%;border-color:var(--orange)}.inspector{border-left:1px solid var(--edge);background:#0a1525}.ins-h{padding:16px;border-bottom:1px solid var(--edge)}.ins-title{font-weight:700}.facts{margin-top:7px;color:var(--muted);font-size:9px}.tabs{display:flex;gap:17px;padding:13px 15px;border-bottom:1px solid var(--edge);color:var(--muted);font-size:9px}.tabs .on{color:var(--text)}.form{padding:15px}.field{margin-bottom:12px}.field label{display:block;margin-bottom:5px;color:var(--muted);font-size:9px}.input{padding:10px;border:1px solid var(--edge);border-radius:7px;background:#0d192a;font-size:10px}
+  .principles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.principle{border-top:2px solid var(--cyan);padding:15px 2px}.principle p{margin:0;color:var(--muted);line-height:1.55;font-size:13px}
+  .visual{overflow:hidden;border:1px solid var(--edge);border-radius:14px;background:#050b13}.visual img{display:block;width:100%;height:auto}.visual-cap{padding:12px 15px;border-top:1px solid var(--edge);color:var(--muted);font-size:12px}.visual-cap b{color:var(--text)}
+  .spec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.spec{border:1px solid var(--edge);border-radius:10px;background:var(--panel);padding:17px}.spec p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}.spec code{color:#87dff0}
+  .matrix{overflow:hidden;border:1px solid var(--edge);border-radius:12px}table{width:100%;border-collapse:collapse;background:var(--panel)}th,td{padding:13px 15px;border-bottom:1px solid var(--edge);text-align:left;vertical-align:top;font-size:12px;line-height:1.45}th{background:var(--panel2);color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}tr:last-child td{border-bottom:0}.status{white-space:nowrap;color:var(--cyan)}
+  .states{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.state{padding:14px;border:1px solid var(--edge);border-radius:9px;background:var(--panel)}.state b{display:block;margin-bottom:5px;font-size:12px}.state span{color:var(--muted);font-size:11px;line-height:1.45}
+  .phases{display:grid;gap:11px}.phase{display:grid;grid-template-columns:95px 1fr 150px;gap:16px;align-items:start;padding:16px;border-left:3px solid var(--cyan);background:var(--panel)}.phase-id{color:var(--cyan);font-size:12px;font-weight:700}.phase p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}.gate{color:var(--green);font-size:11px}
+  .accept{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.accept li{margin-bottom:8px;color:var(--muted);font-size:13px;line-height:1.45}.foot{margin-top:72px;padding-top:20px;border-top:1px solid var(--edge);color:var(--faint);font-size:11px;line-height:1.6}
+  @media(max-width:900px){.decision,.principles,.spec-grid,.accept{grid-template-columns:1fr}.states{grid-template-columns:repeat(2,1fr)}.body{grid-template-columns:42px 1fr}.inspector{display:none}.metrics,.search{display:none}.phase{grid-template-columns:80px 1fr}.gate{grid-column:2}.hero h1{font-size:36px}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="kicker">Design proposal · v2 · August 2026</div>
+    <h1>RackSim workspace redesign</h1>
+    <p class="lead">A focused rack-building workspace with two control layers, a larger canvas, contextual inspection, and a 3D cable renderer that follows managed real-world paths while preserving RackSim's plain-color visual language.</p>
+    <div class="meta"><span class="badge accent">Decision-ready</span><span class="badge">Shell + 2D + Cables + 3D</span><span class="badge">Feature-flag rollout</span><span class="badge">No rack data migration</span></div>
+  </header>
+
+  <section>
+    <h2>1. Decision summary</h2>
+    <p class="sub">The redesign keeps RackSim's existing data and workflow model. It reorganizes the shell, then adds a bounded set of cable and 3D capabilities. This proposal separates those two scopes so implementation estimates remain honest.</p>
+    <div class="decision">
+      <article class="card"><h3>Approved direction</h3><ul><li>Use one global bar and one canvas bar. Never allow a third permanent toolbar row.</li><li>Give the rack canvas the remaining space; collapse the inspector when needed.</li><li>Use tabs for device, cable, and port context instead of stacked panels.</li><li>Keep every 3D cable route visible by default. Selection adds emphasis; it does not hide context.</li><li>Route cables like a managed physical build, but render them as plain-color tubes, not photorealistic cable jackets.</li></ul></article>
+      <article class="card"><h3>Non-goals</h3><ul><li>Do not use generated concept art as a runtime texture or source of device truth.</li><li>Do not replace the existing rack geometry, port positions, device labels, or stored routes.</li><li>Do not introduce a physics simulation.</li><li>Do not force plugin workflows into the core shell.</li><li>Do not delete persisted plugin data when a plugin is disabled.</li></ul></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Final shell direction</h2>
+    <p class="sub">The shell exposes two conceptual axes in two places: the global bar answers “which job?”, while the canvas bar answers “how am I viewing this rack?”</p>
+    <div class="shell" role="img" aria-label="Proposed two-level RackSim shell">
+      <div class="global"><span class="brand">▦ RackSim</span><div class="nav"><span class="on">Build</span><span>Check</span><span>Ops</span><span>Plan</span><span>Fleet</span></div><span class="search">⌕ Search anything… ⌘K</span></div>
+      <div class="local"><b>My On-hand Gear</b><span class="health">● Health · 1 warning</span><span class="metrics">Power 402/900 W · Weight 38/60 kg</span><div class="views"><span class="on">2D</span><span>3D</span><span>Cables</span></div><span>Front</span><span>•••</span></div>
+      <div class="body"><aside class="tools"><span class="tool on">▤</span><span class="tool">⌁</span><span class="tool">☷</span><span class="tool">▥</span></aside><div class="canvas"><div class="rack-mini"><div class="dev c">24-port patch panel</div><div class="dev">Front cable manager</div><div class="dev b">UniFi UCG-Max · Flex 2.5G</div><div class="dev">Shelf</div><div class="dev v">Minisforum UM790 Pro</div><div class="dev">Shelf</div><div class="dev o">寶藏盒 Pro NAS</div></div></div><aside class="inspector"><div class="ins-h"><div class="ins-title">24-port patch panel</div><div class="facts">PATCH PANEL · U18 · FRONT</div></div><div class="tabs"><span class="on">Properties</span><span>Cables 15</span><span>Ports 24</span></div><div class="form"><div class="field"><label>Name</label><div class="input">24-port patch panel</div></div><div class="field"><label>Position</label><div class="input">U18 · 1U</div></div><div class="field"><label>Connection status</label><div class="input">15 connected · 9 available</div></div></div></aside></div>
+    </div>
+    <div class="principles"><div class="principle"><h3>Two rows maximum</h3><p>At narrower widths, health details collapse before controls wrap. The shell never recreates the old three-row chrome.</p></div><div class="principle"><h3>Fewer pills</h3><p>Tabs represent navigation, segmented controls represent mutually exclusive views, buttons represent actions, and chips represent status.</p></div><div class="principle"><h3>Canvas first</h3><p>The inspector collapses, resizes, or becomes a drawer. The rack fits available width instead of remaining small inside empty canvas space.</p></div></div>
+  </section>
+
+  <section>
+    <h2>3. 2D workspace</h2>
+    <div class="spec-grid"><article class="spec"><h3>Rack canvas</h3><p>Default to fit-width at 70–80% of usable canvas. Keep one strong selection outline, category accents, and lighter shelf treatment. Reduce the secondary U scale and expose the outline view on demand.</p></article><article class="spec"><h3>Inspector</h3><p>Use Properties, Cables, and Ports tabs. Keep the header compact. Move destructive actions into an overflow menu and show explicit saved or unsaved state.</p></article><article class="spec"><h3>Health</h3><p>Show one warning summary at medium widths. A click opens the matching Check lens. Missing budgets display “Not configured”; they never appear healthy by default.</p></article><article class="spec"><h3>Device library</h3><p>Open as a temporary drawer or slide-over. Closing it returns the space to the rack. On touch layouts, use a bottom sheet.</p></article></div>
+  </section>
+
+  <section>
+    <h2>4. Cable workspace</h2>
+    <p class="sub">Map, 3D routing, and Table share selection and filters. Each mode changes the visualization, not the surrounding shell or the cable-first inspector.</p>
+    <div class="spec-grid"><article class="spec"><h3>Persistent type visibility</h3><p>Show every used cable type with count and visibility. Move zero-count types into an “Unused” group. On narrow screens, collapse the rail into a small drawer.</p></article><article class="spec"><h3>Cable-first inspection</h3><p>Show endpoints, ports, route length, stocked length, label, lifecycle state, and notes. Device properties remain available through a direct jump, not as the default cable context.</p></article><article class="spec"><h3>Focus policy</h3><p>Default to <code>all</code>: every cable remains visible. Selection adds width or halo only. Dim and Hide are explicit user actions, never automatic side effects.</p></article><article class="spec"><h3>Actionable warnings</h3><p>Place length and routing warnings on the route and in the inspector. Offer the recommended stocked length and a safe route recalculation where possible.</p></article></div>
+  </section>
+
+  <section>
+    <h2>5. 3D cable routing: final visual direction</h2>
+    <p class="sub">This concept captures cable organization and material treatment only. Runtime geometry, device labels, endpoints, and route count come from RackSim's stored layout. Generated labels in the concept are not product data.</p>
+    <figure class="visual"><img src="3d-cable-routing-plain-concept.png" alt="Concept showing managed real-world cable paths rendered as plain-color 3D tubes"><figcaption class="visual-cap"><b>Target:</b> all routes visible; managed bends, service loops, tray separation, and bundling; plain solid colors with minimal shading.</figcaption></figure>
+    <div class="spec-grid" style="margin-top:16px"><article class="spec"><h3>Path geometry</h3><p>Use true port endpoints, horizontal managers, deterministic tray lanes, realistic bend radii, small unsupported-segment sag, and service loops near dense patch areas. Data and power use separate channels.</p></article><article class="spec"><h3>Visual material</h3><p>Render each route as a smooth, constant-radius <code>TubeGeometry</code> with solid type color, roughness near 1, metalness 0, and minimal emissive lift. Avoid textures, glossy rubber, braiding, and photographic detail.</p></article><article class="spec"><h3>All-route visibility</h3><p>Render one tube per stored cable, including bundle members. A bundle shares a trunk but keeps deterministic parallel lane offsets. “Collapse bundles” may exist as a performance option, not the default.</p></article><article class="spec"><h3>Selection</h3><p>Keep the selected route at its normal color and add a restrained halo or 1.25× outline. Other routes retain their colors and opacity. Follow Route animates the camera without changing visibility.</p></article></div>
+  </section>
+
+  <section>
+    <h2>6. Capability and scope matrix</h2>
+    <div class="matrix"><table><thead><tr><th>Capability</th><th>Current foundation</th><th>Required work</th><th>Scope</th></tr></thead><tbody>
+      <tr><td>Two-level shell</td><td>Workspace switcher, canvas header, feature flag</td><td>Enforce hierarchy, responsive collapse, remove duplicate chrome</td><td class="status">Reorganization</td></tr>
+      <tr><td>Health summary</td><td>Rack totals and health strip exist</td><td>Action links, missing-budget state, typed heat issues</td><td class="status">Extension</td></tr>
+      <tr><td>Tabbed inspector</td><td>Property and cable panels exist</td><td>Shared selection contract and tab composition</td><td class="status">Reorganization</td></tr>
+      <tr><td>Managed 3D paths</td><td>Port endpoints, CatmullRom curves, sag, patch loops, rail lanes</td><td>Deterministic lane allocation, collision checks, refined service loops</td><td class="status">New behavior</td></tr>
+      <tr><td>Plain cable tubes</td><td>TubeGeometry and per-type colors exist</td><td>New material preset and restrained selection halo</td><td class="status">Refinement</td></tr>
+      <tr><td>All cables visible</td><td>Routes already map from layout cables</td><td>Remove automatic 20% muting/hiding and default bundle collapse</td><td class="status">Behavior change</td></tr>
+      <tr><td>3D camera presets</td><td>Smooth camera rig exists</td><td>Front, Rear, ISO, Top, Reset controls</td><td class="status">New control</td></tr>
+      <tr><td>Follow Route</td><td>Curves provide a path</td><td>Camera traversal, reduced-motion alternative, cancel/reset</td><td class="status">New feature</td></tr>
+      <tr><td>Export center</td><td>BOM and CSV exports exist</td><td>Adapter contract for PDF, draw.io, Visio, Excalidraw</td><td class="status">Roadmap</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section>
+    <h2>7. Responsive, accessibility, and states</h2>
+    <div class="states"><div class="state"><b>≥1440 px</b><span>Full health details, fixed inspector, expanded cable rail.</span></div><div class="state"><b>1024–1439 px</b><span>Health collapses to one summary; inspector remains resizable.</span></div><div class="state"><b>768–1023 px</b><span>Inspector becomes an overlay drawer; cable rail collapses.</span></div><div class="state"><b>&lt;768 px</b><span>Canvas first; drawers and bottom sheets replace fixed side panels.</span></div></div>
+    <div class="accept" style="margin-top:18px"><article class="card"><h3>Accessibility</h3><ul><li>Keyboard access to rack items, cables, view modes, and inspector tabs.</li><li>Text and icon backup for every color-coded state.</li><li>Correct tab semantics and a screen-reader outline of rack contents.</li><li>Reduced-motion alternatives for auto-rotate and Follow Route.</li><li>Minimum 44 px touch targets on touch layouts.</li></ul></article><article class="card"><h3>Required states</h3><ul><li>Empty rack, empty cable set, no selection, and filtered-to-zero.</li><li>3D loading, WebGL context loss, recovery, and unsupported GPU.</li><li>Unsaved edits, save failure, delete confirmation, and undo.</li><li>Missing power or weight budget and incomplete device metadata.</li><li>Plugin disabled, unavailable, incompatible, or awaiting approval.</li></ul></article></div>
+  </section>
+
+  <section>
+    <h2>8. Plugin and persistence contract</h2>
+    <div class="spec-grid"><article class="spec"><h3>Contribution points</h3><p>Workspaces enter global navigation, view modes enter the canvas switcher, contextual actions enter overflow, and plugin inspector content enters declared tabs or panels.</p></article><article class="spec"><h3>Overflow rules</h3><p>Core 2D, 3D, and Cables remain visible. Additional plugin modes move into More after the available width or mode count is exceeded.</p></article><article class="spec"><h3>Data preservation</h3><p>Disabling a plugin hides its workflow. It does not delete stored labels, aliases, routes, or user settings. Re-enabling restores the workflow against existing data.</p></article><article class="spec"><h3>Context entry</h3><p>Port Labels remains optional but gains a contextual entry from the Ports tab. Export formats register through adapters instead of separate hard-coded buttons.</p></article></div>
+  </section>
+
+  <section>
+    <h2>9. Delivery plan</h2>
+    <div class="phases"><div class="phase"><div class="phase-id">Phase 1</div><p>Stabilize the two-level shell, responsive hierarchy, rack fit, inspector tabs, and health summary.</p><div class="gate">Gate: named routes pass at desktop and tablet widths</div></div><div class="phase"><div class="phase-id">Phase 2</div><p>Ship the cable-first inspector, permanent type visibility, explicit focus modes, warnings, and shared Map/3D/Table state.</p><div class="gate">Gate: 18 routes remain selectable and visible</div></div><div class="phase"><div class="phase-id">Phase 3</div><p>Replace the old 3D cable presentation with managed paths and plain tube materials. Expand bundle members by default.</p><div class="gate">Gate: route geometry and GPU budget pass</div></div><div class="phase"><div class="phase-id">Phase 4</div><p>Add camera presets, layers, depth checks, Follow Route, reduced-motion behavior, and recovery feedback.</p><div class="gate">Gate: browser QA and accessibility pass</div></div><div class="phase"><div class="phase-id">Phase 5</div><p>Add installation workflow, cable lifecycle, actionable fixes, and extensible export adapters.</p><div class="gate">Gate: separate product specification</div></div></div>
+  </section>
+
+  <section>
+    <h2>10. Acceptance criteria</h2>
+    <div class="accept"><article class="card"><h3>Product and visual</h3><ul><li>The shell uses at most two permanent horizontal rows at every supported width.</li><li>The rack occupies at least 70% of usable 2D canvas width after fit.</li><li>Selection survives 2D, 3D, Cables, and Table switches.</li><li>Every stored cable produces an individual selectable route by default.</li><li>Selecting one cable leaves all other cables visible and identifiable.</li><li>3D cables use solid colors and managed physical paths without photorealistic textures.</li></ul></article><article class="card"><h3>Engineering and quality</h3><ul><li>Curve endpoints match canonical port world positions.</li><li>Lane assignment is deterministic and separates power from data.</li><li>No route contains NaN values or crosses known device volumes.</li><li>42U/60-route and 100-route fixtures meet the agreed frame-rate budget.</li><li>Tests, cable smoke checks, plugin tests, build, bundle guard, and diff checks pass.</li><li>The feature flag preserves a rollback path until browser QA completes.</li></ul></article></div>
+  </section>
+
+  <section>
+    <h2>11. Verification commands</h2>
+    <div class="card"><code>npm test<br>npm run smoke:cables<br>npm run test:plugins<br>npm run build<br>node scripts/check-bundle-size.mjs<br>git diff --check</code><p>Browser QA must cover 18-route, 42U/60-route, dense patch-panel, 0U PDU, front/rear mixed-face, and weak-GPU fixtures. Revalidate the current bundle budget before implementation; prior measurements left almost no eager headroom.</p></div>
+  </section>
+
+  <footer class="foot">Proposal v2 supersedes the original visual proposal. It records the final design decisions reached during review: two-level chrome, canvas-first layout, contextual inspection, explicit scope, all-route 3D visibility, managed cable geometry, and plain-color cable materials. No application code is changed by this document.</footer>
+</main>
+</body>
+</html>

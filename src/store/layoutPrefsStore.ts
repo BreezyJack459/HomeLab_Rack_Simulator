@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { defaultEnabledPluginIds } from '../plugins/builtInPlugins';
+import {
+  builtInPackPluginIds,
+  defaultEnabledPluginIds,
+} from '../plugins/builtInPlugins';
 
 const STORAGE_KEY = 'homelab-rack-simulator-layout-prefs';
 
@@ -33,7 +36,9 @@ function writePrefs(prefs: LayoutPrefs) {
 }
 
 interface LayoutPrefsState extends LayoutPrefs {
+  deviceLibraryDrawerOpen: boolean;
   setDeviceLibraryOpen: (open: boolean) => void;
+  setDeviceLibraryDrawerOpen: (open: boolean) => void;
   toggleDeviceLibrary: () => void;
   setInspectorOpen: (open: boolean) => void;
   toggleInspector: () => void;
@@ -47,6 +52,21 @@ interface LayoutPrefsState extends LayoutPrefs {
 
 const saved = readPrefs();
 
+// Fresh installs get the default set (workspace packs off). Returning users
+// already have a saved list — append any built-in workspace packs they are
+// missing so the operate/plan/portfolio workspaces don't silently disappear.
+function resolveEnabledPluginIds(savedIds: string[] | undefined): string[] {
+  if (!savedIds) {
+    return defaultEnabledPluginIds;
+  }
+  const missingPackIds = builtInPackPluginIds.filter(
+    (pluginId) => !savedIds.includes(pluginId),
+  );
+  return missingPackIds.length > 0
+    ? [...savedIds, ...missingPackIds]
+    : savedIds;
+}
+
 function snapshot(state: LayoutPrefs): LayoutPrefs {
   return {
     deviceLibraryOpen: state.deviceLibraryOpen,
@@ -59,11 +79,12 @@ function snapshot(state: LayoutPrefs): LayoutPrefs {
 }
 
 export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
-  deviceLibraryOpen: saved.deviceLibraryOpen ?? false,
+  deviceLibraryOpen: saved.deviceLibraryOpen ?? true,
+  deviceLibraryDrawerOpen: false,
   inspectorOpen: saved.inspectorOpen ?? true,
   rackSummaryOpen: saved.rackSummaryOpen ?? false,
   bottomTrayOpen: saved.bottomTrayOpen ?? false,
-  enabledPluginIds: saved.enabledPluginIds ?? defaultEnabledPluginIds,
+  enabledPluginIds: resolveEnabledPluginIds(saved.enabledPluginIds),
   approvedLocalPluginIds: saved.approvedLocalPluginIds ?? [],
 
   setDeviceLibraryOpen: (open) =>
@@ -73,8 +94,16 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
       return { deviceLibraryOpen: open };
     }),
 
+  setDeviceLibraryDrawerOpen: (open) => set({ deviceLibraryDrawerOpen: open }),
+
   toggleDeviceLibrary: () =>
     set((state) => {
+      const isDrawer = typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(max-width: 1023px)').matches;
+      if (isDrawer) {
+        return { deviceLibraryDrawerOpen: !state.deviceLibraryDrawerOpen };
+      }
       const open = !state.deviceLibraryOpen;
       const next = { ...snapshot(state), deviceLibraryOpen: open };
       writePrefs(next);

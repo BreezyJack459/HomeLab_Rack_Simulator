@@ -24,6 +24,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Local visual QA captures and exported rack layouts
+/artifacts/3d-usability/
+/artifacts/cable-fix/
+/artifacts/recovery-validation/
+/artifacts/zero-u-pdu/
+/usub-fsr22u-v3-*.json
+
 # Local environment and secrets
 .env
 .env.*
@@ -38,6 +45,7 @@ pnpm-debug.log*
 *.swo
 
 # Local agent and handoff files
+/.worktrees/
 /.claude
 /.codex
 /.kimi

@@ -1,5 +1,7 @@
 # Cable Port Selection Redesign — First Principles Analysis
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## 1. 核心結論（由第一性原則推導）
 
 ### 1.1 已鎖定嘅設計方向

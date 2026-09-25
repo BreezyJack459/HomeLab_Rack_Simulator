@@ -8,18 +8,8 @@ import {
   Server,
   Trash2,
 } from 'lucide-react';
-import type { RackLayout, RackType, Workspace } from '../types/rack';
-
-interface WorkspaceManagerProps {
-  workspace: Workspace;
-  currentRackId: string;
-  onSwitchRack: (rackId: string) => void;
-  onCreateRack: (name: string) => void;
-  onDeleteRack: (rackId: string) => void;
-  onDuplicateRack: (rackId: string, newName: string) => void;
-  onRenameRack: (rackId: string, name: string) => void;
-  onRenameWorkspace: (name: string) => void;
-}
+import { useRackStore } from '../store/rackStore';
+import type { RackLayout, RackType } from '../types/rack';
 
 type HealthStatus = 'good' | 'warning' | 'critical';
 
@@ -41,16 +31,15 @@ const RACK_TYPE_LABEL: Record<RackType, string> = {
   '19in': '19″',
 };
 
-function WorkspaceManager({
-  workspace,
-  currentRackId,
-  onSwitchRack,
-  onCreateRack,
-  onDeleteRack,
-  onDuplicateRack,
-  onRenameRack,
-  onRenameWorkspace,
-}: WorkspaceManagerProps) {
+function WorkspaceManager() {
+  const workspace = useRackStore((state) => state.workspace);
+  const currentRackId = useRackStore((state) => state.currentRackId);
+  const switchRack = useRackStore((state) => state.switchRack);
+  const createRack = useRackStore((state) => state.createRack);
+  const deleteRack = useRackStore((state) => state.deleteRack);
+  const duplicateRack = useRackStore((state) => state.duplicateRack);
+  const renameRack = useRackStore((state) => state.renameRack);
+  const renameWorkspace = useRackStore((state) => state.renameWorkspace);
   const [editingName, setEditingName] = useState(false);
   const [workspaceNameInput, setWorkspaceNameInput] = useState(workspace.name);
 
@@ -121,12 +110,12 @@ function WorkspaceManager({
   const handleSaveWorkspaceName = useCallback(() => {
     const trimmed = workspaceNameInput.trim();
     if (trimmed) {
-      onRenameWorkspace(trimmed);
+      renameWorkspace(trimmed);
     } else {
       setWorkspaceNameInput(workspace.name);
     }
     setEditingName(false);
-  }, [workspaceNameInput, workspace.name, onRenameWorkspace]);
+  }, [workspaceNameInput, workspace.name, renameWorkspace]);
 
   const handleOpenCreate = useCallback(() => {
     setNewRackName(`Rack ${workspace.racks.length + 1}`);
@@ -138,27 +127,27 @@ function WorkspaceManager({
   const handleCreateSubmit = useCallback(() => {
     const trimmed = newRackName.trim();
     if (trimmed) {
-      onCreateRack(trimmed);
+      createRack(trimmed, newRackType, newRackHeight);
     }
     setCreateOpen(false);
-  }, [newRackName, onCreateRack]);
+  }, [newRackName, newRackType, newRackHeight, createRack]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (deleteTarget) {
-      onDeleteRack(deleteTarget.rackId);
+      deleteRack(deleteTarget.rackId);
       setDeleteTarget(null);
     }
-  }, [deleteTarget, onDeleteRack]);
+  }, [deleteTarget, deleteRack]);
 
   const handleRenameSave = useCallback(() => {
     if (renameTarget) {
       const trimmed = renameInput.trim();
       if (trimmed) {
-        onRenameRack(renameTarget.rackId, trimmed);
+        renameRack(renameTarget.rackId, trimmed);
       }
       setRenameTarget(null);
     }
-  }, [renameInput, renameTarget, onRenameRack]);
+  }, [renameInput, renameTarget, renameRack]);
 
   const openRename = useCallback((rack: RackLayout) => {
     setRenameTarget({ rackId: rack.id, name: rack.name });
@@ -167,9 +156,9 @@ function WorkspaceManager({
   }, []);
 
   const openDuplicate = useCallback((rack: RackLayout) => {
-    onDuplicateRack(rack.id, `${rack.name} Copy`);
+    duplicateRack(rack.id, `${rack.name} Copy`);
     setContextMenu(null);
-  }, [onDuplicateRack]);
+  }, [duplicateRack]);
 
   const openDelete = useCallback((rack: RackLayout) => {
     setDeleteTarget({ rackId: rack.id, name: rack.name });
@@ -253,7 +242,7 @@ function WorkspaceManager({
               <div key={rack.id} className="relative shrink-0">
                 <button
                   type="button"
-                  onClick={() => onSwitchRack(rack.id)}
+                  onClick={() => switchRack(rack.id)}
                   onContextMenu={(e) => handleContextMenu(e, rack.id)}
                   className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                     isActive
@@ -549,4 +538,3 @@ function WorkspaceManager({
 }
 
 export { WorkspaceManager };
-export type { WorkspaceManagerProps };

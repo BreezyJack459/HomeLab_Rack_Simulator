@@ -1,5 +1,7 @@
 # Cable Endpoint & Routing Fix (2026-05-04)
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](dev/ARCHITECTURE.md) and [documentation index](README.md) for present behavior. This document does not authorize new implementation.
+
 ## Problem Summary
 
 Power cables were connecting to the wrong positions on devices — appearing to attach to the flat device surface rather than to specific outlet ports. Three root causes were identified and fixed.

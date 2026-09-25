@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, FolderKanban, Monitor, Network, Wrench } from 'lucide-react';
-import type { AppPanelId, AppWorkspace, AuditLens, OperateLens, PanelPlacement, PanelRegistryItem, PlanLens, PortfolioLens } from './appShell';
+import { AlertTriangle, Monitor } from 'lucide-react';
+import type { AppPanelId, AuditLens, PanelPlacement, PanelRegistryItem } from './appShell';
 
 // ── Panel Registry ──────────────────────────────────────────────────────────
 
@@ -9,6 +9,7 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
   { id: 'property', title: 'Properties', workspace: 'model', priority: 10, defaultPlacement: 'inspector' },
   { id: 'port-reservation', title: 'Port Reservations', workspace: 'model', priority: 30, selectionRequired: true, defaultPlacement: 'inspector' },
   { id: 'port-speed', title: 'Port Speeds', workspace: 'model', priority: 40, selectionRequired: true, defaultPlacement: 'inspector' },
+  { id: 'plugin-manager', title: 'Plugin Manager', workspace: 'model', priority: 50, defaultPlacement: 'inspector' },
 
   // Audit
   { id: 'rack-health', title: 'Rack Health', workspace: 'audit', priority: 10, defaultPlacement: 'main' },
@@ -64,38 +65,26 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
   { id: 'portfolio-export', title: 'Portfolio Export', workspace: 'portfolio', priority: 50, defaultPlacement: 'main' },
   { id: 'dcim-import', title: 'DCIM Import', workspace: 'portfolio', priority: 60, defaultPlacement: 'main' },
   { id: 'rack-photo', title: 'Rack Photos', workspace: 'portfolio', priority: 70, defaultPlacement: 'inspector' },
-  { id: 'plugin-manager', title: 'Plugin Manager', workspace: 'portfolio', priority: 75, defaultPlacement: 'inspector' },
   { id: 'policy-rules', title: 'Policy Rules', workspace: 'portfolio', priority: 80, defaultPlacement: 'inspector' },
   { id: 'homelab-guide', title: 'Homelab Guide', workspace: 'portfolio', priority: 90, defaultPlacement: 'inspector' },
 ];
 
 // ── Workspace Metadata ──────────────────────────────────────────────────────
 
-export const WORKSPACE_META: Record<AppWorkspace, { title: string; description: string; icon: ReactNode }> = {
+export type CoreWorkspace = 'model' | 'audit';
+
+// Core workspaces are always available; operate/plan/portfolio metadata lives
+// in the built-in pack plugins that contribute those workspaces.
+export const WORKSPACE_META: Record<CoreWorkspace, { title: string; description: string; icon: ReactNode }> = {
   model: {
     title: 'Build rack',
     description: 'Place devices, connect cables and keep the rack canvas front and center.',
     icon: <Monitor size={16} />,
   },
-  operate: {
-    title: 'Run operations',
-    description: 'Track day-to-day operational records like assets, maintenance, firmware and backup evidence.',
-    icon: <Wrench size={16} />,
-  },
   audit: {
     title: 'Check health',
     description: 'Work the issue queue and review rack risk without digging through one giant sidebar.',
     icon: <AlertTriangle size={16} />,
-  },
-  plan: {
-    title: 'Plan changes',
-    description: 'Compare scenarios, baselines and change windows from a planning-first surface.',
-    icon: <Network size={16} />,
-  },
-  portfolio: {
-    title: 'Manage fleet',
-    description: 'Manage workspace-wide rack context, inter-rack links, room placement and import/export flows.',
-    icon: <FolderKanban size={16} />,
   },
 };
 
@@ -108,31 +97,4 @@ export const auditPanelIdsByLens: Record<AuditLens, AppPanelId[]> = {
   documentation: ['documentation-audit', 'label-debt', 'drift', 'rack-debt', 'cable-length-audit'],
   thermal: ['thermal-distribution', 'environment', 'device-sensor', 'power-chain', 'rack-health'],
   domains: ['failure-domain', 'rack-debt', 'drift', 'documentation-audit'],
-};
-
-export const operatePanelIdsByLens: Record<OperateLens, AppPanelId[]> = {
-  assets: ['asset-registry', 'spare-parts'],
-  maintenance: ['maintenance-log', 'cleaning-schedule'],
-  firmware: ['firmware-tracker', 'boot-sequence'],
-  network: ['ip-assignment', 'service-map'],
-  evidence: ['evidence-locker', 'backup-verification'],
-  power: ['power-bill', 'runbook'],
-};
-
-export const planPanelIdsByLens: Record<PlanLens, AppPanelId[]> = {
-  scenarios: ['scenario-planner', 'capacity-forecast'],
-  baseline: ['golden-baseline', 'migration-summary', 'template-quality'],
-  schedule: ['rack-change-calendar', 'reservation'],
-  changes: ['change-request', 'change-review'],
-  build: ['build-planner', 'readiness-checklist', 'commissioning-checklist'],
-  fit: ['fit-check'],
-};
-
-export const portfolioPanelIdsByLens: Record<PortfolioLens, AppPanelId[]> = {
-  overview: ['workspace-manager', 'portfolio-export'],
-  rooms: ['room-rack-map', 'room-placement'],
-  interconnect: ['inter-rack-map'],
-  data: ['dcim-import'],
-  policy: ['policy-rules'],
-  guide: ['homelab-guide', 'rack-photo'],
 };

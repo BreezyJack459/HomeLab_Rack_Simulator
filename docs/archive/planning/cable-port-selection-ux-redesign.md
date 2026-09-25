@@ -1,5 +1,7 @@
 # Cable Port Selection UX Redesign Plan
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 **Created**: 2026-05-12  
 **Last updated**: 2026-05-12 17:00 HKT  
 **Status**: Phase D — store plumbing complete; `DevicePortFace` interactive layer remaining  

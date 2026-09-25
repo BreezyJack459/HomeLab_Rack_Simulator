@@ -1,5 +1,7 @@
 # Plugin Platform for Rack Editor — Design Spec
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Goal
 Turn the app into a plugin-hosted platform where the rack editor remains the core product and optional workflows are contributed through plugins.
 

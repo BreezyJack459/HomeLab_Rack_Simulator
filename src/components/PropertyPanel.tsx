@@ -12,13 +12,17 @@ import type {
   ZeroUMountSide,
   ZeroUMountType,
 } from '../types/rack';
-import { ENABLE_ZERO_U_PDU } from '../utils/featureFlags';
+import { ENABLE_ZERO_U_PDU, shouldHideDevice } from '../utils/featureFlags';
 import {
   getDeviceMountSide,
   getDeviceSpatialZone,
   getDeviceWidthMm,
   getDeviceXRange,
   RACK_SPECS,
+  zeroUHeightMm,
+  zeroUBottomMm,
+  zeroUDepthMm,
+  U_HEIGHT_MM,
 } from '../utils/rackMath';
 import { getPortFaceMap } from '../utils/portLayout';
 
@@ -261,7 +265,7 @@ export function PropertyPanel() {
   const setViewMode = useRackStore((state) => state.setViewMode);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const device = useMemo(
-    () => layout.devices.find((item) => item.id === selectedDeviceId) ?? null,
+    () => layout.devices.find((item) => item.id === selectedDeviceId && !shouldHideDevice(item)) ?? null,
     [layout.devices, selectedDeviceId]
   );
 
@@ -362,30 +366,25 @@ export function PropertyPanel() {
           ) : (
             <div className="space-y-3">
               <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/70 to-white/30 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-fg">
-                      Selection
-                    </div>
-                    <div className="mt-1 truncate text-base font-semibold text-content">
+                    <div className="truncate text-base font-semibold text-content">
                       {device.name}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-content-muted">
-                      Edit identity, fit, power and connectivity from the focused device surface.
-                    </p>
                   </div>
                   <div
                     data-testid="property-selection-meta"
-                    className="grid grid-cols-2 gap-2 text-[11px] text-content-secondary"
+                    className="flex flex-wrap gap-1 text-[10px] text-content-secondary"
                   >
                     <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       {device.category}
                     </span>
+                    {device.mountingSupport === 'printed-mount' && <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-accent">3D-printed mount</span>}
                     <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
-                      U{device.positionU}{device.sizeU > 1 ? `-${device.positionU + device.sizeU - 1}` : ''}
+                      {device.sizeU === 0 ? '0U' : `U${device.positionU}`}{device.sizeU > 1 ? `-${device.positionU + device.sizeU - 1}` : ''}
                     </span>
                     <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
-                      {device.widthType}
+                      {device.widthType === 'shelf' && device.mountingSupport === 'printed-mount' ? 'compact' : device.widthType}
                     </span>
                     <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
                       {getDeviceMountSide(device)}
@@ -394,9 +393,7 @@ export function PropertyPanel() {
                 </div>
               </div>
 
-              <PropertySection title="Overview">
-                <div className="grid gap-3">
-                <label className="text-xs text-content-muted">
+              <label className="block text-xs text-content-muted">
                   Name
                   <input
                     className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
@@ -404,6 +401,22 @@ export function PropertyPanel() {
                     onChange={(event) => patch({ name: event.target.value })}
                   />
                 </label>
+                {device.sizeU !== 0 && <><label className="block text-xs text-content-muted">
+                  Mount side
+                  <select
+                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                    value={getDeviceMountSide(device)}
+                    onChange={(event) => patch({ mountSide: event.target.value as ViewSide })}
+                  >
+                    <option value="front">Front side</option>
+                    <option value="rear">Rear side</option>
+                  </select>
+                </label>
+                  <NumberField label="Position U" min={1} max={layout.heightU} value={device.positionU} onChange={(value) => patch({ positionU: value })} /></>}
+              <PropertySection title="Labels & notes" defaultOpen={false}>
+                <div className="grid gap-3">
+
+
                 <label className="text-xs text-content-muted">
                   Label
                   <input
@@ -426,19 +439,29 @@ export function PropertyPanel() {
                 </div>
               </PropertySection>
 
-              <PropertySection title="Physical">
+              <PropertySection key={device.sizeU === 0 ? 'zero-u' : 'standard'} title="Dimensions & placement" defaultOpen={device.sizeU === 0}>
+                  {device.category === 'shelf' && <div className="space-y-3 rounded-xl border border-edge p-3">
+                    <label className="block space-y-1 text-xs text-content-muted">
+                      <span>Shelf placement</span>
+                      <select className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content" value={device.shelfStyle ?? 'solid'} onChange={event => patch({ shelfStyle: event.target.value as 'solid' | 'tray' })}>
+                        <option value="solid">Separate U (existing shelf)</option>
+                        <option value="tray">Thin tray — share U with devices</option>
+                      </select>
+                    </label>
+                    {device.shelfStyle === 'tray' && <>
+                      <p className="text-xs text-content-muted">Place compact devices at this shelf’s starting U and mount side. Leave 3 mm at each side. Devices must fit the tray depth and their reserved U height. Moving the shelf does not move equipment.</p>
+                      <NumberField label="Tray thickness mm" value={device.shelfThicknessMm ?? 2} min={1} onChange={value => patch({ shelfThicknessMm: Math.max(1, value) })} />
+                      <NumberField label="Deck bottom above U boundary mm" value={device.shelfDeckOffsetMm ?? 0} min={0} onChange={value => patch({ shelfDeckOffsetMm: Math.max(0, value) })} />
+                      <NumberField label="Shelf load limit kg (0 = unspecified)" value={device.shelfLoadLimitKg ?? 0} min={0} onChange={value => patch({ shelfLoadLimitKg: Math.max(0, value) })} />
+                    </>}
+                  </div>}
+                  {device.sizeU !== 0 && ['shelf', 'custom'].includes(device.widthType) && device.category !== 'shelf' && <div className="grid gap-3">
+                    <NumberField label="Actual device height mm" value={device.physicalHeightMm ?? Math.max(1, device.sizeU * 44.45 - 4.445)} min={1} step={0.1} onChange={value => patch({ physicalHeightMm: Math.max(1, value) })} />
+                    <NumberField label="Clearance above mm" value={device.clearanceAboveMm ?? 0} min={0} onChange={value => patch({ clearanceAboveMm: Math.max(0, value) })} />
+                    <p className="text-xs text-content-muted">Default height is estimated from Rack size U. Enter measured height and required ventilation clearance for a precise tray fit.</p>
+                  </div>}
                 <div className="space-y-3">
-                <label className="block text-xs text-content-muted">
-                  Mount side
-                  <select
-                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
-                    value={getDeviceMountSide(device)}
-                    onChange={(event) => patch({ mountSide: event.target.value as ViewSide })}
-                  >
-                    <option value="front">Front side</option>
-                    <option value="rear">Rear side</option>
-                  </select>
-                </label>
+
 
                 {ENABLE_ZERO_U_PDU && device.sizeU === 0 && (
                   <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
@@ -446,6 +469,11 @@ export function PropertyPanel() {
                       0U Mount
                     </div>
                     <div className="grid gap-2">
+                      <NumberField label="PDU length mm" min={1} max={Math.floor(layout.heightU * U_HEIGHT_MM - zeroUBottomMm(device))} value={Math.round(zeroUHeightMm(layout, device))}
+                        onChange={value => patch({ physicalHeightMm: value, depthMm: zeroUDepthMm(device) })} />
+                      <NumberField label="Height above base mm" min={0} max={Math.floor(layout.heightU * U_HEIGHT_MM - zeroUHeightMm(layout, device))} value={Math.round(zeroUBottomMm(device))}
+                        onChange={value => patch({ positionU: 1 + value / U_HEIGHT_MM })} />
+                      <p className="text-xs text-content-muted">0U uses no rack units. Left/right are named looking into the rack from the front. Mounting brackets and cabinet clearance are approximate.</p>
                       <label className="text-xs text-content-muted">
                         Mount type
                         <select
@@ -464,8 +492,8 @@ export function PropertyPanel() {
                           value={device.mountSide0U ?? 'left'}
                           onChange={(event) => patch({ mountSide0U: event.target.value as ZeroUMountSide })}
                         >
-                          <option value="left">Left</option>
-                          <option value="right">Right</option>
+                          <option value="left">Left (from front)</option>
+                          <option value="right">Right (from front)</option>
                         </select>
                       </label>
                       <label className="text-xs text-content-muted">
@@ -475,8 +503,8 @@ export function PropertyPanel() {
                           value={device.outletFacing ?? 'forward'}
                           onChange={(event) => patch({ outletFacing: event.target.value as OutletFacing })}
                         >
-                          <option value="forward">Forward (toward rack)</option>
-                          <option value="outward">Outward (away from rack)</option>
+                          <option value="forward">Toward rack front</option>
+                          <option value="outward">Toward rear door</option>
                           <option value="inward">Inward (toward center)</option>
                         </select>
                       </label>
@@ -485,16 +513,45 @@ export function PropertyPanel() {
                 )}
 
                 <div className="grid gap-3">
-                  <NumberField label="Position U" min={1} max={layout.heightU} value={device.positionU} onChange={(value) => patch({ positionU: value })} />
-                  <NumberField
+
+                  {device.sizeU !== 0 && (device.widthType === 'shelf' || device.widthType === 'custom') && device.category !== 'printed-mount' && device.category !== 'shelf' && (
+                    <div className="space-y-2 rounded-xl border border-edge p-3">
+                      <label className="block space-y-1 text-xs text-content-muted">
+                        <span>Mounting support</span>
+                        <select
+                          className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                          value={device.mountingSupport ?? 'shelf'}
+                          onChange={event => patch({ mountingSupport: event.target.value as 'shelf' | 'printed-mount' })}
+                        >
+                          <option value="shelf">Shelf support</option>
+                          <option value="printed-mount">3D-printed rack mount</option>
+                        </select>
+                      </label>
+                      {device.mountingSupport === 'printed-mount' && <>
+                        <p className="text-xs leading-relaxed text-content-muted">Mounted with a printed bracket or modular rack panel at the device’s U position. No separate shelf is required in the plan.</p>
+                        <label className="block space-y-1 text-xs text-content-muted">
+                          <span>Printed mount model URL</span>
+                          <input type="url" value={device.printedMountUrl ?? ''} placeholder="https://www.printables.com/model/…"
+                            className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                            onChange={event => patch({ printedMountUrl: event.target.value })} />
+                        </label>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-accent">
+                          <a href="https://leprachuan.github.io/rack-mount-generator/" target="_blank" rel="noopener noreferrer" className="underline">Open bracket generator ↗</a>
+                          <a href="https://github.com/WebMaka/CageMakerPRCG" target="_blank" rel="noopener noreferrer" className="underline">CageMaker ↗</a>
+                        </div>
+                        <p className="text-xs leading-relaxed text-content-faint">Both 3D views show a simplified bracket. Printed mounts at the same U on the same face join into one modular panel. Check actual model dimensions and load rating; this preview is not a printable STL and does not reserve extra rack space.</p>
+                      </>}
+                    </div>
+                  )}
+                  {device.sizeU !== 0 && <><NumberField
                     label="X offset mm"
                     min={0}
                     max={Math.max(0, rackUsableWidth - Math.min(getDeviceWidthMm(device), rackUsableWidth))}
                     value={Math.round(selectedXRange?.x ?? 0)}
                     onChange={(value) => patch({ xMm: value })}
                   />
-                  <NumberField label="Rack size U" min={1} max={layout.heightU} value={device.sizeU} onChange={(value) => patch({ sizeU: value })} />
-                  <NumberField label="Depth mm" min={1} value={device.depthMm} onChange={(value) => patch({ depthMm: value })} />
+                  <NumberField label="Rack size U" min={1} max={layout.heightU} value={device.sizeU} onChange={(value) => patch({ sizeU: value })} /></>}
+                  <NumberField label="Depth mm" min={1} value={device.sizeU === 0 ? zeroUDepthMm(device) : device.depthMm} onChange={(value) => patch({ depthMm: value, ...(device.sizeU === 0 ? { physicalHeightMm: zeroUHeightMm(layout, device) } : {}) })} />
                   <NumberField label="Mount envelope mm" min={0} value={device.mountEnvelopeMm ?? 0} onChange={(value) => patch({ mountEnvelopeMm: value })} />
                   <NumberField label="Weight kg" min={0} step={0.1} value={device.weightKg} onChange={(value) => patch({ weightKg: value })} />
                 </div>
@@ -505,11 +562,12 @@ export function PropertyPanel() {
                     <select
                       className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.widthType}
+                      disabled={device.sizeU === 0}
                       onChange={(event) => patch({ widthType: event.target.value as WidthType })}
                     >
                       <option value="10in">10-inch</option>
                       <option value="19in">19-inch</option>
-                      <option value="shelf">Shelf-mounted</option>
+                      <option value="shelf">{device.mountingSupport === 'printed-mount' ? 'Compact device' : 'Shelf-mounted'}</option>
                       <option value="custom">Custom</option>
                     </select>
                   </label>
@@ -537,7 +595,7 @@ export function PropertyPanel() {
                 </div>
               </PropertySection>
 
-              <PropertySection title="Power & Lifecycle">
+              <PropertySection title="Power & Lifecycle" defaultOpen={false}>
                 <div className="grid gap-3">
                   <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
                   <label className="space-y-1 text-xs text-content-muted">
@@ -637,7 +695,7 @@ export function PropertyPanel() {
                 )}
               </PropertySection>
 
-              <PropertySection title="Ports & Connectivity">
+              <PropertySection title="Ports & Connectivity" defaultOpen={false}>
                 <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
                   <div className="grid grid-cols-2 gap-2">
                     <NumberField label="ETH" min={0} value={device.ports?.ethernet ?? 0} onChange={(value) => patchPort('ethernet', value)} />
@@ -707,6 +765,7 @@ export function PropertyPanel() {
                 </div>
               )}
 
+              <button type="button" onClick={() => useRackStore.getState().moveDeviceToInventory(device.id)} className="w-full rounded-lg border border-edge px-3 py-2 text-xs text-content-secondary hover:bg-fill">Move to My devices</button>
               <button
                 className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 hover:bg-red-500/20 dark:text-red-100"
                 onClick={() => removeDevice(device.id)}

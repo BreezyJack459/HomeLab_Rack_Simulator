@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机架模拟器 — UI 重新设计提案</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --panel: #111a2e;
+    --panel-2: #16223c;
+    --edge: #22304f;
+    --text: #e2e8f0;
+    --muted: #8fa0bd;
+    --faint: #5c6b8a;
+    --accent: #22d3ee;
+    --accent-dim: rgba(34, 211, 238, .14);
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --violet: #a78bfa;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+    padding: 40px 48px 80px;
+  }
+  .doc-head { max-width: 1280px; margin: 0 auto 36px; }
+  .doc-head .kicker {
+    color: var(--accent); font-size: 12px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .doc-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+  .doc-head p.sub { color: var(--muted); margin-top: 8px; max-width: 760px; font-size: 14px; }
+
+  section { max-width: 1280px; margin: 0 auto 64px; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.01em; }
+  .section-sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; max-width: 780px; }
+
+  /* ---------- before ---------- */
+  .before-grid { display: flex; flex-direction: column; gap: 20px; }
+  .shot {
+    border: 1px solid var(--edge); border-radius: 12px; overflow: hidden;
+    background: var(--panel); max-width: 980px;
+  }
+  .shot img { display: block; width: 100%; }
+  .shot .cap { padding: 10px 14px; font-size: 12px; color: var(--faint); border-top: 1px solid var(--edge); }
+  .issues { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .issue {
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px;
+  }
+  .issue b { color: var(--red); font-weight: 600; }
+  .issue .t { font-weight: 600; margin-bottom: 2px; }
+
+  /* ---------- mockup frame ---------- */
+  .mock-wrap { position: relative; }
+  .mock {
+    position: relative;
+    border: 1px solid var(--edge); border-radius: 14px; overflow: hidden;
+    background: #0d1526;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    font-size: 12px;
+    user-select: none;
+  }
+
+  /* top bar */
+  .m-top {
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; padding: 0 16px;
+    background: var(--panel); border-bottom: 1px solid var(--edge);
+  }
+  .m-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+  .m-brand .logo {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    color: #04121a; font-size: 12px; font-weight: 800;
+  }
+  .m-ws {
+    display: flex; background: var(--bg); border: 1px solid var(--edge);
+    border-radius: 9px; padding: 3px; gap: 2px;
+  }
+  .m-ws span {
+    padding: 4px 12px; border-radius: 6px; color: var(--muted); font-weight: 500;
+  }
+  .m-ws span.on { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+  .m-search {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 8px;
+    color: var(--faint); padding: 5px 10px; width: 220px; font-size: 12px;
+  }
+  .m-search kbd {
+    margin-left: auto; background: var(--panel-2); border: 1px solid var(--edge);
+    border-radius: 4px; padding: 0 5px; font-size: 10px; font-family: inherit;
+  }
+  .m-iconbtn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--edge);
+    background: var(--bg); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+
+  .m-body { display: flex; height: 560px; }
+
+  /* icon rail */
+  .m-rail {
+    width: 52px; background: var(--panel); border-right: 1px solid var(--edge);
+    display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px;
+  }
+  .m-rail .ri {
+    width: 36px; height: 36px; border-radius: 9px; color: var(--faint);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .m-rail .ri.on { background: var(--accent-dim); color: var(--accent); }
+  .m-rail .sp { flex: 1; }
+
+  /* canvas column */
+  .m-canvas-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .m-canvas-head {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px; border-bottom: 1px solid var(--edge); background: rgba(17,26,46,.6);
+  }
+  .m-layout-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .m-health { display: flex; gap: 8px; margin-left: 6px; }
+  .m-chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 4px 10px; font-size: 11px; color: var(--muted); white-space: nowrap;
+  }
+  .m-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .m-chip b { color: var(--text); font-weight: 600; }
+  .m-chip .bar { width: 42px; height: 4px; border-radius: 2px; background: var(--edge); overflow: hidden; }
+  .m-chip .bar i { display: block; height: 100%; border-radius: 2px; }
+  .m-viewmodes {
+    margin-left: auto; display: flex; background: var(--bg);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .m-viewmodes span { padding: 3px 11px; border-radius: 6px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .m-viewmodes span.on { background: var(--panel-2); color: var(--text); font-weight: 600; }
+  .m-face {
+    display: flex; background: var(--bg); border: 1px solid var(--edge);
+    border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .m-face span { padding: 3px 10px; border-radius: 6px; color: var(--muted); white-space: nowrap; }
+  .m-face span.on { background: var(--panel-2); color: var(--text); font-weight: 600; }
+
+  .m-canvas {
+    flex: 1; position: relative; display: flex;
+    align-items: flex-start; justify-content: center; padding: 22px;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 30%, rgba(34,211,238,.05), transparent),
+      #0d1526;
+  }
+  /* rack */
+  .m-rack {
+    width: 400px; border: 2px solid #2c3d63; border-radius: 8px;
+    background: #0a101f; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .m-u { position: relative; display: flex; gap: 3px; }
+  .m-u .ulabel {
+    position: absolute; left: -26px; top: 50%; transform: translateY(-50%);
+    font-size: 9px; color: var(--faint);
+  }
+  .m-dev {
+    position: relative; flex: 1; border-radius: 4px;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    border-left: 3px solid var(--faint);
+    padding: 3px 8px; font-size: 10.5px; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 22px;
+  }
+  .m-dev .meta { color: var(--faint); font-size: 9px; }
+  .m-dev.h2 { min-height: 47px; }
+  .m-dev.h6 { min-height: 142px; align-items: flex-start; padding-top: 8px; }
+  .m-dev.h7 { min-height: 166px; align-items: flex-start; padding-top: 8px; }
+  .m-dev.shelf {
+    background: repeating-linear-gradient(45deg, #101a30, #101a30 6px, #0d1526 6px, #0d1526 12px);
+    border-style: dashed; border-left-style: solid; color: var(--faint); font-style: italic;
+  }
+  .m-dev.net { border-left-color: var(--blue); }
+  .m-dev.compute { border-left-color: var(--violet); }
+  .m-dev.storage { border-left-color: var(--orange); }
+  .m-dev.power { border-left-color: var(--green); }
+  .m-dev.patch { border-left-color: var(--accent); }
+  .m-dev.sel {
+    border-color: var(--accent); border-left-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim), 0 0 18px rgba(34,211,238,.35);
+    background: #153049;
+  }
+  .m-zoom {
+    position: absolute; right: 18px; bottom: 18px;
+    display: flex; flex-direction: column;
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 9px; overflow: hidden;
+  }
+  .m-zoom span {
+    width: 32px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 13px;
+  }
+  .m-zoom span + span { border-top: 1px solid var(--edge); }
+  .m-zoomhint {
+    position: absolute; left: 18px; bottom: 18px; color: var(--faint); font-size: 10.5px;
+    background: rgba(17,26,46,.75); border: 1px solid var(--edge); border-radius: 7px; padding: 4px 9px;
+  }
+
+  /* inspector */
+  .m-insp {
+    width: 300px; background: var(--panel); border-left: 1px solid var(--edge);
+    display: flex; flex-direction: column;
+  }
+  .m-insp-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--edge); }
+  .m-insp-head .nm { font-weight: 700; font-size: 14px; }
+  .m-insp-head .chips { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+  .m-insp-head .chips span {
+    font-size: 10px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--edge); border-radius: 5px; padding: 2px 7px;
+  }
+  .m-tabs { display: flex; border-bottom: 1px solid var(--edge); padding: 0 10px; }
+  .m-tabs span {
+    padding: 8px 10px; color: var(--muted); font-weight: 500; font-size: 12px;
+    border-bottom: 2px solid transparent;
+  }
+  .m-tabs span.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .m-tabs .cnt {
+    font-size: 9.5px; background: var(--panel-2); border-radius: 8px;
+    padding: 0 5px; margin-left: 4px; color: var(--faint);
+  }
+  .m-insp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .m-field label { display: block; font-size: 10.5px; color: var(--faint); margin-bottom: 4px; }
+  .m-field .in {
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 7px;
+    padding: 6px 9px; color: var(--text); font-size: 12px;
+  }
+  .m-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .m-row3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .m-port-count { text-align: center; }
+  .m-port-count .in { padding: 5px 2px; text-align: center; }
+  .m-insp-foot { padding: 12px 16px; border-top: 1px solid var(--edge); }
+  .m-danger {
+    border: 1px solid rgba(248,113,113,.4); color: var(--red); border-radius: 8px;
+    text-align: center; padding: 7px; font-weight: 600; font-size: 12px;
+    background: rgba(248,113,113,.06);
+  }
+
+  /* callout badges */
+  .co {
+    position: absolute; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #04121a; font-weight: 800; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 4px rgba(34,211,238,.22), 0 4px 10px rgba(0,0,0,.5);
+    z-index: 5;
+  }
+  .co::after {
+    content: ""; position: absolute; inset: -7px; border-radius: 50%;
+    border: 1.5px dashed rgba(34,211,238,.5);
+  }
+
+  /* legend */
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px; }
+  .leg {
+    display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .leg .n {
+    flex: none; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #04121a; font-weight: 800; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .leg .t { font-weight: 650; font-size: 13.5px; margin-bottom: 3px; }
+  .leg .d { color: var(--muted); font-size: 12.5px; }
+  .leg .d b { color: var(--text); font-weight: 600; }
+  .leg .why { margin-top: 6px; font-size: 11.5px; color: var(--accent); }
+
+  /* comparison table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+  th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  td.before { color: var(--muted); width: 34%; }
+  td.after { width: 40%; }
+  td.prin { color: var(--accent); font-size: 12px; width: 26%; }
+  tr:last-child td { border-bottom: none; }
+  .tbl-wrap { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: var(--panel); }
+
+  .footnote { color: var(--faint); font-size: 12px; margin-top: 18px; max-width: 800px; }
+  .footnote code { background: var(--panel-2); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div class="kicker">设计提案 · v1 · 2026 年 8 月</div>
+  <h1>Homelab 机架模拟器 — 工作区重新设计</h1>
+  <p class="sub">这是一份关于重构主工作区框架的视觉提案。目标是：把屏幕空间还给机架画布，终结工作区与视图模式之间的导航混乱，并让机架健康状况一目了然。不涉及任何数据模型或功能变更——这只是对现有内容的重新组织。</p>
+  <p style="margin-top:10px;font-size:13px"><a href="redesign-proposal.html" style="color:var(--accent);text-decoration:none">→ Read the English version (英文版)</a></p>
+</div>
+
+<!-- ================= BEFORE ================= -->
+<section>
+  <h2>1 · 当前设计实况</h2>
+  <p class="section-sub">截取自正在运行的应用（18U 机架、14 台设备、18 条线缆、浅色主题）。单个屏幕中就能看到五个结构性问题。</p>
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-light.png" alt="当前 UI 截图">
+      <div class="cap">当前主工作区 — 实时截图，视口 1690×910。</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>P1 · 三行界面框架</b></div>标题栏、统计/筛选栏和 Create/Actions/File 栏在画布上方叠了约 150px 的界面，之后才能看到机架。机架——也就是产品本身——只能分到剩下的空间。</div>
+      <div class="issue"><div class="t"><b>P2 · 一个工具栏塞进 12+ 个控件</b></div>视图模式（2D/3D/线缆）、透镜（端口标签/拓扑/图库）、工具（线缆规划器）、操作（添加机架间线缆）、视图翻转（正面/背面）和设置（搜索/深色模式）全都挤在同一行里，毫无区分。没有任何迹象表明哪些是全局的、哪些是画布级的。</div>
+      <div class="issue"><div class="t"><b>P3 · 两套导航系统互相冲突</b></div>左侧栏提供工作区（Build Rack / Check Health / Run Ops…）；工具栏提供视图模式（2D / 3D / 线缆）。“构建”（工作区）与“2D”（视图）的区别只能靠用户试错去摸索——它们本是两个不同的维度，却被渲染成了互相竞争的同级入口。</div>
+      <div class="issue"><div class="t"><b>P4 · 机架内容被渲染了两次</b></div>机架旁边逐 U 排列的设备列表，与机架本身的空间化呈现完全重复——同一数据的两种表现形式争夺着同样的注意力，还让画布所需的宽度翻了一倍。</div>
+      <div class="issue"><div class="t"><b>P5 · 检查器面板是一条无尽的堆叠</b></div>属性、18 条线缆路由、端口预留、端口速率/介质和插件管理器全堆在同一个滚动列里。管理类事项（插件）混在一个工作面板中，而线缆列表把设备属性挤出了屏幕。</div>
+      <div class="issue"><div class="t"><b>P6 · 统计信息读起来像调试输出</b></div><i>“19″ 正面·U 17/18·14 台设备·18 条线缆”</i>是一行日志，而不是健康状况读数。容量、功率、重量和热量——机架规划者真正盯着的四项指标——既没有阈值，也没有可视化的状态。</div>
+      <div class="issue"><div class="t"><b>P7 · 缩放控件分散在三处</b></div>一个浮动面板（100%、放大、搜索）、一个单独的平移按钮，以及上方工具栏里的“44”徽标——同一个心智操作被拆成三个残缺的控件，其中一个还浮在画布内容之上。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AFTER MOCKUP ================= -->
+<section>
+  <h2>2 · 提案设计</h2>
+  <p class="section-sub">同一个应用、同样的数据、同样的功能——只是重新组织。带编号的徽标在下方图例说明中有详细解释。</p>
+
+  <div class="mock-wrap">
+  <div class="mock">
+    <!-- top bar -->
+    <div class="m-top">
+      <div class="m-brand"><span class="logo">▦</span> RackSim</div>
+      <div class="m-ws">
+        <span class="on">构建</span><span>检查</span><span>运维</span><span>规划</span><span>集群</span>
+      </div>
+      <div class="m-search">⌕&nbsp; 搜索设备、线缆、命令… <kbd>⌘K</kbd></div>
+      <div class="m-iconbtn">☾</div>
+      <div class="m-iconbtn">⚙</div>
+    </div>
+
+    <div class="m-body">
+      <!-- icon rail -->
+      <div class="m-rail">
+        <div class="ri on">▤</div>
+        <div class="ri">⌁</div>
+        <div class="ri">▦</div>
+        <div class="ri">◫</div>
+        <div class="sp"></div>
+        <div class="ri">?</div>
+      </div>
+
+      <!-- canvas column -->
+      <div class="m-canvas-col">
+        <div class="m-canvas-head">
+          <span class="m-layout-name">我的手头设备</span>
+          <div class="m-health">
+            <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>容量 <b>17/18 U</b><span class="bar"><i style="width:94%;background:var(--amber)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--green)"></i>功率 <b>402 / 900 W</b><span class="bar"><i style="width:45%;background:var(--green)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--green)"></i>重量 <b>38 / 60 kg</b><span class="bar"><i style="width:63%;background:var(--green)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>热量 <b>1 个热点</b></span>
+          </div>
+          <div class="m-viewmodes"><span class="on">2D</span><span>3D</span><span>线缆</span></div>
+          <div class="m-face"><span class="on">正面</span><span>背面</span></div>
+        </div>
+
+        <div class="m-canvas">
+          <div class="m-rack">
+            <div class="m-u"><span class="ulabel">U18</span><div class="m-dev patch sel"><span>24 口配线架</span><span class="meta">eth 15/24</span></div></div>
+            <div class="m-u"><span class="ulabel">U17</span><div class="m-dev"><span>正面理线架</span></div></div>
+            <div class="m-u"><span class="ulabel">U16</span><div class="m-dev net"><span>UniFi UCG-Max</span></div><div class="m-dev net"><span>UniFi Flex 2.5G</span></div></div>
+            <div class="m-u"><span class="ulabel">U15</span><div class="m-dev shelf"><span>托板</span></div></div>
+            <div class="m-u"><span class="ulabel">U14</span><div class="m-dev net"><span>调制解调器 A</span></div><div class="m-dev net"><span>调制解调器 B</span></div><div class="m-dev net"><span>PoE 供电器</span></div></div>
+            <div class="m-u"><span class="ulabel">U13</span><div class="m-dev shelf"><span>托板</span></div></div>
+            <div class="m-u"><span class="ulabel">U11</span><div class="m-dev compute h2"><span>Minisforum UM790 Pro<br><span class="meta">U11–U12 · 65 W</span></span></div></div>
+            <div class="m-u"><span class="ulabel">U10</span><div class="m-dev shelf"><span>托板</span></div></div>
+            <div class="m-u"><span class="ulabel">U2</span><div class="m-dev power h7"><span>APC Gaming UPS<br><span class="meta">U2–U8 · 12 W</span></span></div><div class="m-dev storage h6" style="margin-top:0"><span>寶藏盒 Pro NAS<br><span class="meta">U2–U7 · 120 W</span></span></div></div>
+            <div class="m-u"><span class="ulabel">U1</span><div class="m-dev shelf"><span>底部托板</span></div></div>
+          </div>
+
+          <div class="m-zoomhint">滚轮缩放 · 拖拽平移</div>
+          <div class="m-zoom"><span>＋</span><span>－</span><span>⤢</span></div>
+        </div>
+      </div>
+
+      <!-- inspector -->
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">24 口配线架</div>
+          <div class="chips"><span>配线架</span><span>U18</span><span>19″</span><span>正面</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">属性</span><span>线缆<i class="cnt">15</i></span><span>端口<i class="cnt">24</i></span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-field"><label>名称</label><div class="in">24 口配线架</div></div>
+          <div class="m-row2">
+            <div class="m-field"><label>机位 U</label><div class="in">18</div></div>
+            <div class="m-field"><label>高度 U</label><div class="in">1</div></div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>深度 mm</label><div class="in">65</div></div>
+            <div class="m-field"><label>重量 kg</label><div class="in">1.7</div></div>
+          </div>
+          <div class="m-field"><label>端口</label>
+            <div class="m-row3">
+              <div class="m-port-count"><label>ETH</label><div class="in">24</div></div>
+              <div class="m-port-count"><label>光纤</label><div class="in">0</div></div>
+              <div class="m-port-count"><label>USB</label><div class="in">0</div></div>
+              <div class="m-port-count"><label>电源</label><div class="in">0</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">移除组件</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:14px; left:60px;">1</div>
+    <div class="co" style="top:14px; left:250px;">2</div>
+    <div class="co" style="top:130px; left:66px;">3</div>
+    <div class="co" style="top:66px; left:340px;">4</div>
+    <div class="co" style="top:66px; right:330px;">5</div>
+    <div class="co" style="top:320px; left:64%;">6</div>
+    <div class="co" style="top:150px; right:14px;">7</div>
+    <div class="co" style="bottom:26px; right:330px;">8</div>
+    <div class="co" style="top:200px; left:33%;">9</div>
+  </div>
+  </div>
+
+  <!-- legend -->
+  <div class="legend">
+    <div class="leg"><span class="n">1</span><div>
+      <div class="t">一条顶栏，而不是三行界面框架</div>
+      <div class="d">品牌、工作区切换器、全局搜索（⌘K）、主题和设置合并进一条 52px 的栏。统计行和 Create/Actions/File 行移出框架——操作项搬进画布头部的溢出菜单。</div>
+      <div class="why">为何更优：约 150px 的垂直空间还给机架。“我在哪”只需扫一眼，而不是扫三行。</div>
+    </div></div>
+    <div class="leg"><span class="n">2</span><div>
+      <div class="t">工作区合并为一个分段控件</div>
+      <div class="d">构建 / 检查 / 运维 / 规划 / 集群是唯一的顶层导航——顶栏中的一个分段控件。左侧栏里重复的工作区按钮消失，侧栏只保留工具快捷方式。</div>
+      <div class="why">为何更优：终结 P3 的冲突。工作区 = 干什么活；视图模式 = 怎么看待它。每个维度现在都有且只有一个归属。</div>
+    </div></div>
+    <div class="leg"><span class="n">3</span><div>
+      <div class="t">图标栏放工具，组件库改为滑出面板</div>
+      <div class="d">侧栏收缩为 52px 的图标快捷方式（组件库、线缆、报告、大纲）。设备组件库以滑出面板的形式覆盖在画布上打开，拖入后即关闭——它是一个选择器，不是常驻家具。</div>
+      <div class="why">为何更优：95% 的时间里为机架回收约 260px 的横向空间；组件库只在挑选设备时才占满宽度。</div>
+    </div></div>
+    <div class="leg"><span class="n">4</span><div>
+      <div class="t">健康状态条取代调试字符串</div>
+      <div class="d">容量、功率、重量和热量变成四个带迷你进度条和绿/黄/红状态圆点的芯片，放在画布头部、布局名称旁边。数值来自现有 <b>validation.ts</b> 的机架汇总——无需新增计算。</div>
+      <div class="why">为何更优：机架规划者盯着的四个数字在触及阈值时一目了然，而不用从“19″ 正面·U 17/18·14 台设备…”里解码。</div>
+    </div></div>
+    <div class="leg"><span class="n">5</span><div>
+      <div class="t">视图模式收归画布</div>
+      <div class="d">2D / 3D / 线缆和正面 / 背面放在画布头部右上角——也就是它们实际影响的对象旁边。透镜（端口标签、拓扑）和工具（线缆规划器）收进画布溢出菜单。</div>
+      <div class="why">为何更优：控件与其作用对象相邻（邻近性原则）。全局栏不再背负画布局部的状态。</div>
+    </div></div>
+    <div class="leg"><span class="n">6</span><div>
+      <div class="t">重复的 U 列表取消</div>
+      <div class="d">机架<i>本身</i>就是列表——点击设备即可选中。对键盘和屏幕阅读器用户，同样的列表以可选的“大纲”侧栏标签页形式保留，而非常驻像素。</div>
+      <div class="why">为何更优：机架内容只剩一种表现形式；画布的有效宽度几乎翻倍。</div>
+    </div></div>
+    <div class="leg"><span class="n">7</span><div>
+      <div class="t">检查器面板改为单上下文标签页</div>
+      <div class="d">属性 / 线缆 / 端口标签页（带计数徽标）取代无尽的堆叠——一次只显示一个上下文，徽标保持对其他上下文的感知。插件管理器彻底移出检查器面板，归入 ⚙ 设置。</div>
+      <div class="why">为何更优：检查器面板回答的是“我选中的这个东西”，而不是变成第二个应用。改个设备名再也不用滚过 18 条线缆路由。</div>
+    </div></div>
+    <div class="leg"><span class="n">8</span><div>
+      <div class="t">一个缩放控件组，右下角，地图风格</div>
+      <div class="d">＋ / － / 适应窗口集中在一个角落控件组，滚轮缩放和拖拽平移作为主要输入方式。浮动面板、平移开关和工具栏缩放徽标全部并入其中。</div>
+      <div class="why">为何更优：一个心智操作对应一个控件，位置就在每个地图/画布类应用都训练用户去看的那个角落。</div>
+    </div></div>
+    <div class="leg"><span class="n">9</span><div>
+      <div class="t">类别色条与诚实的托板</div>
+      <div class="d">每个设备块带一条 3px 的类别色条（网络蓝、计算紫、存储橙、电力绿、配线青）。托板以虚线、斜纹、斜体渲染——视觉上明确表示“这不是设备”。选中态是一圈发光环，而不是 1px 细线。</div>
+      <div class="why">为何更优：机架构成一眼可读——不用读任何标签就能看出“网络设备都在上方，电力设备在底部”。</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= WHY ================= -->
+<section>
+  <h2>3 · 为什么这个设计更好 — 逐项对比</h2>
+  <p class="section-sub">每一项改动都把一个已观察到的问题映射到具体的重组方案及其背后的 UX 原则。</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>改前（现状）</th><th>改后（提案）</th><th>原则</th></tr>
+    <tr>
+      <td class="before">看到任何机架像素之前，先叠三行界面框架（约 150px）。</td>
+      <td class="after">单条 52px 顶栏；画布头部承载布局名称 + 健康状况 + 视图模式。</td>
+      <td class="prin">内容优先于框架——把像素最大化地留给核心对象。</td>
+    </tr>
+    <tr>
+      <td class="before">工作区（侧栏）与视图模式（工具栏）作为同级入口互相竞争；“构建”与“2D”的区别靠试错习得。</td>
+      <td class="after">两个维度，两个归属：工作区在顶栏，视图模式在画布上。</td>
+      <td class="prin">每个概念维度对应一个控件；模式错误（Norman）被消除。</td>
+    </tr>
+    <tr>
+      <td class="before">12+ 个工具栏控件权重相同：视图、透镜、工具、操作、设置。</td>
+      <td class="after">顶栏只放 3 个全局项（工作区、搜索、设置）；所有画布局部的内容移到画布上。</td>
+      <td class="prin">席克定律——更少且分组的选项决策更快；邻近性把控件与效果关联起来。</td>
+    </tr>
+    <tr>
+      <td class="before">统计信息是一串标点分隔的调试字符串，没有阈值。</td>
+      <td class="after">四个健康芯片，带进度条 + 状态圆点，数据来自现有的校验汇总。</td>
+      <td class="prin">可瞥读性——状态通过前注意加工（颜色/形状）被感知，而不是被阅读。</td>
+    </tr>
+    <tr>
+      <td class="before">机架内容渲染两次：可视化机架 + 旁边逐 U 的列表。</td>
+      <td class="after">机架是唯一的表现形式；U 列表降级为可选的大纲标签页（保留无障碍支持）。</td>
+      <td class="prin">每屏一个信息源；冗余会分散注意力。</td>
+    </tr>
+    <tr>
+      <td class="before">检查器面板 = 属性 + 18 条路由 + 预留 + 速率 + 插件管理器的无限堆叠。</td>
+      <td class="after">标签页式检查器面板（属性 / 线缆 / 端口）带计数徽标；管理功能移到设置。</td>
+      <td class="prin">渐进式披露——一次一个上下文，徽标保留环境感知。</td>
+    </tr>
+    <tr>
+      <td class="before">缩放分散在三处：浮动面板、平移开关、工具栏徽标。</td>
+      <td class="after">一个右下角控件组 + 滚轮/拖拽手势。</td>
+      <td class="prin">遵循惯例（所有地图/画布工具皆如此）+ 一个操作一个控件。</td>
+    </tr>
+    <tr>
+      <td class="before">设备与托板外观毫无区分；选中态是一根发丝级细线。</td>
+      <td class="after">类别色条、斜纹托板样式、发光环选中态。</td>
+      <td class="prin">前注意属性承载类别信息；选中态必须 unmistakable（绝不会认错）。</td>
+    </tr>
+  </table>
+  </div>
+  <p class="footnote">
+    实现说明：本提案只重新排布现有组件。健康状态条消费 <code>src/utils/validation.ts</code> 的机架汇总；标签页式检查器面板是对 <code>PropertyPanel.tsx</code> 和线缆面板的重新切片；滑出式组件库复用 <code>ComponentLibrary.tsx</code>；分段工作区控件是对 <code>App.tsx</code> 中现有工作区切换器的重新包装。无需改动 store、路由或数据模型。预估范围：应用外壳 + 3 个组件包装层，置于一个布局特性开关之后。
+  </p>
+</section>
+
+<style>
+  /* ---------- cables mock ---------- */
+  .m-cable-rail {
+    width: 148px; background: var(--panel); border-right: 1px solid var(--edge);
+    padding: 12px 10px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .m-cable-rail .rlab {
+    font-size: 10px; color: var(--faint); text-transform: uppercase;
+    letter-spacing: .09em; margin-bottom: 7px;
+  }
+  .m-ctype {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+    border-radius: 7px; font-size: 11.5px; color: var(--muted);
+  }
+  .m-ctype.on { background: var(--accent-dim); color: var(--text); font-weight: 600; }
+  .m-ctype .dot { width: 8px; height: 8px; border-radius: 2.5px; flex: none; }
+  .m-ctype .cnt { margin-left: auto; color: var(--faint); font-size: 10.5px; }
+  .m-ctype .eye { color: var(--faint); font-size: 10px; }
+  .m-map {
+    flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse 65% 55% at 45% 40%, rgba(34,211,238,.05), transparent), #0d1526;
+  }
+  .m-btn {
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid rgba(34,211,238,.4); border-radius: 8px;
+    padding: 5px 11px; font-weight: 600; font-size: 11.5px; white-space: nowrap;
+  }
+  .m-btn.ghost { background: var(--bg); color: var(--muted); border-color: var(--edge); }
+  .m-ep { background: var(--bg); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .m-ep .lbl { color: var(--faint); font-size: 10px; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .07em; }
+  .m-ep b { font-weight: 600; }
+  .m-ep .port { color: var(--accent); font-weight: 600; }
+  .m-arrow { text-align: center; color: var(--faint); font-size: 11px; line-height: 1; }
+  .m-len { display: flex; justify-content: space-between; background: var(--bg); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .m-len .ok { color: var(--green); font-weight: 650; }
+  .m-len .warn { color: var(--amber); font-weight: 650; }
+  .m-note { font-size: 10.5px; color: var(--faint); }
+  .m-healthrow { display: flex; gap: 6px; }
+  .m-healthrow .hb {
+    flex: 1; border: 1px solid var(--edge); border-radius: 8px; padding: 6px 8px;
+    font-size: 10.5px; color: var(--muted); background: var(--bg); text-align: center;
+  }
+  .m-healthrow .hb b { display: block; font-size: 13px; color: var(--text); }
+  .m-healthrow .hb.warn b { color: var(--amber); }
+
+  /* ---------- 3d mock ---------- */
+  .m-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .m-scene-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(12,19,34,.3), rgba(12,19,34,0) 30%, rgba(12,19,34,0) 70%, rgba(12,19,34,.4));
+  }
+  .m-stage3d {
+    flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(ellipse 60% 45% at 50% 60%, rgba(34,211,238,.07), transparent), #0c1322;
+  }
+  .m-dock {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(17,26,46,.92); border: 1px solid var(--edge);
+    border-radius: 11px; padding: 3px;
+  }
+  .m-dock span { padding: 5px 13px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+  .m-dock span.on { background: var(--panel-2); color: var(--text); font-weight: 650; }
+  .m-dock .sep { width: 1px; align-self: stretch; background: var(--edge); margin: 4px 3px; }
+  .m-tooltip {
+    position: absolute; background: rgba(10,16,31,.95); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  }
+  .m-tooltip .sub { color: var(--muted); font-size: 10px; }
+  .m-toast {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(17,26,46,.95); border: 1px solid rgba(52,211,153,.5);
+    color: var(--green); border-radius: 9px; padding: 6px 12px; font-size: 11.5px; font-weight: 600;
+  }
+  .m-depth { background: var(--bg); border: 1px solid var(--edge); border-radius: 9px; padding: 10px 11px; }
+  .m-depth .dt { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+  .m-depth .dt b { color: var(--text); }
+  .m-depth .track { position: relative; height: 8px; border-radius: 4px; background: var(--edge); margin: 12px 0 5px; }
+  .m-depth .range { position: absolute; top: 0; bottom: 0; background: rgba(52,211,153,.35); border-radius: 4px; }
+  .m-depth .mark { position: absolute; top: -4px; width: 3px; height: 16px; background: var(--accent); border-radius: 2px; }
+  .m-depth .scale { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--faint); }
+  .m-depth .verdict { margin-top: 8px; font-size: 11px; color: var(--green); font-weight: 600; }
+  .m-toggle {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 8px;
+    color: var(--muted); padding: 4px 10px; font-size: 11px; white-space: nowrap;
+  }
+  .m-toggle.on { color: var(--accent); border-color: rgba(34,211,238,.45); background: var(--accent-dim); }
+</style>
+
+<!-- ================= CABLES VIEW ================= -->
+<section>
+  <h2>4 · 线缆视图重新设计</h2>
+  <p class="section-sub">外壳与第 2 节相同——只有画布列和检查器面板发生变化。当前的布线图本身视觉上很强，但它周围的一切都在与它作对。</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-cables.png" alt="当前线缆视图">
+      <div class="cap">当前线缆视图 — 实时截图。</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>PC1 · 筛选器被藏进“+5 更多”</b></div>线缆类型筛选器是一排芯片，溢出后折叠成“+5 更多”——你需要的那个筛选器（比如电源）恰恰是被藏起来的那个。</div>
+      <div class="issue"><div class="t"><b>PC2 · 检查器面板显示的是设备属性，而不是线缆</b></div>在线缆视图里，右侧面板编辑的仍是所选设备的名称和重量。线缆的上下文——端点、长度、类型——被埋在属性下方一个折叠列表里。</div>
+      <div class="issue"><div class="t"><b>PC3 · “调暗其他”对“隐藏其他”</b></div>同一个心智操作（聚焦某些线缆）却有两个相邻的开关。它们的区别只有把两个都点一遍才能发现。</div>
+      <div class="issue"><div class="t"><b>PC4 · 长度健康状况不可见</b></div>应用知道每条路由的长度和标准线缆长度表，但不匹配的问题只有在导出 BOM 之后才会浮现——而不是在你布线的地方。</div>
+      <div class="issue"><div class="t"><b>PC5 · 视图切换换行且参差不齐</b></div>“2D 布线图 / 3D 路由 / 表格”渲染成宽窄不一的两行药丸按钮，旁边还杵着一个巨大的“18 条路由”块——这个视图最主要的模式开关看起来像事后补上去的。</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <!-- canvas head -->
+    <div class="m-canvas-head">
+      <span class="m-layout-name">我的手头设备</span>
+      <div class="m-viewmodes" style="margin-left:14px"><span class="on">布线图</span><span>3D 路由</span><span>表格</span></div>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><b>18</b> 条路由</span>
+        <span class="m-chip">共 <b>42 m</b></span>
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i><b>2</b> 条长度警告</span>
+      </div>
+      <span class="m-btn" style="margin-left:auto">导出 BOM</span>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <!-- type filter rail -->
+      <div class="m-cable-rail">
+        <div class="rlab">线缆类型</div>
+        <div class="m-ctype on"><i class="dot" style="background:var(--text)"></i>全部<span class="cnt">18</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--accent)"></i>结构化布线<span class="cnt">11</span><span class="eye">◉</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--blue)"></i>跳线<span class="cnt">4</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--green)"></i>同轴<span class="cnt">2</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--amber)"></i>USB<span class="cnt">1</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--red)"></i>电源<span class="cnt">0</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--violet)"></i>光纤<span class="cnt">0</span><span class="eye">◌</span></div>
+      </div>
+
+      <!-- map -->
+      <div class="m-map">
+        <svg width="640" height="470" viewBox="0 0 640 470" style="max-width:100%">
+          <!-- rack frame -->
+          <rect x="30" y="14" width="300" height="442" rx="8" fill="#0a101f" stroke="#2c3d63" stroke-width="2"/>
+          <!-- tray -->
+          <g stroke-dasharray="4 5" stroke-width="2" opacity=".45">
+            <line x1="392" y1="20" x2="392" y2="450" stroke="#22d3ee"/>
+            <line x1="412" y1="20" x2="412" y2="450" stroke="#60a5fa"/>
+            <line x1="432" y1="20" x2="432" y2="450" stroke="#34d399"/>
+            <line x1="452" y1="20" x2="452" y2="450" stroke="#fbbf24"/>
+          </g>
+          <text x="392" y="465" fill="#5c6b8a" font-size="9">数据</text>
+          <text x="440" y="465" fill="#5c6b8a" font-size="9">电源</text>
+          <!-- devices -->
+          <g font-size="10" fill="#e2e8f0">
+            <rect x="40" y="24" width="280" height="24" rx="4" fill="#153049" stroke="#22d3ee"/>
+            <text x="48" y="40">24 口配线架</text>
+            <rect x="40" y="54" width="280" height="16" rx="4" fill="#16223c" stroke="#22304f"/>
+            <rect x="40" y="76" width="128" height="24" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="48" y="92">UniFi UCG-Max</text>
+            <rect x="176" y="76" width="144" height="24" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="184" y="92">UniFi Flex 2.5G</text>
+            <rect x="40" y="106" width="280" height="14" rx="4" fill="#101a30" stroke="#22304f" stroke-dasharray="4 3"/>
+            <rect x="40" y="126" width="86" height="22" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="47" y="141">调制解调器 A</text>
+            <rect x="134" y="126" width="86" height="22" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="141" y="141">调制解调器 B</text>
+            <rect x="40" y="196" width="150" height="42" rx="4" fill="#1d1740" stroke="#a78bfa"/>
+            <text x="48" y="220">Minisforum UM790</text>
+            <rect x="40" y="290" width="104" height="100" rx="4" fill="#12241c" stroke="#34d399"/>
+            <text x="48" y="308">APC UPS</text>
+            <rect x="152" y="310" width="168" height="80" rx="4" fill="#2a1a08" stroke="#fb923c"/>
+            <text x="160" y="328">寶藏盒 Pro NAS</text>
+          </g>
+          <!-- dimmed routes (auto-dimmed background cables) -->
+          <g fill="none" stroke-width="2" opacity=".22">
+            <path d="M 320 137 H 356 V 330 H 320" stroke="#fbbf24"/>
+            <path d="M 320 137 H 372 V 350 H 320" stroke="#fbbf24"/>
+            <path d="M 320 217 H 392 V 340 H 320" stroke="#60a5fa"/>
+            <path d="M 320 350 H 432 V 220 H 320" stroke="#34d399"/>
+          </g>
+          <!-- patch arcs -->
+          <g fill="none" stroke-width="2" opacity=".5">
+            <path d="M 180 48 C 210 60, 220 66, 230 76" stroke="#22d3ee"/>
+            <path d="M 210 48 C 245 62, 260 68, 272 76" stroke="#22d3ee"/>
+          </g>
+          <!-- selected cable: patch panel eth3 -> Flex eth1 -->
+          <path d="M 300 36 C 350 36, 350 88, 320 88" fill="none" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 300 36 C 350 36, 350 88, 320 88" fill="none" stroke="#22d3ee" stroke-width="9" stroke-linecap="round" opacity=".18"/>
+          <circle cx="300" cy="36" r="5" fill="#22d3ee"/>
+          <circle cx="320" cy="88" r="5" fill="#22d3ee"/>
+          <text x="352" y="60" fill="#22d3ee" font-size="10" font-weight="700">eth3 → eth1</text>
+          <!-- length warning marker -->
+          <g transform="translate(356,322)">
+            <path d="M0 -8 L8 6 L-8 6 Z" fill="#fbbf24"/>
+            <text y="4" text-anchor="middle" font-size="9" font-weight="800" fill="#0b1120">!</text>
+          </g>
+          <text x="370" y="326" fill="#fbbf24" font-size="9.5">实际 3 m · 建议 2 m</text>
+        </svg>
+        <div class="m-zoom"><span>＋</span><span>－</span><span>⤢</span></div>
+      </div>
+
+      <!-- cable inspector -->
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">结构化线缆</div>
+          <div class="chips"><span>结构化</span><span>青色</span><span>1.0 m</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">路由</span><span>端口</span><span>备注</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-ep"><div class="lbl">起点</div><b>24 口配线架</b> · <span class="port">eth3</span> <span style="color:var(--faint)">（正面）</span></div>
+          <div class="m-arrow">↓</div>
+          <div class="m-ep"><div class="lbl">终点</div><b>UniFi Flex 2.5G 8 口</b> · <span class="port">eth1</span> <span style="color:var(--faint)">（正面）</span></div>
+          <div class="m-len"><span style="color:var(--muted)">实际走线 1.0 m · 建议 1.0 m</span><span class="ok">✓</span></div>
+          <div class="m-note">松弛量与维修环余量已按标准长度表计入。</div>
+          <div class="m-healthrow">
+            <div class="hb"><b>18</b>条路由</div>
+            <div class="hb warn"><b>2</b>长度 ⚠</div>
+            <div class="hb"><b>42 m</b>BOM 总计</div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">删除路由</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:120px; left:70px;">C1</div>
+    <div class="co" style="top:210px; right:14px;">C2</div>
+    <div class="co" style="top:330px; left:56%;">C3</div>
+    <div class="co" style="top:390px; left:42%;">C4</div>
+    <div class="co" style="top:14px; left:56%;">C5</div>
+    <div class="co" style="top:14px; left:270px;">C6</div>
+  </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><span class="n">C1</span><div>
+      <div class="t">类型筛选栏——不再隐藏任何项</div>
+      <div class="d">每种线缆类型都有一个常驻行：色块、数量和单显（◉）眼睛图标。“+5 更多”的溢出折叠消失；你需要的筛选器永远可见。</div>
+      <div class="why">为何更优：识别优于回忆——而且一键即可单显某种类型，不用再在一堆芯片里翻找。</div>
+    </div></div>
+    <div class="leg"><span class="n">C2</span><div>
+      <div class="t">线缆优先的检查器面板</div>
+      <div class="d">选中一条线缆后，设备表单被替换为线缆卡片：起点设备/端口 → 终点设备/端口、实际与建议长度、松弛量说明和路由操作。设备编辑在 2D 视图中仍一点即达。</div>
+      <div class="why">为何更优：检查器面板回答的正是这个视图存在的意义——“这条线缆连到哪里，长度是否合理”。</div>
+    </div></div>
+    <div class="leg"><span class="n">C3</span><div>
+      <div class="t">一种高亮行为，不再有成对开关</div>
+      <div class="d">悬停或选中任意一条路由——在布线图、筛选栏或列表中——其余线缆自动调暗（如图中变淡的线槽线所示）。“调暗其他”/“隐藏其他”合并为这单一、可预期的行为。</div>
+      <div class="why">为何更优：一个心智操作，一种机制；不再靠把两个开关都点一遍来摸索模式。</div>
+    </div></div>
+    <div class="leg"><span class="n">C4</span><div>
+      <div class="t">长度健康状况就在布线之处</div>
+      <div class="d">长度偏离 <b>STANDARD_CABLE_LENGTHS_MM</b> 的路由会在布线图上获得琥珀色 ⚠ 标记，并在检查器面板中显示徽标——数据已经存在于 <b>routing.ts</b> / <b>validation.recommendCableLength()</b>。</div>
+      <div class="why">为何更优：问题在决策点上浮现，而不是等到导出 BOM 之后。</div>
+    </div></div>
+    <div class="leg"><span class="n">C5</span><div>
+      <div class="t">BOM 摘要进入头部</div>
+      <div class="d">路由数、总米数和警告数以芯片形式放在布局名称旁；导出 BOM 也放在这里，而不是藏在检查器面板的折叠区块里。</div>
+      <div class="why">为何更优：面向采购的数字随时可见，且从产生这些数据的视图一键即可导出。</div>
+    </div></div>
+    <div class="leg"><span class="n">C6</span><div>
+      <div class="t">布线图 / 3D 路由 / 表格合并为一个干净的控件</div>
+      <div class="d">子视图切换变成画布头部的一个分段控件——等宽药丸，不换行，也没有巨大的“18 条路由”块与它抢位置。</div>
+      <div class="why">为何更优：这个视图最主要的模式开关终于有个模式开关的样子了。</div>
+    </div></div>
+  </div>
+
+  <h3 style="font-size:16px; font-weight:700; margin:44px 0 6px; letter-spacing:-.01em">4b · 3D 路由模式 — 搭建时的走线参照</h3>
+  <p class="section-sub">同样的截取手法：取自当前应用的真实场景，叠加拟议的界面元素。如果说设备 3D 是搭建参照，那么 3D 路由就是它的走线对照——每根线走哪个线槽、在哪里下垂、留多少余量。如今它是一个又暗又无法操控的角落；重新设计让它拥有与其他视图相同的筛选栏、相同的检查器面板和相同的相机语言。</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-cables-3d.png" alt="当前 3D 线缆路由视图">
+      <div class="cap">当前的 线缆 → 3D 路由 模式 — 实时截取。</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>PR1 · 场景又小又暗、无法操控</b></div>没有相机预设，没有缩放控件，无法单独隔离一根线缆。幽灵化的机架上是细细的线条——你只能眯着眼盲目地转。</div>
+      <div class="issue"><div class="t"><b>PR2 ·「整洁 / 真实」是一对看不懂的按钮</b></div>唯一能改变场景<i>含义</i>的控件——理想化的线槽走线 vs 带余量与下垂的真实模拟——只是两个没有说明的文字按钮。</div>
+      <div class="issue"><div class="t"><b>PR3 · 检查器仍在编辑设备</b></div>与 2D 布线图同样的失败：一个为查看线缆而生的视图，右侧面板却在编辑所选设备的名称和安装面。</div>
+      <div class="issue"><div class="t"><b>PR4 · 筛选与高亮没有延续过来</b></div>「+5 more」折叠 chips 和「调暗/隐藏」开关对属于 2D 布线图；3D 模式继承了同样的问题，而不是共享的解决方案。</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <div class="m-canvas-head">
+      <span class="m-layout-name">我的手头设备</span>
+      <div class="m-viewmodes" style="margin-left:14px"><span>布线图</span><span class="on">3D 路由</span><span>表格</span></div>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><b>18</b> 条路由</span>
+        <span class="m-chip"><b>42 m</b> 总长</span>
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i><b>2</b> 条长度警告</span>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
+        <span style="font-size:10.5px; color:var(--faint)">样式</span>
+        <div class="m-face"><span>整洁</span><span class="on">真实</span></div>
+        <span class="m-btn">导出 BOM</span>
+      </div>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <div class="m-cable-rail">
+        <div class="rlab">线缆类型</div>
+        <div class="m-ctype on"><i class="dot" style="background:var(--text)"></i>全部<span class="cnt">18</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--accent)"></i>结构化布线<span class="cnt">11</span><span class="eye">◉</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--blue)"></i>跳线<span class="cnt">4</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--green)"></i>同轴<span class="cnt">2</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--amber)"></i>USB<span class="cnt">1</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--red)"></i>电源<span class="cnt">0</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--violet)"></i>光纤<span class="cnt">0</span><span class="eye">◌</span></div>
+      </div>
+
+      <div class="m-stage3d">
+        <img class="m-scene" src="scene-cables-3d-raw.png" alt="应用内真实的 3D 线缆路由场景 — 叠加展示拟议的界面元素">
+        <div class="m-scene-shade"></div>
+        <div class="m-tooltip" style="left:30%; top:24%">结构化线缆<div class="sub">配线架 eth3 → Flex 2.5G eth1 · 1.0 m</div></div>
+        <div class="m-dock">
+          <span>正面</span><span>背面</span><span class="on">ISO</span><span>顶部</span>
+          <div class="sep"></div>
+          <span>⟳</span>
+        </div>
+      </div>
+
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">结构化线缆</div>
+          <div class="chips"><span>structured</span><span>青色</span><span>1.0 m</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">路由</span><span>端口</span><span>备注</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-ep"><div class="lbl">起点</div><b>24 口配线架</b> · <span class="port">eth3</span> <span style="color:var(--faint)">（正面）</span></div>
+          <div class="m-arrow">↓</div>
+          <div class="m-ep"><div class="lbl">终点</div><b>UniFi Flex 2.5G 8 口</b> · <span class="port">eth1</span> <span style="color:var(--faint)">（正面）</span></div>
+          <div class="m-len"><span style="color:var(--muted)">实际 1.0 m · 建议 1.0 m</span><span class="ok">✓</span></div>
+          <div style="display:flex; gap:8px">
+            <span class="m-btn" style="flex:1; text-align:center">▶ 沿线漫游</span>
+            <span class="m-btn ghost" style="flex:1; text-align:center">在布线图定位</span>
+          </div>
+          <div class="m-note">沿线漫游让相机以检视速度沿路径飞行——线槽、下垂段和检修环一览无余。</div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">删除路由</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:14px; left:270px;">R1</div>
+    <div class="co" style="top:14px; right:430px;">R2</div>
+    <div class="co" style="bottom:24px; left:44%;">R3</div>
+    <div class="co" style="top:20%; left:34%;">R4</div>
+    <div class="co" style="top:170px; right:14px;">R5</div>
+    <div class="co" style="top:120px; left:70px;">R6</div>
+  </div>
+  </div>
+
+  <p class="footnote" style="margin:-8px 0 16px">上图场景取自应用真实的 3D 线缆路由渲染（实时截取），拟议的界面元素叠加其上。</p>
+  <div class="legend">
+    <div class="leg"><span class="n">R1</span><div>
+      <div class="t">一个模式开关，一个头部</div>
+      <div class="d">布线图 / 3D 路由 / 表格是与 2D 布线图相同分段控件，配相同的 BOM 摘要。3D 路由是线缆视图的一种模式——而不是另起炉灶、自带一套家具的页面。</div>
+      <div class="why">为何更优：切换模式只改变可视化方式，周围的布局纹丝不动。</div>
+    </div></div>
+    <div class="leg"><span class="n">R2</span><div>
+      <div class="t">走线样式成为真正的控件</div>
+      <div class="d">整洁 / 真实移入头部，成为带标签的「样式」开关：<b>整洁</b>＝理想化线槽走线，用于规划；<b>真实</b>＝余量、下垂与检修环，用于核对实体搭建。</div>
+      <div class="why">为何更优：改变场景<i>含义</i>的控件终于有了标签——你始终知道自己看的是哪一种真相。</div>
+    </div></div>
+    <div class="leg"><span class="n">R3</span><div>
+      <div class="t">与设备 3D 相同的相机语言</div>
+      <div class="d">第 5 节的 正面 / 背面 / ISO / 顶部 + 自动旋转停靠栏原样出现在这里。一套相机习惯覆盖两个 3D 场景（以及 D6 的线缆图层）。</div>
+      <div class="why">为何更优：学一次，处处可用——不必在每个场景里盲目摸索旋转手势。</div>
+    </div></div>
+    <div class="leg"><span class="n">R4</span><div>
+      <div class="t">悬停一根线，读懂一根线</div>
+      <div class="d">悬停即浮出类型、端点和长度；点击即选中。幽灵化的设备已经告诉你这个视图的主角是线缆——可识别性补完了这句话。</div>
+      <div class="why">为何更优：彩色细线变成有名有姓的路由，不再需要盲目点击。</div>
+    </div></div>
+    <div class="leg"><span class="n">R5</span><div>
+      <div class="t">线缆优先的检查器，外加沿线漫游</div>
+      <div class="d">与 2D 布线图相同的线缆卡片（端点、实际 vs 建议长度），配两个动作：<b>沿线漫游</b>——<b>SmoothCameraRig</b> 驱动相机沿路径飞行——和<b>在布线图定位</b>，一键跳回 2D 上下文。</div>
+      <div class="why">为何更优：检查器在两种模式下回答同一个问题，而沿线漫游是 2D 布线图给不出的搭建核对动作。</div>
+    </div></div>
+    <div class="leg"><span class="n">R6</span><div>
+      <div class="t">一个筛选栏，跨模式同步</div>
+      <div class="d">类型筛选栏（含单显）是共享的视图状态：在这里单显「结构化布线」，切回 2D 布线图时看到的是同一个子集。</div>
+      <div class="why">为何更优：筛选取决于你在找什么，而不是你身处哪个模式。</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= 3D VIEW ================= -->
+<section>
+  <h2>5 · 3D 视图重新设计 — 是搭建参照，不是噱头</h2>
+  <p class="section-sub">3D 视图是机架的空间真相：组装完成后实际的样子、设备按深度如何排布、什么和什么会碰撞——这些都是 2D 视图在结构上无法呈现的。它是一份供你搭建并对照比对的参照，而不是演示品。当前的外壳把它当作只能看的“检视”；重新设计让它成为一等的工作视图——有真实的控件、真实的数据，以及一条对所看见的内容采取行动的路径。</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-3d.png" alt="当前 3D 视图">
+      <div class="cap">当前 3D 视图 — 实时截图。</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>P3D1 · 没有相机控件</b></div>OrbitControls 属于隐藏知识——拖拽、滚轮、右键拖拽。“正面视图”是个标签，不是按钮。想回到标准角度只能靠猜。</div>
+      <div class="issue"><div class="t"><b>P3D2 · 深度对比的承诺没有兑现</b></div>副标题写着“对比设备深度”，但整个视图里不存在任何深度读数——你只能旋转着用眼睛估。</div>
+      <div class="issue"><div class="t"><b>P3D3 · 没有标签，没有悬停信息</b></div>深色机架里的深色板块。不点上去，你根本分不清 NAS 和 UPS——面板贴图只有放大到很近才看得清。</div>
+      <div class="issue"><div class="t"><b>P3D4 · 加载与恢复过程不可见</b></div>3D 代码块是懒加载的（约 860KB），WebGL 恢复机制在代码里也存在，但用户既看不到加载状态，也看不到恢复提示。</div>
+      <div class="issue"><div class="t"><b>P3D5 · 设备与线缆住在两座孤岛上</b></div>3D 设备视图不显示线缆；3D 线缆路由是埋在线缆视图里的另一个模式。你永远无法看到机架实际将成为的样子——设备和它们的走线在一起。</div>
+      <div class="issue"><div class="t"><b>P3D6 · 被框定成只能看、不能动</b></div>这个视图被标注为“3D 检视”。对于把渲染图当作组装参照的搭建者来说，没有任何对所看见内容采取行动的路径——没有标签来辨认设备，没有深度读数，也没有一个干净的画面可以拿来与实体机架对照。</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <div class="m-canvas-head">
+      <span class="m-layout-name">我的手头设备</span>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>容量 <b>17/18 U</b></span>
+        <span class="m-chip"><i class="dot" style="background:var(--green)"></i>功率 <b>402 W</b></span>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:6px">
+        <span class="m-toggle on">线缆</span>
+        <span class="m-toggle on">标签</span>
+        <span class="m-toggle">⟳ 自动旋转</span>
+        <span class="m-toggle">照片模式</span>
+      </div>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <div class="m-stage3d">
+        <img class="m-scene" src="scene-3d-raw.png" alt="应用内真实的 3D 渲染 — 叠加展示拟议的界面元素">
+        <div class="m-scene-shade"></div>
+        <div class="m-toast">✓ 3D 引擎就绪 · WebGL 上下文正常</div>
+        <svg style="position:absolute; left:26%; top:14%; pointer-events:none" width="420" height="360" viewBox="0 0 420 360">
+          <g fill="none" stroke-linecap="round">
+            <path d="M 210 30 C 300 30, 330 90, 340 150" stroke="#22d3ee" stroke-width="3" opacity=".85"/>
+            <path d="M 215 60 C 295 65, 320 120, 332 165" stroke="#60a5fa" stroke-width="2.5" opacity=".6"/>
+            <path d="M 205 250 C 300 250, 330 200, 345 170" stroke="#fbbf24" stroke-width="2.5" opacity=".55"/>
+          </g>
+          <circle cx="210" cy="30" r="4.5" fill="#22d3ee"/>
+          <circle cx="205" cy="250" r="4" fill="#fbbf24"/>
+        </svg>
+        <div class="m-tooltip" style="left:55%; top:62%">寶藏盒 Pro NAS<div class="sub">U2–U7 · 292 mm · 120 W · 存储</div></div>
+        <div class="m-dock">
+          <span>正面</span><span>背面</span><span class="on">ISO</span><span>顶部</span>
+          <div class="sep"></div>
+          <span>⟳</span>
+        </div>
+      </div>
+
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">寶藏盒 Pro NAS</div>
+          <div class="chips"><span>存储</span><span>U2–U7</span><span>6U</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">属性</span><span>线缆<i class="cnt">2</i></span><span>端口</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-depth">
+            <div class="dt"><span>深度检查</span><b>292 mm</b></div>
+            <div class="track">
+              <div class="range" style="left:44%; width:40%"></div>
+              <div class="mark" style="left:58.4%"></div>
+            </div>
+            <div class="scale"><span>0</span><span>导轨 220–420 mm</span><span>500</span></div>
+            <div class="verdict">✓ 适配导轨 · 后部余量 78 mm</div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>机位 U</label><div class="in">2</div></div>
+            <div class="m-field"><label>高度 U</label><div class="in">6</div></div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>功率 W</label><div class="in">120</div></div>
+            <div class="m-field"><label>重量 kg</label><div class="in">8.5</div></div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">移除组件</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="bottom:24px; left:44%;">D1</div>
+    <div class="co" style="top:58%; left:58%;">D2</div>
+    <div class="co" style="top:220px; right:14px;">D3</div>
+    <div class="co" style="top:60px; left:46%;">D4</div>
+    <div class="co" style="top:14px; left:330px;">D5</div>
+    <div class="co" style="top:14px; right:340px;">D6</div>
+    <div class="co" style="top:14px; right:14px;">D7</div>
+  </div>
+  </div>
+
+  <p class="footnote" style="margin:-8px 0 16px">上图场景取自当前应用真实的 3D 渲染（实时截取），拟议的界面元素叠加其上——你看到的是设计方案落在真实机架上的样子，而不是重新绘制的近似图。</p>
+  <div class="legend">
+    <div class="leg"><span class="n">D1</span><div>
+      <div class="t">相机预设停靠栏</div>
+      <div class="d">正面 / 背面 / ISO / 顶部，外加自动旋转，位于底部居中。<b>SmoothCameraRig</b> 已经实现了过渡动画——预设只是给它配上按钮。OrbitControls 保留为自由视角的兜底方式。</div>
+      <div class="why">为何更优：隐藏的手势变成可发现的控件；“带我回到正面”是一下点击，而不是一顿瞎猜的拖拽。</div>
+    </div></div>
+    <div class="leg"><span class="n">D2</span><div>
+      <div class="t">悬停提示 + 标签开关</div>
+      <div class="d">悬停设备即浮出名称、U 位跨度、深度和功率；标签开关可为所有设备常驻显示。识别设备不再需要盲点。</div>
+      <div class="why">为何更优：识别先于选择——不用先错开三个检查器面板，就能找到那台 NAS。</div>
+    </div></div>
+    <div class="leg"><span class="n">D3</span><div>
+      <div class="t">深度检查卡片让承诺落地</div>
+      <div class="d">检查器面板新增深度卡片：设备深度与机架的 <b>railMinDepthMm–railMaxDepthMm</b> 导轨区间对照绘制，并计算后部余量。数据早已在布局模型中，只是从未暴露。</div>
+      <div class="why">为何更优：深度的组织方式恰恰是 2D 无法呈现的——这张卡片把它变成数值，于是你按毫米而不是按目测来排布。</div>
+    </div></div>
+    <div class="leg"><span class="n">D4</span><div>
+      <div class="t">加载与恢复过程可见</div>
+      <div class="d">懒加载 3D 代码块加载期间显示加载骨架屏 + 进度芯片；<b>CanvasWithRecovery</b> 在上下文丢失后重建场景时显示提示条。机制都已存在，只是此前一直静默。</div>
+      <div class="why">为何更优：860KB 的懒加载代码块和 GPU 恢复若没有界面反馈，读起来就像“坏了”——有了状态提示才会让人觉得“在干活”。</div>
+    </div></div>
+    <div class="leg"><span class="n">D5</span><div>
+      <div class="t">同一外壳、同一健康状态条，外加性能逃生舱</div>
+      <div class="d">画布头部承载与 2D/线缆视图相同的健康芯片，各视图间的状态完全一致。性能模式（位于溢出菜单中）在弱 GPU 上关闭端口级几何体和标签。</div>
+      <div class="why">为何更优：处处同一外壳意味着每个视图都无需重新学习；性能模式让大布局在集成显卡上也能用。</div>
+    </div></div>
+    <div class="leg"><span class="n">D6</span><div>
+      <div class="t">线缆图层——设备与路由同处一个空间视图</div>
+      <div class="d">线缆开关把路由路径（<b>CableViewer3D</b> 样条曲线）叠加到设备场景上，把现有的两座 3D 孤岛合二为一。你能同时看到 UPS、NAS<i>以及</i>它们之间真实的线缆松弛量——机架在物理上将成为的样子。</div>
+      <div class="why">为何更优：走线占“实际看起来如何”的一半；把它藏在单独的模式里，等于让 3D 视图因遗漏而说谎。</div>
+    </div></div>
+    <div class="leg"><span class="n">D7</span><div>
+      <div class="t">在 3D 视图中工作——并拿它与实体机架对照</div>
+      <div class="d">选中、标签页式检查器面板和移动操作在 3D 中行为完全一致，因此整理工作（把设备挪一个 U 位、重新查看深度卡片）就发生在空间后果可见的地方。照片模式剥离所有界面框架，输出干净的渲染图，组装时可与真实机架对照。</div>
+      <div class="why">为何更优：这个视图从“检视”升级为搭建者的参照——在其中整理，再用它核验实体搭建。</div>
+    </div></div>
+  </div>
+</section>
+
+</body>
+</html>

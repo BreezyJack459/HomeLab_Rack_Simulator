@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { NEW_SHELL } from '../utils/featureFlags';
+import { lazy } from 'react';
 import { Cable, Network } from 'lucide-react';
 import type { RackPluginModule } from './types';
 
@@ -45,18 +46,7 @@ export const cableManagementPlugin: RackPluginModule = {
       label: 'Cables',
       order: 30,
       icon: <Cable size={14} />,
-      pluginId: 'cable-management',
-      render: (layout) => (
-        <Suspense
-          fallback={
-            <div className="flex h-full items-center justify-center text-content-muted">
-              Loading cable map...
-            </div>
-          }
-        >
-          <CableMap layout={layout} />
-        </Suspense>
-      ),
+      render: (layout) => <CableMap layout={layout} embedded={NEW_SHELL} />,
     });
 
     host.registerViewMode({
@@ -64,18 +54,7 @@ export const cableManagementPlugin: RackPluginModule = {
       label: 'Topology',
       order: 40,
       icon: <Network size={14} />,
-      pluginId: 'cable-management',
-      render: (layout) => (
-        <Suspense
-          fallback={
-            <div className="flex h-full items-center justify-center text-content-muted">
-              Loading topology...
-            </div>
-          }
-        >
-          <NetworkTopology layout={layout} />
-        </Suspense>
-      ),
+      render: (layout) => <NetworkTopology layout={layout} />,
     });
 
     host.registerPanel({
@@ -84,19 +63,14 @@ export const cableManagementPlugin: RackPluginModule = {
       workspace: 'model',
       priority: 20,
       defaultPlacement: 'inspector',
-      supportedViewModes: ['2d', 'cables', 'topology'],
+      supportedViewModes: ['2d', '3d', 'cables', 'topology'],
       pluginId: 'cable-management',
-      render: () => (
-        <Suspense fallback={null}>
-          <CablePlanner />
-        </Suspense>
-      ),
+      render: () => <CablePlanner compact={NEW_SHELL} />,
     });
 
     host.registerToolbarAction({
       id: 'cable.quick-open',
       label: 'Cable Planner',
-      pluginId: 'cable-management',
       run: openCablePlanner,
     });
 
@@ -105,7 +79,6 @@ export const cableManagementPlugin: RackPluginModule = {
       title: 'Open Cable Planner',
       subtitle: 'Switch to the cable workflow',
       category: 'Advanced panels',
-      pluginId: 'cable-management',
       run: openCablePlanner,
     });
   },

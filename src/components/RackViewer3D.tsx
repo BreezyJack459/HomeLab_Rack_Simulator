@@ -1,15 +1,14 @@
-import { Eye, EyeOff } from 'lucide-react';
-import { Suspense, useState } from 'react';
+import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { RackLayout } from '../types/rack';
 import { CanvasWithRecovery } from './CanvasWithRecovery';
 import { RackModel } from './three/RackModel';
-import { SceneSetup } from './three/SceneSetup';
-import { SmoothCameraRig } from './three/SmoothCameraRig';
-
-const FRONT_CAMERA_POSITION: [number, number, number] = [4.6, 3.6, 7];
-const REAR_CAMERA_POSITION: [number, number, number] = [4.6, 3.6, -7];
-const RACK_CAMERA_TARGET: [number, number, number] = [0, 0.2, 0];
+import { PrintedMounts3D } from './three/PrintedMounts3D';
+import { getDeviceWorldBox, getRackWorldDimensions } from '../utils/rackGeometry';
+import { RackSceneCamera } from './three/RackSceneCamera';
+import type { CableCameraPreset } from './three/rack-scene/cameraPresets';
+import { SceneNavigationHint, SceneViewToolbar } from './SceneViewToolbar';
 
 interface RackViewer3DProps {
   layout?: RackLayout;
@@ -17,41 +16,41 @@ interface RackViewer3DProps {
 
 export function RackViewer3D({ layout: layoutOverride }: RackViewer3DProps) {
   const storeLayout = useRackStore((state) => state.layout);
-  const layout = layoutOverride ?? storeLayout;
-  const [viewAngle, setViewAngle] = useState<'front' | 'rear'>('front');
-
-  const cameraPosition = viewAngle === 'front' ? FRONT_CAMERA_POSITION : REAR_CAMERA_POSITION;
+  const layout = useMemo(() => withoutHiddenZeroUPdu(layoutOverride ?? storeLayout), [layoutOverride, storeLayout]);
+  const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
+  const selected = layout.devices.find((device) => device.id === selectedDeviceId);
+  const [preset, setPreset] = useState<CableCameraPreset>('overview');
+  const [fitRequest, setFitRequest] = useState(0);
+  useEffect(() => {
+    if (selected?.sizeU === 0) { setPreset('rear-angle'); setFitRequest(n => n + 1); }
+  }, [selected?.id, selected?.sizeU]);
+  const dimensions = useMemo(() => getRackWorldDimensions(layout), [layout.rackType, layout.heightU, layout.rackDepthMm]);
+  const extraPoints = useMemo(() => layout.devices.flatMap((device) => {
+    const box = getDeviceWorldBox(layout, device, dimensions);
+    return [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => ({
+      x: box.x + x * box.width / 2, y: box.y + y * box.height / 2, z: box.z + z * box.depth / 2,
+    }))));
+  }), [layout, dimensions]);
 
   return (
-    <div className="relative h-full bg-surface">
-      <div className="absolute left-4 top-4 z-10 rounded-lg border border-edge bg-surface/88 px-4 py-3 text-sm shadow-panel dark:border-edge dark:bg-surface/88">
-        <div className="flex items-center justify-between gap-4">
-          <div className="font-semibold text-content">3D inspection</div>
-          <button
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-edge-strong bg-fill px-2.5 text-xs text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface-raised dark:text-content dark:hover:bg-fill"
-            onClick={() => setViewAngle((v) => v === 'front' ? 'rear' : 'front')}
-            type="button"
-          >
-            {viewAngle === 'front' ? <Eye size={14} /> : <EyeOff size={14} />}
-            {viewAngle === 'front' ? 'Front view' : 'Rear view'}
-          </button>
-        </div>
-        <div className="mt-1 text-xs text-content-muted">Rotate, zoom and compare device depth.</div>
+    <div className="relative flex h-full min-h-0 flex-col bg-surface" data-testid="rack-inspection-3d">
+      <SceneViewToolbar title="3D inspection" preset={preset}
+        onPreset={(value) => { setPreset(value); setFitRequest((n) => n + 1); }}
+        onFit={() => { setPreset(selected?.sizeU === 0 ? 'rear-angle' : 'overview'); setFitRequest((n) => n + 1); }} />
+      <div className="relative min-h-0 flex-1">
+        <CanvasWithRecovery shadows dpr={[1, Math.min(window.devicePixelRatio || 1, 2)]}>
+          <RackSceneCamera dimensions={dimensions} preset={preset} fitRequest={fitRequest} extraPoints={extraPoints} />
+          <Suspense fallback={null}>
+            <RackModel layout={layout} />
+            <PrintedMounts3D layout={layout} />
+          </Suspense>
+        </CanvasWithRecovery>
+        <SceneNavigationHint />
       </div>
-      <CanvasWithRecovery shadows dpr={[1, Math.min(window.devicePixelRatio || 1, 2)]}>
-        <SceneSetup
-          cameraPosition={cameraPosition}
-          fov={42}
-          background="#090c12"
-          controlsTarget={RACK_CAMERA_TARGET}
-          ambientIntensity={0.62}
-          keyLightIntensity={1.15}
-        />
-        <SmoothCameraRig position={cameraPosition} />
-        <Suspense fallback={null}>
-          <RackModel layout={layout} />
-        </Suspense>
-      </CanvasWithRecovery>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-edge bg-surface px-3 py-2 text-xs text-content-secondary" aria-live="polite">
+        {selected ? <><strong className="text-content">{selected.label || selected.name}</strong><span>{selected.sizeU === 0 ? '0U' : `U${selected.positionU} · ${selected.sizeU}U`} · {selected.depthMm ?? '—'} mm deep</span></>
+          : <span>Select a device to inspect its name, rack position and depth.</span>}
+      </div>
     </div>
   );
 }

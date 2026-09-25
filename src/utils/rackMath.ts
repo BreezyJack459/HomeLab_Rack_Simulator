@@ -135,29 +135,62 @@ export function rangesOverlap(aStart: number, aSize: number, bStart: number, bSi
   return aStart < bEnd && bStart < aEnd;
 }
 
+export const U_HEIGHT_MM = 44.45;
+type ShelfDevice = Pick<PlacedDevice, 'id' | 'positionU' | 'sizeU' | 'widthType' | 'customWidthMm' | 'xMm' | 'mountSide'> & Partial<PlacedDevice>;
+export const isTrayShelf = (device: Partial<PlacedDevice>) => device.category === 'shelf' && device.shelfStyle === 'tray';
+export const shelfThickness = (device: Partial<PlacedDevice>) => Math.max(1, device.shelfThicknessMm ?? 2);
+export const shelfDeckHeight = (device: Partial<PlacedDevice>) => Math.max(0, device.shelfDeckOffsetMm ?? 0) + shelfThickness(device);
+export const deviceBodyHeightMm = (device: ShelfDevice) => Math.max(1, device.physicalHeightMm ?? device.sizeU * U_HEIGHT_MM - 4.445);
+export const canShareShelf = (layout: Pick<RackLayout, 'rackType'>, shelf: ShelfDevice, device: ShelfDevice) => {
+  if (!isTrayShelf(shelf) || device.category === 'shelf' || device.sizeU === 0 ||
+    !['shelf', 'custom'].includes(device.widthType) || device.mountingSupport === 'printed-mount' ||
+    getDeviceMountSide(shelf) !== getDeviceMountSide(device) || shelf.positionU !== device.positionU) return false;
+  const base = getDeviceXRange(layout, shelf);
+  const body = getDeviceXRange(layout, device);
+  // Leave space for the tray's side walls; only fully supported equipment shares U.
+  return body.x >= base.x + 3 && body.x + body.width <= base.x + base.width - 3 &&
+    (device.depthMm ?? Infinity) <= (shelf.depthMm ?? 0) &&
+    shelfDeckHeight(shelf) + deviceBodyHeightMm(device) + Math.max(0, device.clearanceAboveMm ?? 0) <= device.sizeU * U_HEIGHT_MM;
+};
+export const getSupportingTray = (layout: Pick<RackLayout, 'rackType'> & Partial<Pick<RackLayout, 'devices'>>, device: ShelfDevice) =>
+  layout.devices?.find(shelf => shelf.id !== device.id && canShareShelf(layout, shelf, device));
+
 export function clampDevicePosition(layout: RackLayout, sizeU: number, positionU: number) {
   if (sizeU === 0) return Math.max(1, Math.min(positionU, layout.heightU));
   return Math.max(1, Math.min(positionU, layout.heightU - sizeU + 1));
 }
 
-export function isDeviceWithinRack(layout: RackLayout, device: Pick<PlacedDevice, 'positionU' | 'sizeU'>) {
-  if (isZeroU(device)) return device.positionU >= 1 && device.positionU <= layout.heightU;
+/** Legacy 0U layouts had no length; retain their approximate 88% height until edited. */
+export const zeroUHeightMm = (layout: Pick<RackLayout, 'heightU'>, device: Partial<PlacedDevice>) =>
+  device.physicalHeightMm ?? layout.heightU * U_HEIGHT_MM * 0.88;
+export const zeroUBottomMm = (device: Pick<PlacedDevice, 'positionU'>) => (device.positionU - 1) * U_HEIGHT_MM;
+export const zeroUDepthMm = (device: Partial<PlacedDevice>) => device.physicalHeightMm === undefined ? 55 : device.depthMm ?? 55;
+
+export function isDeviceWithinRack(layout: RackLayout, device: Pick<PlacedDevice, 'positionU' | 'sizeU'> & Partial<PlacedDevice>) {
+  if (isZeroU(device)) {
+    const height = zeroUHeightMm(layout, device);
+    return Number.isFinite(height) && height > 0 && Number.isFinite(device.positionU) &&
+      zeroUBottomMm(device) >= 0 && zeroUBottomMm(device) + height <= layout.heightU * U_HEIGHT_MM + 0.001;
+  }
   return device.positionU >= 1 && device.positionU + device.sizeU - 1 <= layout.heightU;
 }
 
 export function hasOverlap(
   layout: RackLayout,
   devices: PlacedDevice[],
-  candidate: Pick<PlacedDevice, 'id' | 'positionU' | 'sizeU' | 'widthType' | 'customWidthMm' | 'xMm' | 'mountSide'>
+  candidate: ShelfDevice
 ) {
-  // Zero-U devices never overlap with anything
-  if (isZeroU(candidate)) return false;
+  // 0U uses independent mounting lanes, but two bodies in the same lane cannot intersect.
+  if (isZeroU(candidate)) return devices.some(device => device.id !== candidate.id && isZeroU(device) &&
+    getDeviceSpatialZone(device) === getDeviceSpatialZone(candidate) &&
+    rangesOverlap(zeroUBottomMm(candidate), zeroUHeightMm(layout, candidate), zeroUBottomMm(device), zeroUHeightMm(layout, device)));
   const candidateX = getDeviceXRange(layout, candidate);
   const candidateSide = getDeviceMountSide(candidate);
   return devices.some((device) => {
     if (device.id === candidate.id) return false;
     if (isZeroU(device)) return false;
     if (getDeviceMountSide(device) !== candidateSide) return false;
+    if (canShareShelf(layout, device, candidate) || canShareShelf(layout, candidate, device)) return false;
     const deviceX = getDeviceXRange(layout, device);
     return (
       rangesOverlap(device.positionU, device.sizeU, candidate.positionU, candidate.sizeU) &&
@@ -179,12 +212,14 @@ export function occupiedUnits(devices: PlacedDevice[], heightU: number) {
 
 export function findFirstFreeSlot(
   layout: RackLayout,
-  device: Pick<PlacedDevice, 'id' | 'positionU' | 'sizeU' | 'widthType' | 'customWidthMm' | 'xMm' | 'mountSide'>
+  device: Pick<PlacedDevice, 'id' | 'positionU' | 'sizeU' | 'widthType' | 'customWidthMm' | 'xMm' | 'mountSide'> & Partial<PlacedDevice>
 ) {
   // Zero-U devices don't need a free U slot; place at side
   if (isZeroU(device)) {
     const xMm = device.xMm ?? getDefaultDeviceX(layout, device);
-    return { positionU: 1, xMm: clampDeviceX(layout, device, xMm) };
+    const candidate = { ...device, positionU: 1 };
+    return isDeviceWithinRack(layout, candidate) && !hasOverlap(layout, layout.devices, candidate)
+      ? { positionU: 1, xMm: clampDeviceX(layout, device, xMm) } : null;
   }
   const usableWidth = RACK_SPECS[layout.rackType].usableWidthMm;
   const width = Math.min(getDeviceWidthMm(device), usableWidth);

@@ -7,6 +7,7 @@ import type {
   ViewModeId,
   ToolbarActionDefinition,
   ViewModeDefinition,
+  WorkspaceContribution,
 } from './types';
 import type { RackLayout } from '../types/rack';
 
@@ -52,6 +53,7 @@ export function buildPluginRegistry({
   const panels = [...core.panels];
   const toolbarActions = [...core.toolbarActions];
   const commands = [...core.commands];
+  const workspaces: WorkspaceContribution[] = [];
   const seen = new Set<string>();
   const pluginStates: PluginStates = {
     enabled: [],
@@ -119,6 +121,8 @@ export function buildPluginRegistry({
           pushUnique('toolbar', toolbarActions, definition),
         registerCommand: (definition) =>
           pushUnique('command', commands, definition),
+        registerWorkspace: (contribution) =>
+          pushUnique('workspace', workspaces, contribution),
       });
     } catch (error) {
       // Duplicate contribution ids are an integrity guard; keep them fatal.
@@ -140,6 +144,7 @@ export function buildPluginRegistry({
     panels: panels.sort((a, b) => a.priority - b.priority),
     toolbarActions,
     commands,
+    workspaces,
     pluginStates,
   };
 }

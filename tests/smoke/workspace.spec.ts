@@ -12,7 +12,8 @@ async function openDeviceLibrary(page: import('@playwright/test').Page) {
 }
 
 async function goToFleet(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: /Fleet\s*Rooms/ }).click();
+  await page.getByRole('button', {name:/Tools/}).click();
+  await page.getByRole('button', {name:/Fleet/}).click();
   await expect(page.getByRole('button', { name: /My Lab/ })).toBeVisible();
 }
 
@@ -23,7 +24,7 @@ async function goToBuild(page: import('@playwright/test').Page) {
 async function addDeviceToCurrentRack(page: import('@playwright/test').Page) {
   await goToBuild(page);
   await openDeviceLibrary(page);
-  await page.getByRole('button', { name: /Add to/ }).first().click();
+  await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
 }
 
 // Rack tabs live inside the scrollable tab bar; scope queries there to
@@ -48,6 +49,14 @@ test.describe('Multi-rack workspace', () => {
     await page.evaluate(() => {
       localStorage.removeItem('rack-simulator-theme');
       localStorage.removeItem('homelab-rack-simulator-layout-prefs');
+      // The fleet (portfolio) workspace is contributed by the opt-in fleet
+      // pack; seed prefs like a returning user who has it enabled.
+      localStorage.setItem(
+        'homelab-rack-simulator-layout-prefs',
+        JSON.stringify({
+          enabledPluginIds: ['cable-management', 'governance-tools', 'fleet-pack'],
+        }),
+      );
       const blankWorkspace = {
         id: `workspace-test`,
         name: 'My Lab',
@@ -77,7 +86,7 @@ test.describe('Multi-rack workspace', () => {
     await page.reload();
     await goToFleet(page);
     await expect(page.getByText('1 rack', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 devices', { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByText('0 devices', { exact: true })).toBeVisible();
   });
 
   test('creates a new rack', async ({ page }) => {
@@ -125,7 +134,7 @@ test.describe('Multi-rack workspace', () => {
     await createRack(page, 'Rack 2');
     await addDeviceToCurrentRack(page);
     await goToFleet(page);
-    await expect(page.getByText('2 devices', { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByText('2 devices', { exact: true })).toBeVisible();
 
     // Use exposed store to add an inter-rack cable
     const hasStore = await page.evaluate(() => !!(window as unknown as Record<string, unknown>).__rackStore);

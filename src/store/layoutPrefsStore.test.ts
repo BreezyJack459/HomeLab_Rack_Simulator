@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultEnabledPluginIds } from '../plugins/builtInPlugins';
 import { useLayoutPrefsStore } from './layoutPrefsStore';
 
@@ -82,5 +82,25 @@ describe('layoutPrefsStore', () => {
       enabledPluginIds: defaultEnabledPluginIds,
       approvedLocalPluginIds: ['rack-reports-local'],
     });
+  });
+});
+
+describe('initial plugin preference migration', () => {
+  it('keeps fresh installs core-only and appends workspace packs for returning users', async () => {
+    localStorage.removeItem('homelab-rack-simulator-layout-prefs');
+    vi.resetModules();
+    const fresh = await import('./layoutPrefsStore');
+    expect(fresh.useLayoutPrefsStore.getState().enabledPluginIds).toEqual(defaultEnabledPluginIds);
+    localStorage.setItem('homelab-rack-simulator-layout-prefs', JSON.stringify({
+      enabledPluginIds: ['cable-management', 'port-labels'],
+      approvedLocalPluginIds: ['rack-reports-local'],
+    }));
+    vi.resetModules();
+    const returning = await import('./layoutPrefsStore');
+    expect(returning.useLayoutPrefsStore.getState().enabledPluginIds).toEqual([
+      'cable-management', 'port-labels', 'operations-pack', 'planning-pack', 'fleet-pack',
+    ]);
+    expect(returning.useLayoutPrefsStore.getState().approvedLocalPluginIds).toEqual(['rack-reports-local']);
+    localStorage.removeItem('homelab-rack-simulator-layout-prefs');
   });
 });

@@ -45,9 +45,9 @@ Front face is **always** `+Z`, rear is **always** `−Z`.
 
 ### 5. Half-Half Rail Rule (ADR-008)
 
-Cables choose left vs. right vertical rail by `fromPort.x` sign, **not** by cable type.
+The source port half is the preferred rail, **not** a rail fixed by cable type. The rear 3D candidate planner may select the opposite rail when it provides a shorter clear route; equal-cost candidates prefer the source half. Front and 0U routing keep their existing rules.
 
-**Check**: Supports redundant dual-PSU layouts.
+**Check**: Compare direct/drop, existing-manager and side candidates; reject body/access collisions, preserve endpoint approach directions, and keep the selected route family and rail identical across Clean and Realistic. Added support hardware must clear device bodies and connector access envelopes. If no candidate is clear, report a blocked route instead of drawing an unchecked fallback.
 
 ### 6. PDU Drop-Down Behavior (ADR-007)
 
@@ -93,7 +93,7 @@ npm run smoke:cables
 - [ ] `portZSign` calculation has no `* mountSide` multiplication
 - [ ] `buildPortLayout()` is called for all device types in `devicePortPosition()`
 - [ ] `buildCablePath()` branches on `isSideZone()` correctly for 0U devices
-- [ ] Rail selection uses `fromPort.x` sign (not cable type)
+- [ ] Rear route selection compares clear candidates and uses the source half as its tie-break (not cable type)
 - [ ] PDU drop-down check uses `fromIsPdu || toIsPdu`
 - [ ] No direct mutation of `layout.devices` / `layout.cables` in components
 - [ ] `templateToDevice()` copies all relevant fields

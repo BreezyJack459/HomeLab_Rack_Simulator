@@ -1,5 +1,4 @@
 import type { RackLayout } from '../types/rack';
-import { deviceCatalog } from '../data/deviceCatalog';
 import { getRackTotals } from './validation';
 import { calculateNoiseSummary, suitabilityLabel } from './noiseCalc';
 
@@ -34,39 +33,10 @@ export interface CapacityForecast {
   recommendations: string[];
 }
 
-interface AverageDevice {
-  sizeU: number;
-  powerW: number;
-  weightKg: number;
-  heatLevel: number;
-  noiseDb: number;
-}
-
-function getAverageDevice(): AverageDevice {
-  const rackable = deviceCatalog.filter(
-    (d) =>
-      d.rackMountable !== false &&
-      d.category !== 'blank' &&
-      d.category !== 'cable-management' &&
-      d.category !== 'printed-mount'
-  );
-  if (rackable.length === 0) {
-    return { sizeU: 1, powerW: 50, weightKg: 3, heatLevel: 2, noiseDb: 35 };
-  }
-  const mid = Math.floor(rackable.length / 2);
-  const sortedU = rackable.map((d) => d.defaultU).sort((a, b) => a - b);
-  const sortedPower = rackable.map((d) => d.powerW).sort((a, b) => a - b);
-  const sortedWeight = rackable.map((d) => d.weightKg).sort((a, b) => a - b);
-  const sortedHeat = rackable.map((d) => d.heatLevel).sort((a, b) => a - b);
-
-  return {
-    sizeU: sortedU[mid] ?? 1,
-    powerW: sortedPower[mid] ?? 50,
-    weightKg: sortedWeight[mid] ?? 3,
-    heatLevel: sortedHeat[mid] ?? 2,
-    noiseDb: 35,
-  };
-}
+// Fixed planning units, not a catalog statistic: adding templates must not
+// change a saved rack's forecast. This is a small homelab-device allowance.
+export const TYPICAL_DEVICE = Object.freeze({ sizeU: 1, powerW: 50, weightKg: 3, heatLevel: 2, noiseDb: 35 });
+export const FORECAST_ASSUMPTION = 'Estimates use a fixed typical device: 1U, 50W, 3kg, 2 heat points and 35dB; one port, outlet and cable. Counts are rounded down; noise is a rough allowance.';
 
 function countSwitchPorts(layout: RackLayout): { total: number; used: number } {
   const switches = layout.devices.filter((d) => d.category === 'switch');
@@ -121,7 +91,7 @@ function makeForecast(
 
 export function analyzeCapacityForecast(layout: RackLayout): CapacityForecast {
   const totals = getRackTotals(layout);
-  const avg = getAverageDevice();
+  const avg = TYPICAL_DEVICE;
   const noise = calculateNoiseSummary(layout);
   const switchPorts = countSwitchPorts(layout);
   const pduOutlets = countPduOutlets(layout);

@@ -1,5 +1,7 @@
 # HomeLab Rack Simulator — Cabling Fix & Improvement Plan
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../dev/ARCHITECTURE.md) and [documentation index](../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Overview
 
 This document captures the known bugs and planned improvements for the cabling system in the HomeLab Rack Simulator project. It consolidates three categories of issues: (1) cable routing ignoring device side / using shortest path instead of physically correct L-shaped routes, (2) 3D render mode not correctly applying ports to devices, and (3) broader cabling reliability and realism improvements aligned with real-world data centre standards.

@@ -219,3 +219,17 @@ describe('analyzeCapacityForecast', () => {
     expect(space.current).toBe(10); // 8 occupied + 2 reserved
   });
 });
+
+// Deliberate planning profile: one 1U, 50W, 3kg device, independent of catalog medians.
+describe('stable typical-device boundaries', () => {
+  it.each([[0, 0], [49, 0], [50, 1], [99, 1], [100, 2]])('power headroom %s W fits %s typical devices', (powerBudgetW, expected) => {
+    const power = analyzeCapacityForecast(createLayout({ powerBudgetW })).categories.find(c => c.category === 'power')!;
+    expect(power.estimatedDevicesUntilExhaustion).toBe(expected);
+  });
+  it('uses fixed space, weight and thermal planning assumptions', () => {
+    const categories = analyzeCapacityForecast(createLayout({ heightU: 12, weightLimitKg: 11 })).categories;
+    expect(categories.find(c => c.category === 'space')!.estimatedDevicesUntilExhaustion).toBe(12);
+    expect(categories.find(c => c.category === 'weight')!.estimatedDevicesUntilExhaustion).toBe(3);
+    expect(categories.find(c => c.category === 'heat')!.estimatedDevicesUntilExhaustion).toBe(18);
+  });
+});

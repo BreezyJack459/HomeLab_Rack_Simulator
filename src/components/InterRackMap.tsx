@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Network, Server, Cable, ArrowRight, AlertCircle, MapPin, Plus } from 'lucide-react';
+import { useRackStore } from '../store/rackStore';
 import type { RackLayout, InterRackCable, PortRef } from '../types/rack';
 
 interface InterRackMapProps {
-  racks: RackLayout[];
-  interRackCables: InterRackCable[];
-  onSelectCable?: (cableId: string) => void;
-  selectedCableId?: string | null;
   onAddCable?: () => void;
 }
 
@@ -75,7 +72,17 @@ interface CablePosition {
   color: string;
 }
 
-function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, onAddCable }: InterRackMapProps) {
+function InterRackMap({ onAddCable }: InterRackMapProps) {
+  const racks = useRackStore((state) => state.workspace.racks);
+  const interRackCables = useRackStore(
+    (state) => state.workspace.interRackCables,
+  );
+  const selectedCableId = useRackStore(
+    (state) => state.selectedInterRackCableId,
+  );
+  const selectInterRackCable = useRackStore(
+    (state) => state.selectInterRackCable,
+  );
   const [hoveredCableId, setHoveredCableId] = useState<string | null>(null);
 
   const { svgWidth, svgHeight, rackPositions, cablePositions } = useMemo(() => {
@@ -173,7 +180,8 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
           className="block"
           data-testid="inter-rack-map-svg"
           height={svgHeight}
-          role="img"
+          role="group"
+          aria-label="Inter-rack connections"
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           width={svgWidth}
         >
@@ -189,7 +197,7 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
           <rect fill="url(#inter-rack-grid)" height={svgHeight} width={svgWidth} x="0" y="0" />
 
           {/* Cables — render behind racks */}
-          {cablePositions.map(({ cable, path, color }) => {
+          {cablePositions.map(({ cable, path, color, fromPos, toPos }) => {
             const isSelected = selectedCableId === cable.id;
             const isHovered = hoveredCableId === cable.id;
             const dimmed = selectedCableId !== null && selectedCableId !== cable.id && !isHovered;
@@ -198,10 +206,19 @@ function InterRackMap({ racks, interRackCables, onSelectCable, selectedCableId, 
               <g
                 key={cable.id}
                 data-inter-rack-cable={cable.id}
-                onClick={() => onSelectCable?.(cable.id)}
+                onClick={() => selectInterRackCable(cable.id)}
                 onMouseEnter={() => setHoveredCableId(cable.id)}
                 onMouseLeave={() => setHoveredCableId(null)}
                 role="button"
+                aria-label={`${cable.label || cable.type.toUpperCase()}: ${fromPos.rack.name}, ${getDeviceName(fromPos.rack, cable.fromDeviceId)}, ${formatPortRef(cable.fromPort)} to ${toPos.rack.name}, ${getDeviceName(toPos.rack, cable.toDeviceId)}, ${formatPortRef(cable.toPort)}`}
+                aria-pressed={isSelected}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectInterRackCable(cable.id);
+                  }
+                }}
+                className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}
               >

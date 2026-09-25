@@ -36,7 +36,7 @@ export function recommendationForIssue(issue: { id: string }): string {
     return 'Add a blank panel, cable manager, or free U gap near the hot device.';
   }
   if (issue.id.startsWith('shelf-')) {
-    return 'Add a shelf in the same side and overlapping horizontal footprint.';
+    return 'Add a shelf on the same side and overlapping horizontal footprint, or select 3D-printed rack mount in Properties if the device has a supporting mount.';
   }
   if (issue.id.startsWith('cable-strain-')) {
     return 'Use a longer cable or add a service loop so the device can be pulled out for maintenance.';

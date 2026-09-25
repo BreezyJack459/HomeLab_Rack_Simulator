@@ -181,6 +181,7 @@ describe('rackStore incremental cable recompute', () => {
 
     // Reduce rack height (triggers full recompute per Codex plan)
     useRackStore.getState().setRackHeight(6);
+    useRackStore.getState().resolveRackResize('retain');
 
     const nextLayout = useRackStore.getState().layout;
     const cableCDAfter = nextLayout.cables.find((c) => c.id === 'cable-cd')!;
@@ -189,7 +190,7 @@ describe('rackStore incremental cable recompute', () => {
     expect(cableCDAfter.nodes).not.toBe(cdNodesBefore);
   });
 
-  it('selects the first normalized visible device after hidden 0U PDU cleanup', () => {
+  it('preserves and selects a now-supported 0U device', () => {
     useRackStore.getState().loadLayout({
       ...testLayout,
       devices: [
@@ -217,8 +218,8 @@ describe('rackStore incremental cable recompute', () => {
 
     const state = useRackStore.getState();
 
-    expect(state.layout.devices.some((device) => device.id === 'hidden-zero-u')).toBe(false);
-    expect(state.selectedDeviceId).toBe('dev-a');
+    expect(state.layout.devices.some((device) => device.id === 'hidden-zero-u')).toBe(true);
+    expect(state.selectedDeviceId).toBe('hidden-zero-u');
   });
 });
 
@@ -447,14 +448,15 @@ describe('rackStore store operations', () => {
     expect(useRackStore.getState().selectedDeviceId).toBeNull();
   });
 
-  it('setRackHeight removes devices that no longer fit', () => {
+  it('setRackHeight retains devices and cables after explicit preflight confirmation', () => {
     useRackStore.getState().loadLayout(testLayout);
 
     useRackStore.getState().setRackHeight(5);
+    useRackStore.getState().resolveRackResize('retain');
     const state = useRackStore.getState();
     expect(state.layout.heightU).toBe(5);
-    expect(state.layout.devices.some((d) => d.id === 'dev-d')).toBe(false);
-    expect(state.layout.cables.some((c) => c.id === 'cable-cd')).toBe(false);
+    expect(state.layout.devices.some((d) => d.id === 'dev-d')).toBe(true);
+    expect(state.layout.cables.some((c) => c.id === 'cable-cd')).toBe(true);
   });
 
   it('addReservation reserves U-space and blocks accidental device placement', () => {
@@ -477,7 +479,7 @@ describe('rackStore store operations', () => {
     expect(state.statusMessage).toContain('reserved');
   });
 
-  it('setRackHeight removes reservations that no longer fit', () => {
+  it('setRackHeight retains out-of-bounds reservations after confirmation', () => {
     useRackStore.getState().newLayout('19in', 12);
     useRackStore.getState().addReservation({
       name: 'Future shelf',
@@ -489,8 +491,10 @@ describe('rackStore store operations', () => {
     });
 
     useRackStore.getState().setRackHeight(8);
+    useRackStore.getState().resolveRackResize('retain');
 
-    expect(useRackStore.getState().layout.reservations).toHaveLength(0);
+    expect(useRackStore.getState().layout.reservations).toHaveLength(1);
+    expect(useRackStore.getState().layout.reservations![0].positionU).toBe(10);
   });
 
   it('setRackType updates rack dimensions and reclamps device positions', () => {

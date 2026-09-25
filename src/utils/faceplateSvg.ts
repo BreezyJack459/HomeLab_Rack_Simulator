@@ -66,6 +66,16 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;');
 }
 
+/**
+ * Raster faceplates live in `public/` and are served under the Vite base
+ * path (e.g. `/HomeLab_Rack_Simulator/`), but catalog paths are root-absolute.
+ * Prefix them with the base so they resolve in dev and on GitHub Pages.
+ */
+export const resolveFaceplateUrl = (path: string): string =>
+  path.startsWith('/')
+    ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}${path}`
+    : path;
+
 export function getFaceplateArtifact(
   template: DeviceTemplate,
   face: ViewSide
@@ -183,7 +193,7 @@ export function getFaceplateTexture(
       objectUrl = URL.createObjectURL(blob);
       img.src = objectUrl;
     } else {
-      img.src = artifact.path;
+      img.src = resolveFaceplateUrl(artifact.path);
     }
   });
 

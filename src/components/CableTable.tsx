@@ -2,7 +2,9 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import type { CablePath } from './CableMap';
 import type { CableRoutingWarning, CableType, RackLayout } from '../types/rack';
+import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { DEFAULT_CABLE_COLORS } from '../utils/cableColors';
+import { matchesCableQuery } from '../utils/cableQuery';
 import { formatCableLength } from '../utils/rackMath';
 
 const CABLE_LABELS: Record<CableType, string> = {
@@ -59,25 +61,28 @@ function portLabel(port: { type: string; index: number } | undefined | null): st
 }
 
 export interface CableTableProps {
+  embedded?: boolean;
   cablePaths: CablePath[];
   layout: RackLayout;
   selectedCableId: string | null;
   onSelectCable: (id: string) => void;
-  activeCableTypes: Set<CableType>;
-  onCableTypeToggle: (type: CableType) => void;
 }
 
 export function CableTable({
   cablePaths,
+  embedded = false,
   layout,
   selectedCableId,
   onSelectCable,
-  activeCableTypes,
-  onCableTypeToggle,
 }: CableTableProps) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [filterText, setFilterText] = useState('');
+  const focusMode = useCableWorkspaceStore(s => s.focusMode);
+  const filterText = useCableWorkspaceStore((state) => state.query);
+  const setFilterText = useCableWorkspaceStore((state) => state.setQuery);
+  const hiddenTypes = useCableWorkspaceStore((state) => state.hiddenTypes);
+  const setTypeVisible = useCableWorkspaceStore((state) => state.setTypeVisible);
+  const showAllTypes = useCableWorkspaceStore((state) => state.showAllTypes);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const deviceById = useMemo(
@@ -88,20 +93,12 @@ export function CableTable({
   const filtered = useMemo(() => {
     const q = filterText.trim().toLowerCase();
     return cablePaths.filter(({ cable }) => {
-      if (activeCableTypes.size > 0 && !activeCableTypes.has(cable.type)) return false;
-      if (!q) return true;
-      const from = deviceById.get(cable.fromDeviceId);
-      const to = deviceById.get(cable.toDeviceId);
-      return (
-        from?.name.toLowerCase().includes(q) === true ||
-        to?.name.toLowerCase().includes(q) === true ||
-        cable.type.includes(q) ||
-        cable.id.toLowerCase().includes(q) ||
-        portLabel(cable.fromPort).toLowerCase().includes(q) ||
-        portLabel(cable.toPort).toLowerCase().includes(q)
-      );
+      if (cable.id === selectedCableId) return true;
+      if (focusMode === 'hide' && selectedCableId) return false;
+      if (hiddenTypes.includes(cable.type)) return false;
+      return matchesCableQuery(cable, layout, q);
     });
-  }, [cablePaths, activeCableTypes, filterText, deviceById]);
+  }, [cablePaths, focusMode, hiddenTypes, filterText, deviceById, selectedCableId]);
 
   const rows = useMemo(() => {
     if (!sortKey) return filtered;
@@ -160,15 +157,15 @@ export function CableTable({
 
   function clearFilters() {
     setFilterText('');
-    activeCableTypes.forEach((type) => onCableTypeToggle(type));
+    showAllTypes();
   }
 
-  const hasFilters = filterText.length > 0 || activeCableTypes.size > 0;
+  const hasFilters = filterText.length > 0 || hiddenTypes.length > 0;
 
   return (
     <div className="rounded-xl border border-edge bg-surface/88 dark:border-edge dark:bg-surface/88">
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-edge p-3 dark:border-edge">
+      {!embedded && <div className="flex flex-wrap items-center gap-2 border-b border-edge p-3 dark:border-edge">
         <input
           className="h-8 w-52 rounded-md border border-edge bg-fill-subtle px-3 text-sm text-content placeholder-content-faint outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 dark:border-edge-strong dark:bg-surface-raised dark:text-content dark:placeholder-content-muted"
           onChange={(e) => setFilterText(e.target.value)}
@@ -180,11 +177,11 @@ export function CableTable({
           <button
             key={type}
             className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition ${
-              activeCableTypes.has(type)
+              !hiddenTypes.includes(type)
                 ? 'border-accent bg-accent-solid/10 text-accent-fg-strong dark:border-accent dark:bg-accent/10 dark:text-accent-fg-strong'
                 : 'border-edge bg-fill text-content-secondary hover:border-edge-strong hover:text-content dark:border-edge dark:bg-surface-raised dark:text-content-secondary dark:hover:border-edge-strong dark:hover:text-content'
             }`}
-            onClick={() => onCableTypeToggle(type)}
+            onClick={() => setTypeVisible(type, hiddenTypes.includes(type))}
             type="button"
           >
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: DEFAULT_CABLE_COLORS[type] }} />
@@ -200,7 +197,7 @@ export function CableTable({
             Clear filters
           </button>
         )}
-      </div>
+      </div>}
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -249,7 +246,7 @@ export function CableTable({
                     <tr
                       className={`cursor-pointer border-b border-edge transition hover:bg-fill-subtle dark:border-edge dark:hover:bg-surface-raised/60 ${
                         isSelected ? 'bg-accent-subtle/20' : ''
-                      } ${border}`}
+                      } ${border} ${focusMode === 'dim' && selectedCableId && !isSelected ? 'opacity-30' : ''}`}
                       onClick={() => onSelectCable(cable.id)}
                     >
                       <td className="px-2 py-2 text-content-faint">

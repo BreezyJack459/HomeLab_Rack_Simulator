@@ -1,5 +1,7 @@
 # Capacity Forecast Feature Plan
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## 🔒 SCOPE LOCK
 本轮唯一目标：实现 Rack Capacity Forecast（机架容量预测），回答「下一個瓶頸是什麼、還能裝多少設備」
 禁止事項：

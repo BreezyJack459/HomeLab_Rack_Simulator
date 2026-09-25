@@ -1,0 +1,1858 @@
+{
+  "id": "dense-42u-100",
+  "name": "Dense 42U (100 routes)",
+  "rackType": "19in",
+  "heightU": 42,
+  "rackDepthMm": 800,
+  "weightLimitKg": 800,
+  "powerBudgetW": 6000,
+  "viewSide": "front",
+  "devices": [
+    {
+      "category": "pdu",
+      "positionU": 1,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#fb923c",
+      "id": "pdu-rear",
+      "name": "Rear PDU",
+      "mountSide": "rear",
+      "ports": {
+        "power": 12
+      }
+    },
+    {
+      "category": "cable-management",
+      "positionU": 41,
+      "sizeU": 1,
+      "depthMm": 100,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#3b82f6",
+      "id": "hcm-top",
+      "name": "Top HCM"
+    },
+    {
+      "category": "cable-management",
+      "positionU": 27,
+      "sizeU": 1,
+      "depthMm": 100,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#3b82f6",
+      "id": "hcm-mid",
+      "name": "Mid HCM"
+    },
+    {
+      "category": "switch",
+      "positionU": 35,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-0",
+      "name": "Switch 1",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "switch",
+      "positionU": 36,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-1",
+      "name": "Switch 2",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "switch",
+      "positionU": 37,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-2",
+      "name": "Switch 3",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "switch",
+      "positionU": 38,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-3",
+      "name": "Switch 4",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "switch",
+      "positionU": 39,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-4",
+      "name": "Switch 5",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "switch",
+      "positionU": 40,
+      "sizeU": 1,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#38bdf8",
+      "id": "sw-5",
+      "name": "Switch 6",
+      "ports": {
+        "ethernet": 24
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 3,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-0",
+      "name": "Server 1",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 5,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-1",
+      "name": "Server 2",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 7,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-2",
+      "name": "Server 3",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 9,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-3",
+      "name": "Server 4",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 11,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-4",
+      "name": "Server 5",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 13,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-5",
+      "name": "Server 6",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 15,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-6",
+      "name": "Server 7",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 17,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-7",
+      "name": "Server 8",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 19,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-8",
+      "name": "Server 9",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 21,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-9",
+      "name": "Server 10",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 23,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-10",
+      "name": "Server 11",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    },
+    {
+      "category": "server",
+      "positionU": 25,
+      "sizeU": 2,
+      "depthMm": 400,
+      "widthType": "19in",
+      "weightKg": 8,
+      "powerW": 150,
+      "heatLevel": 2,
+      "color": "#8b5cf6",
+      "id": "srv-11",
+      "name": "Server 12",
+      "ports": {
+        "ethernet": 2,
+        "power": 2
+      }
+    }
+  ],
+  "cables": [
+    {
+      "id": "eth-000",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 0
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-001",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 1
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-002",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 2
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-003",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 3
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-004",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 4
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-005",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 5
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-006",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 6
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-007",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 7
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-008",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 8
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-009",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 9
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-010",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 10
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-011",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 11
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-012",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 12
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-013",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 13
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-014",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 14
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-015",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 15
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-016",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 16
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-017",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 17
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-018",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 18
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-019",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 19
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-020",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 20
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-021",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 21
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-022",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 22
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-023",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 23
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-024",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 0
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-025",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 1
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-026",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 2
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-027",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 3
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-028",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 4
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-029",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 5
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-030",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 6
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-031",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 7
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-032",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 8
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-033",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 9
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-034",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 10
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-035",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 11
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-036",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 12
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-037",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 13
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-038",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 14
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-039",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 15
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-040",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 16
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-041",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 17
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-042",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 18
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-043",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 19
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-044",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 20
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-045",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 21
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-046",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 22
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-047",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 23
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-048",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 0
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-049",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 1
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-050",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 2
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-051",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 3
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-052",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 4
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-053",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 5
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-054",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 6
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-055",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 7
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-056",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 8
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-057",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 9
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-058",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 10
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-059",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 11
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-060",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 12
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-061",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 13
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-062",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 14
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-063",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 15
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-064",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 16
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-065",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 17
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-066",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 18
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-067",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 19
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-068",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 20
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-069",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 21
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-070",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 22
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-071",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 23
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-072",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 0
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-073",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 1
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-074",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 2
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-075",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 3
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-076",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 4
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-077",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 5
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-078",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 6
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-079",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 7
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-080",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 8
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-081",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 9
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-082",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-4",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 10
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-083",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-5",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 11
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-084",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-0",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 12
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-085",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-1",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 13
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "eth-086",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-2",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 14
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "ethernet",
+        "index": 0
+      }
+    },
+    {
+      "id": "eth-087",
+      "type": "ethernet",
+      "color": "",
+      "fromDeviceId": "sw-3",
+      "fromPort": {
+        "type": "ethernet",
+        "index": 15
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "ethernet",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-000",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 0
+      },
+      "toDeviceId": "srv-0",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-001",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 1
+      },
+      "toDeviceId": "srv-1",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-002",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 2
+      },
+      "toDeviceId": "srv-2",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-003",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 3
+      },
+      "toDeviceId": "srv-3",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-004",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 4
+      },
+      "toDeviceId": "srv-4",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-005",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 5
+      },
+      "toDeviceId": "srv-5",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-006",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 6
+      },
+      "toDeviceId": "srv-6",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-007",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 7
+      },
+      "toDeviceId": "srv-7",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-008",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 8
+      },
+      "toDeviceId": "srv-8",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-009",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 9
+      },
+      "toDeviceId": "srv-9",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    },
+    {
+      "id": "pwr-010",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 10
+      },
+      "toDeviceId": "srv-10",
+      "toPort": {
+        "type": "power",
+        "index": 0
+      }
+    },
+    {
+      "id": "pwr-011",
+      "type": "power",
+      "color": "",
+      "fromDeviceId": "pdu-rear",
+      "fromPort": {
+        "type": "power",
+        "index": 11
+      },
+      "toDeviceId": "srv-11",
+      "toPort": {
+        "type": "power",
+        "index": 1
+      }
+    }
+  ],
+  "updatedAt": "2026-08-13T00:00:00.000Z"
+}

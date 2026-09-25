@@ -5,6 +5,7 @@ export type ViewMode =
   | '2d'
   | '3d'
   | 'cables'
+  | 'port-labels'
   | 'topology'
   // Consumed by FaceplateGallery component
   | 'gallery';
@@ -57,6 +58,8 @@ export interface DeviceTemplate {
   category: DeviceCategory;
   name: string;
   defaultU: number;
+  /** Physical length of a vertical 0U body, independent of occupied U. */
+  physicalHeightMm?: number;
   rackMountable?: boolean;
   depthMm: number;
   widthType: WidthType;
@@ -118,6 +121,17 @@ export interface NetworkInterface {
 }
 
 export interface PlacedDevice {
+  /** Legacy shelves reserve a solid U; trays share their mounting U with equipment. */
+  shelfStyle?: 'solid' | 'tray';
+  shelfThicknessMm?: number;
+  shelfDeckOffsetMm?: number;
+  shelfLoadLimitKg?: number;
+  physicalHeightMm?: number;
+  clearanceAboveMm?: number;
+  /** Support for compact equipment; omitted keeps the existing shelf behaviour. */
+  mountingSupport?: 'shelf' | 'printed-mount';
+  printedMountUrl?: string;
+  rackMountable?: boolean;
   id: string;
   templateId?: string;
   category: DeviceCategory;
@@ -200,6 +214,10 @@ export interface PortTypeConfig {
   orientation?: 'horizontal' | 'vertical';
   // Consumed by layout engine v2-lite (portLayout.ts)
   pairing?: 'sequential' | 'odd-even-vertical';
+  // Consumed by layout engine v2-lite (portLayout.ts). Scales port and gap
+  // sizes for this group (1 = default); use < 1 to fit dense rows onto
+  // photo faceplates (e.g. 48-port switches).
+  portScale?: number;
   groupLabel?: string;
   speed?: PortSpeed;
   mediaType?: MediaType;
@@ -230,6 +248,7 @@ export type CableWaypointRole =
   | 'strain-relief';
 
 export type CableRoutingWarningCode =
+  | 'manual-route'
   | 'missing-manager'
   | 'power-data-separation'
   | 'bend-radius-risk'
@@ -291,8 +310,15 @@ export type CablePlan = {
   pathLabel: string;
 };
 
+/** Ordered user-selected routing references; an empty list means a direct route. */
+export type CableRouteAnchor =
+  | { kind: 'channel'; side: 'left' | 'right'; face: 'front' | 'rear'; positionU: number }
+  | { kind: 'manager'; deviceId: string; side: 'left' | 'right' };
+
 export interface CableRoute {
+  manualPath?: CableRouteAnchor[];
   id: string;
+  label?: string;
   fromDeviceId: string;
   fromPort?: PortRef;
   toDeviceId: string;
@@ -565,6 +591,8 @@ export interface RackLayout {
   powerBudgetW: number;
   viewSide: ViewSide;
   devices: PlacedDevice[];
+  /** Owned devices awaiting placement; excluded from rack capacity and cable routing. */
+  unplacedDevices?: PlacedDevice[];
   cables: CableRoute[];
   reservations?: RackReservation[];
   procurementItems?: ProcurementItem[];

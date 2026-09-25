@@ -1,10 +1,15 @@
 import type { PlacedDevice, PortRef, PortTypeConfig } from '../types/rack';
+import { getDeviceWidthMm } from './rackMath';
 
-/** Subset of PlacedDevice required by port layout calculations. */
+/** Subset of PlacedDevice required by port layout calculations.
+ *  Width fields are optional: when present they anchor the real-world port
+ *  size cap to the device's actual face width, letting callers pass face
+ *  dimensions in any unit (mm for SVG/validation, world units for 3D). */
 export type PortLayoutDevice = Pick<
   PlacedDevice,
   'category' | 'ports' | 'portFaceOverrides' | 'portLayouts'
->;
+> &
+  Partial<Pick<PlacedDevice, 'widthType' | 'customWidthMm'>>;
 
 export interface PortSlot {
   type: string;
@@ -308,7 +313,8 @@ function layoutPortRow(
       config.columns,
       config.speed,
       config.mediaType,
-      config.orientation
+      config.orientation,
+      config.portScale
     );
     group.key = `${config.type}-${sourceIndex}`;
     group.label = config.groupLabel;
@@ -373,7 +379,8 @@ function layoutPortGroup(
   explicitColumns?: number,
   speed?: import('../types/rack').PortSpeed,
   mediaType?: import('../types/rack').MediaType,
-  orientation?: 'horizontal' | 'vertical'
+  orientation?: 'horizontal' | 'vertical',
+  portScale?: number
 ): PortGroup {
   const meta = PORT_META[type] ?? PORT_META.ethernet;
   const aspect = PORT_ASPECT[type] ?? 1.14;
@@ -432,8 +439,11 @@ function layoutPortGroup(
   const gapW = portW * gapRatio;
   const portH = portW / aspect;
 
-  // Cap size to real-world proportions on a 19" rack face (482mm usable)
+  // Cap size to real-world proportions. Ratios are defined against a 19"
+  // rack face (482.6mm usable), but the cap itself is an ABSOLUTE mm size:
+  // an RJ45 port is ~16mm wide whether the device face is 482mm or 107mm.
   // C13 ~27mm = 5.6%, RJ45 ~16mm = 3.3%, USB ~14mm = 2.9%
+  const RACK_REFERENCE_WIDTH_MM = 482.6;
   const MAX_PORT_RATIO: Record<string, number> = {
     power: 0.058,    // IEC C13 ~28mm / 482mm
     ethernet: 0.036, // RJ45 ~16mm / 482mm (was 8% — 2x too big)
@@ -443,18 +453,37 @@ function layoutPortGroup(
     atx: 0.025,
     coax: 0.024,
   };
-  const maxPortW = (MAX_PORT_RATIO[type] ?? 0.04) * faceWidth;
+  // Callers pass face dimensions in different units: mm (SVG faceplates,
+  // validation) vs 3D world units (DeviceModel, cable views). Convert the
+  // absolute mm cap into the caller's unit space via the device's real face
+  // width; without it the cap is a no-op in world units and single ports
+  // blow up to face-sized squares.
+  const deviceFaceWidthMm =
+    device.widthType !== undefined || device.customWidthMm !== undefined
+      ? getDeviceWidthMm({ widthType: device.widthType ?? 'custom', customWidthMm: device.customWidthMm })
+      : undefined;
+  const maxPortW =
+    deviceFaceWidthMm !== undefined && deviceFaceWidthMm > 0
+      ? (MAX_PORT_RATIO[type] ?? 0.04) * RACK_REFERENCE_WIDTH_MM * (faceWidth / deviceFaceWidthMm)
+      : (MAX_PORT_RATIO[type] ?? 0.04) * faceWidth;
   const finalPortW = Math.min(portW, maxPortW);
   const finalPortH = finalPortW / aspect;
   const finalGapW = Math.min(gapW, faceWidth * 0.01);
 
-  const slotW = isVertical ? finalPortH * 0.9 : finalPortW * 0.9;
-  const slotH = isVertical ? finalPortW * 0.9 : finalPortH * 0.9;
-  const rowPitch = isVertical ? slotH + finalGapW * 0.5 : finalPortH + finalGapW * 0.5;
+  // Optional per-group scale (portScale) shrinks ports and gaps together so
+  // dense rows (e.g. 2x24 on a photo faceplate) fit their real footprint.
+  const scale = portScale !== undefined ? Math.min(1, Math.max(0.2, portScale)) : 1;
+  const scaledPortW = finalPortW * scale;
+  const scaledPortH = finalPortH * scale;
+  const scaledGapW = finalGapW * scale;
+
+  const slotW = isVertical ? scaledPortH * 0.9 : scaledPortW * 0.9;
+  const slotH = isVertical ? scaledPortW * 0.9 : scaledPortH * 0.9;
+  const rowPitch = isVertical ? slotH + scaledGapW * 0.5 : scaledPortH + scaledGapW * 0.5;
   const displayCols = isVertical ? Math.ceil(count / rows) : cols;
 
   // Horizontal placement
-  const rowW = displayCols * slotW + (displayCols - 1) * finalGapW;
+  const rowW = displayCols * slotW + (displayCols - 1) * scaledGapW;
   let startX: number;
   if (xRatio !== undefined) {
     // xRatio 0 = left edge, 0.5 = center, 1 = right edge
@@ -467,7 +496,7 @@ function layoutPortGroup(
 
   // Stack rows from top of group area downward
   const startY = isZeroUPduPower
-    ? Math.min(availableH / 2 - finalPortH / 2, ((rows - 1) * rowPitch) / 2)
+    ? Math.min(availableH / 2 - scaledPortH / 2, ((rows - 1) * rowPitch) / 2)
     : groupY + (rows * rowPitch) / 2 - slotH / 2;
 
   const slots: PortSlot[] = [];
@@ -485,7 +514,7 @@ function layoutPortGroup(
     slots.push({
       type,
       index: baseIndex + i,
-      x: startX + col * (slotW + finalGapW),
+      x: startX + col * (slotW + scaledGapW),
       y: startY - row * rowPitch,
       width: slotW,
       height: slotH,

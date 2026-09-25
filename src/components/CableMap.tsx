@@ -1,9 +1,14 @@
+import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { Box, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState } from 'react';
+import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { useRackStore } from '../store/rackStore';
 import type { CablePlan, CableRoute, CableType, PlacedDevice, PortLayout, RackLayout } from '../types/rack';
 import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from '../utils/cableColors';
+import { matchesCableQuery } from '../utils/cableQuery';
 import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
+import { manualRoutePoints } from '../utils/manualCableRoute';
+import { getRackWorldDimensions } from '../utils/rackGeometry';
 import { calculateCablePlan } from '../utils/routing';
 import { getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
 import { CableTable } from './CableTable';
@@ -15,10 +20,6 @@ const RACK_Y = 66;
 const LANE_START_OFFSET = 92;
 const LANE_SPACING = 30;
 const MUTED_CABLE_COLOR = '#64748b';
-
-type CableFocusMode = 'dim' | 'hide';
-type CableTypeFilter = CableType | 'all';
-type CableMapView = '2d' | '3d' | 'table';
 
 const cableMeta: Record<CableType, { color: string; label: string; lane: number }> = {
   ethernet: { color: DEFAULT_CABLE_COLORS.ethernet, label: 'Ethernet', lane: 0 },
@@ -91,6 +92,13 @@ function buildNodePath(
   rackWidth: number,
   cable: CableRoute
 ): string {
+  if (cable.manualPath !== undefined) {
+    const dimensions = getRackWorldDimensions(layout);
+    return roundedPolylinePath(manualRoutePoints(cable, layout).map(point => ({
+      x: RACK_X + (point.x / dimensions.rackWidth + 0.5) * rackWidth,
+      y: RACK_Y + (0.5 - point.y / dimensions.rackHeight) * layout.heightU * UNIT_HEIGHT,
+    })), 8);
+  }
   const nodes = plan.nodes;
   if (nodes.length === 0) return '';
 
@@ -237,27 +245,26 @@ function connectionX(
 }
 
 interface CableMapProps {
+  embedded?: boolean;
   layout?: RackLayout;
 }
 
-export function CableMap({ layout: layoutOverride }: CableMapProps) {
+export function CableMap({ layout: layoutOverride, embedded = false }: CableMapProps) {
   const storeLayout = useRackStore((state) => state.layout);
-  const layout = layoutOverride ?? storeLayout;
+  const layout = useMemo(() => withoutHiddenZeroUPdu(layoutOverride ?? storeLayout), [layoutOverride, storeLayout]);
   const selectedCableId = useRackStore((state) => state.selectedCableId);
   const selectCable = useRackStore((state) => state.selectCable);
   const selectDevice = useRackStore((state) => state.selectDevice);
-  const [focusMode, setFocusMode] = useState<CableFocusMode>('dim');
-  const [typeFilter, setTypeFilter] = useState<CableTypeFilter>('all');
-  const [mapView, setMapView] = useState<CableMapView>('2d');
-
-  const activeCableTypes = useMemo(
-    () => (typeFilter === 'all' ? new Set<CableType>() : new Set<CableType>([typeFilter as CableType])),
-    [typeFilter]
-  );
-
-  function toggleCableType(type: CableType) {
-    handleSetTypeFilter(type);
-  }
+  const mapView = useCableWorkspaceStore((state) => state.subview);
+  const setMapView = useCableWorkspaceStore((state) => state.setSubview);
+  const query = useCableWorkspaceStore((state) => state.query);
+  const setQuery = useCableWorkspaceStore((state) => state.setQuery);
+  const hiddenTypes = useCableWorkspaceStore((state) => state.hiddenTypes);
+  const setTypeVisible = useCableWorkspaceStore((state) => state.setTypeVisible);
+  const showAllTypes = useCableWorkspaceStore((state) => state.showAllTypes);
+  const focusMode = useCableWorkspaceStore((state) => state.focusMode);
+  const setFocusMode = useCableWorkspaceStore((state) => state.setFocusMode);
+  const [showEmptyTypes, setShowEmptyTypes] = useState(false);
 
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * UNIT_HEIGHT;
@@ -271,7 +278,11 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
 
   const cablePaths = useMemo(() => {
     return layout.cables
-      .filter((cable) => typeFilter === 'all' || cable.type === typeFilter || selectedCableIds.has(cable.id))
+      .filter((cable) => {
+        if (selectedCableIds.has(cable.id)) return true;
+        if (hiddenTypes.includes(cable.type)) return false;
+        return matchesCableQuery(cable, layout, query);
+      })
       .map((cable): CablePath | null => {
         const from = layout.devices.find((device) => device.id === cable.fromDeviceId);
         const to = layout.devices.find((device) => device.id === cable.toDeviceId);
@@ -279,7 +290,6 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
 
         const plan = calculateCablePlan(cable, layout);
         if (!plan) return null;
-        const nodes = plan.nodes;
         const path = buildNodePath(plan, layout, rackWidth, cable);
 
         return {
@@ -292,15 +302,12 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
         };
       })
       .filter(Boolean) as CablePath[];
-  }, [layout.cables, layout.devices, layout.rackType, layout.rackDepthMm, layout.heightU, rackWidth, typeFilter, selectedCableIds]);
+  }, [layout.cables, layout.devices, layout.rackType, layout.rackDepthMm, layout.heightU, rackWidth, hiddenTypes, query, selectedCableIds]);
 
   const hasSelectedCable = selectedCableId !== null && cablePaths.some((path) => selectedCableIds.has(path.cable.id));
-  const routeSummary = typeFilter === 'all' ? `${layout.cables.length}` : `${cablePaths.length} / ${layout.cables.length}`;
-
-  function handleSetTypeFilter(nextType: CableTypeFilter) {
-    setTypeFilter((current) => (current === nextType ? 'all' : nextType));
-    selectCable(null);
-  }
+  const routeSummary = hiddenTypes.length === 0 && query.trim() === ''
+    ? `${layout.cables.length}`
+    : `${cablePaths.length} / ${layout.cables.length}`;
 
   const cableCounts = useMemo(() => {
     return layout.cables.reduce<Record<CableType, number>>(
@@ -312,19 +319,28 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
     );
   }, [layout.cables]);
 
+  // Density: zero-count types collapse behind a "+N more" toggle so the filter
+  // row only shows types that actually exist in the layout.
+  const allCableTypes = Object.keys(cableMeta) as CableType[];
+  const emptyTypeCount = allCableTypes.filter((type) => cableCounts[type] === 0).length;
+  const visibleCableTypes = allCableTypes.filter(
+    (type) => showEmptyTypes || cableCounts[type] > 0 || hiddenTypes.includes(type)
+  );
+
   return (
-    <div className="h-full overflow-auto bg-fill/55 p-8 thin-scrollbar dark:bg-surface/55">
-      <div className="mb-5 flex items-center justify-between gap-4">
+    <div className={`h-full overflow-auto bg-fill/55 thin-scrollbar dark:bg-surface/55 ${embedded || mapView === '3d' ? 'flex min-h-0 flex-col p-2' : 'p-8'}`}>
+      {!embedded && <>
+      <div className={`flex shrink-0 flex-wrap items-center justify-between gap-3 ${mapView === '3d' ? 'mb-3' : 'mb-5'}`}>
         <div>
-          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-content-muted">
+          <div className="flex items-center gap-2 text-base font-semibold text-content">
             <Network size={16} />
-            Cable Map
+            Cable map
           </div>
-          <p className="mt-2 max-w-3xl text-sm text-content-muted">
+          {mapView !== '3d' && <p className="mt-2 max-w-3xl text-sm text-content-muted">
             Patch panels and nearby devices route directly; longer runs leave into side cable trays before dropping vertically.
-          </p>
+          </p>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <div className="flex items-center gap-1 rounded-lg border border-edge bg-fill p-1 dark:border-edge dark:bg-surface-raised">
             <button
               className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
@@ -357,37 +373,45 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
               Table
             </button>
           </div>
-          <div className="rounded-lg border border-edge bg-surface/80 px-4 py-3 text-right dark:border-edge dark:bg-surface-raised/80">
+          <div className={`rounded-lg border border-edge bg-surface/80 text-right dark:border-edge dark:bg-surface-raised/80 ${mapView === '3d' ? 'px-3 py-1' : 'px-4 py-3'}`}>
             <div className="text-2xl font-semibold text-content">{routeSummary}</div>
-            <div className="text-xs uppercase tracking-[0.18em] text-content-faint">
-              {typeFilter === 'all' ? 'routes' : `${cableMeta[typeFilter].label} routes`}
+            <div className="text-xs text-content-faint">
+              routes visible
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 pb-4">
+      <div className="flex shrink-0 flex-wrap gap-2 pb-3">
+        <input
+          aria-label="Filter cable routes"
+          className="h-8 w-52 rounded-md border border-edge bg-fill-subtle px-3 text-sm text-content placeholder-content-faint outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Filter cables…"
+          type="search"
+          value={query}
+        />
         <button
           className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition ${
-            typeFilter === 'all'
+            hiddenTypes.length === 0
               ? 'border-accent bg-accent/10 text-accent-fg-strong'
               : 'border-edge bg-fill text-content-secondary hover:border-edge-strong hover:text-content dark:border-edge dark:bg-surface-raised dark:text-content-secondary dark:hover:border-edge-strong dark:hover:text-content'
           }`}
-          onClick={() => handleSetTypeFilter('all')}
+          onClick={showAllTypes}
           type="button"
         >
           All
           <span className="text-content-faint">{layout.cables.length}</span>
         </button>
-        {(Object.keys(cableMeta) as CableType[]).map((type) => (
+        {visibleCableTypes.map((type) => (
           <button
             key={type}
             className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition ${
-              typeFilter === type
+              !hiddenTypes.includes(type)
                 ? 'border-accent bg-accent-solid/10 text-accent-fg-strong dark:border-accent dark:bg-accent/10 dark:text-accent-fg-strong'
                 : 'border-edge bg-fill text-content-secondary hover:border-edge-strong hover:text-content dark:border-edge dark:bg-surface-raised dark:text-content-secondary dark:hover:border-edge-strong dark:hover:text-content'
             }`}
-            onClick={() => handleSetTypeFilter(type)}
+            onClick={() => setTypeVisible(type, hiddenTypes.includes(type))}
             type="button"
           >
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cableMeta[type].color }} />
@@ -395,7 +419,26 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             <span className="text-content-faint">{cableCounts[type]}</span>
           </button>
         ))}
+        {emptyTypeCount > 0 && (
+          <button
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-content-faint transition hover:text-content-secondary dark:text-content-faint dark:hover:text-content-secondary"
+            onClick={() => setShowEmptyTypes((value) => !value)}
+            type="button"
+          >
+            {showEmptyTypes ? 'Show less' : `+${emptyTypeCount} more`}
+          </button>
+        )}
         <div className="ml-auto flex items-center gap-2 rounded-md border border-edge bg-fill p-1 dark:border-edge dark:bg-surface-raised">
+          <button
+            className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition ${
+              focusMode === 'all' ? 'bg-slate-300 text-content dark:bg-fill-strong dark:text-content' : 'text-content-muted hover:bg-fill-strong hover:text-content-muted dark:hover:bg-fill dark:hover:text-content'
+            }`}
+            onClick={() => setFocusMode('all')}
+            type="button"
+          >
+            <Eye size={13} />
+            Show all
+          </button>
           <button
             className={`inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition ${
               focusMode === 'dim' ? 'bg-slate-300 text-content dark:bg-fill-strong dark:text-content' : 'text-content-muted hover:bg-fill-strong hover:text-content-muted dark:hover:bg-fill dark:hover:text-content'
@@ -429,28 +472,28 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
         </div>
       </div>
 
+      </>}
       {mapView === 'table' ? (
         <CableTable
-          activeCableTypes={activeCableTypes}
+          embedded={embedded}
           cablePaths={cablePaths}
           layout={layout}
-          onCableTypeToggle={toggleCableType}
           onSelectCable={selectCable}
           selectedCableId={selectedCableId}
         />
       ) : mapView === '3d' ? (
         <Suspense fallback={<div className="flex h-96 items-center justify-center text-content-muted">Loading 3D cable routing…</div>}>
-          <CableViewer3D typeFilter={typeFilter} focusMode={focusMode} />
+          <CableViewer3D />
         </Suspense>
       ) : (
-      <div className="relative min-w-max rounded-xl border border-edge bg-surface/88 p-5 shadow-panel dark:border-edge dark:bg-surface/88">
+      <div className={embedded ? "relative min-h-0 flex-1" : "relative min-w-max rounded-xl border border-edge bg-surface/88 p-5 shadow-panel dark:border-edge dark:bg-surface/88"}>
         <svg
           className="block"
           data-testid="cable-map-svg"
-          height={mapHeight}
+          height={embedded ? '100%' : mapHeight}
           role="img"
           viewBox={`0 0 ${mapWidth} ${mapHeight}`}
-          width={mapWidth}
+          width={embedded ? '100%' : mapWidth}
         >
           <defs>
             <filter id="cable-soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -621,7 +664,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
             })}
 
           {(Object.keys(cableMeta) as CableType[])
-            .filter((type) => typeFilter === 'all' || type === typeFilter)
+            .filter((type) => !hiddenTypes.includes(type))
             .map((type) => {
             const meta = cableMeta[type];
             const laneX = laneStartX + meta.lane * LANE_SPACING;
@@ -635,9 +678,7 @@ export function CableMap({ layout: layoutOverride }: CableMapProps) {
 
           {cablePaths.map(({ cable, path, color, from, to }) => {
             const selected = selectedCableIds.has(cable.id);
-            const muted = hasSelectedCable && !selected;
-            const typeMuted = !hasSelectedCable && typeFilter === 'all' && cable.type === 'structured';
-            const isMuted = muted || typeMuted;
+            const isMuted = focusMode !== 'all' && hasSelectedCable && !selected;
             if (isMuted && focusMode === 'hide') return null;
 
             const displayColor = isMuted ? MUTED_CABLE_COLOR : color;

@@ -15,6 +15,7 @@ const capabilityLabel: Record<
   commands: 'Commands',
   'toolbar-actions': 'Toolbar',
   'layout-read': 'Reads Layout',
+  workspaces: 'Workspaces',
 };
 
 type PluginManagerPanelProps = {

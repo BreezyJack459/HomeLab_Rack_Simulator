@@ -1,380 +1,95 @@
-# 🖥️ Homelab Rack Simulator（機架模擬器）
+# Homelab Rack Simulator
 
-> 🧰 以互動式 React 原型規劃 **10 吋與 19 吋** 機架佈局，在採購或搬遷設備前先行模擬。
+喺瀏覽器規劃 10 吋或 19 吋 homelab 機架：用 2D 放設備、3D 睇深度同插口、規劃接線，再檢查空間、重量、電力同維護需要。
 
----
+[English](../README.md) · [使用指南](USER_GUIDE.zh-Hant.md) · [文件索引](README.md) · [線上示範](https://breezyjack459.github.io/HomeLab_Rack_Simulator/)
 
-## 🗺️ 概覽
+本文件以 **2026-09-18 工作目錄嘅程式**為準；線上示範由 `main` 部署，未必包含未提交改動。
 
-在 2D 環境中規劃機架佈局、以 3D 視角檢視，並繪製每條線材走向 —— 全部在瀏覽器中完成，**無需後端伺服器**。模擬器內含持續擴充的社群硬體範本庫、真實世界約束條件的驗證警告、電源／噪音／續航規劃面板，以及完整的 JSON 匯入／匯出功能，讓您可以分享與反覆迭代佈局設計。
-
-🔗 **線上展示：** https://breezyjack459.github.io/HomeLab_Rack_Simulator/
-
----
-
-## 📸 截圖
-
-### 🔲 2D 機架編輯器
-
-從元件庫拖曳設備、對齊 U 槽，並即時管理屬性。內建重疊防止與多設備層架共用功能。
-
-![2D 編輯器 — 10 吋 Home Cloud 範例](../artifacts/smoke/desktop-2d.png)
-
-![2D 編輯器 — 多設備佈局](../artifacts/smoke/desktop-2d-multidevice.png)
-
----
-
-### 🧊 3D 檢視模式
-
-旋轉、縮放並比較設備深度。3D 渲染器使用近似尺寸，讓您在採購硬體前進行快速視覺驗證。
-
-![3D 檢視 — 19 吋 18U 機架](../artifacts/smoke/desktop-3d-canvas.png)
-
-![3D 檢視 — 多設備深度檢視](../artifacts/smoke/desktop-3d-multidevice.png)
-
----
-
-### 📦 硬體範本庫
-
-內建 100+ 範本，涵蓋 TinyMiniMicro 節點、Mini-PC、交換器、路由器、防火牆、NAS、UPS、PDU、配線架、KVM、無線基地台、數據機、SBC、線材管理配件等。可按類別篩選並一鍵加入機架。
-
-![硬體範本庫](../artifacts/smoke/desktop-hardware-templates.png)
-
----
-
-### 🔌 線材路由與線圖
-
-規劃托盤式線材路徑，支援乙太網路、電源、光纖、USB、HDMI、ATX 與同軸電纜。線圖提供專屬檢視畫面，可在不干擾機架編輯器的情況下追蹤連接關係。
-
-![線材路由 — 2D 檢視](../artifacts/smoke/desktop-routing-2d.png)
-
-![線圖 — 托盤式路由](../artifacts/smoke/desktop-routing-map.png)
-
-![線材路由 — 3D 檢視](../artifacts/smoke/desktop-routing-3d.png)
-
----
-
-### 📱 行動裝置響應式
-
-佈局庫與屬性面板會自動適應較窄的螢幕寬度，讓您隨時隨地檢視或調整機架配置。
-
-![行動裝置檢視](../artifacts/smoke/mobile-smoke.png)
-
----
-
-## ✨ 功能特色
-
-| 功能 | 說明 |
-|---------|-------------|
-| 🗄️ **機架尺寸** | 10 吋與 19 吋機架寬度；高度從 2U 到 45U |
-| 🖱️ **2D 編輯器** | 前視／後視圖、U 編號、拖放操作、對齊 U 槽、防止重疊 |
-| 📐 **層架共用** | 當水平佔用空間足夠時，多個層架式設備可共用同一個 U |
-| 🏷️ **側邊標籤** | 1U 與窄型設備顯示側邊標籤，即使圖塊擁擠也能讀取名稱 |
-| ⚙️ **設備屬性** | 尺寸、深度、寬度類型、重量、功耗、熱量等級、顏色與連接埠數量 |
-| 🔲 **連接埠欄配置** | 真實的前面板規劃 — 例如將 24 埠配線架排成單列 |
-| ⚠️ **驗證警告** | 寬度、重疊、深度、機架重量、UPS 擺放、重型設備、熱群聚、風流與電源預算 |
-| 🩺 **機架健康面板** | 一目了然的利用率、能源成本、噪音估算、UPS 續航、深度相容性、維護性與文件稽核 |
-| ⚡ **電源鏈規劃** | 建立 UPS／PDU／設備電源關係模型並追蹤負載路徑 |
-| 🔎 **線材追蹤** | 檢視端點到端點的線材走向，包含跳線、結構化線材、電源、光纖、USB、HDMI、ATX 與同軸電纜 |
-| 🗺️ **線圖** | 專屬分頁，以托盤式路徑顯示各類線材的走向 |
-| 🖼️ **面板貼圖管線** | 程序化 SVG 與手繪／NetBox 設備面板，以 3D 貼圖呈現，並提供連接埠點擊區域 |
-| 🧩 **外掛平台** | 內建外掛宿主，支援本地套件載入、外掛貢獻面板與外掛管理器 |
-| 🧊 **3D 檢視** | 近似機架與設備尺寸，支援完整相機控制 |
-| 💾 **儲存／載入／匯出** | 本地儲存、JSON 匯入／匯出、2D 圖表 PNG 匯出 |
-| 🌱 **種子佈局** | 精簡 10 吋邊緣實驗室、現有設備佈局、4 區域路由測試佈局，以及 19 吋家用雲端機架等快速入門範本 |
-
----
-
-## 🛠️ 技術棧
-
-- ⚛️ **React 18** 搭配 TypeScript
-- ⚡ **Vite** 用於開發與正式環境建置
-- 🐻 **Zustand** 純前端狀態管理（復原／重做 + localStorage 持久化）
-- 🧊 **React Three Fiber / Three.js** 用於 3D 檢視（延遲載入以縮小初始 bundle）
-- 🎨 **Tailwind CSS** 用於樣式設計
-- 🧪 **Vitest** 用於單元測試與儲存庫迴歸測試
-- 🎭 **Playwright** 用於煙霧測試截圖與瀏覽器層級檢查
-
----
-
-## 🚀 快速開始
+## 開始使用
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-開啟終端機顯示的 Vite 網址，通常為：
+開啟 [本機應用](http://127.0.0.1:5173/HomeLab_Rack_Simulator/)。Vite 固定用 5173 埠，並監聽本機所有網絡介面。同一個可信任 LAN 嘅裝置可開 `http://YOUR_LAN_IP:5173/HomeLab_Rack_Simulator/`。`npm run dev:lan` 會明確指定 LAN 模式；每個瀏覽器有獨立儲存資料。
 
-```text
-http://127.0.0.1:5173/
-```
+## 而家嘅工作流程
 
-建置正式環境 bundle：
+| 位置 | 用途 |
+|---|---|
+| **Build** | 用 Library 搵範本、My devices 管理未上架設備、2D 拖放、3D 檢視同修改屬性。 |
+| **Cable** | 建立接線、篩選線材、睇 2D map／3D routing／Topology／Table，同自訂繪線。依賴預設啟用嘅 Cable Management。 |
+| **Check** | 按問題檢視相關設備同修正建議。 |
+| **Tools** | 啟用 Operations、Planning、Fleet；Settings 入面管理機架、插件同外觀。 |
 
-```bash
-npm run build
-```
+新介面預設開啟。Operations、Planning、Fleet 同 Port Labels 係可選功能，按需載入；有舊設定嘅使用者會經過功能包遷移，唔一定同全新安裝顯示一樣。
 
-執行迴歸測試：
+## 實際介面預覽
+
+以下係 **2026-09-18** 用本機程式同內置範例重新擷取嘅畫面；範例本身嘅警告亦有保留。[完整截圖導覽](SCREENSHOTS.md)另有庫存、Topology、自訂繪線、薄托盤、0U PDU、插件同平板畫面。
+
+### Build：2D 佈局
+
+左邊搜尋設備，中間安排 U 位，右邊修改所選設備。
+
+![Build 工作區：19 吋機架、設備庫同交換器屬性](images/build-2d.png)
+
+### 3D 檢視
+
+用視角選單檢查設備深度、插口同前後空間。
+
+![3D 機架檢視及交換器選取標示](images/build-3d.png)
+
+### Cable：3D 走線
+
+從後方檢查資料線同電源線，旁邊保留線材清單同連接操作。
+
+![Cable 工作區：機架後方嘅電源及資料走線](images/cable-3d.png)
+
+### Check：問題詳情
+
+揀選問題後，右邊會顯示相關設備同建議處理方式。
+
+![Check 工作區：PDU 插座未分配問題及詳細說明](images/check.png)
+
+## 已有功能
+
+- 前後面 2D 拖放、U 位吸附、重疊／保留位檢查、深度警告，以及設備尺寸篩選。
+- 每個機架嘅 **My devices** 庫存；未上架设备唔計入機架用電、重量同 U 位。
+- 薄托盤同設備共用 U、實際設備高度、頂部淨空，以及簡化 3D 打印支架。
+- 0U PDU 嘅實際長度、離底高度、安裝區同插座方向。
+- 自動接線、側線槽、配線架束線、自訂 Draw route／Redraw route，同 blocked 路線提示。
+- 3D 相機視角、選取聚焦、面板材質同插口；Clean／Realistic 線材顯示。
+- 電力、重量、散熱、深度、層板承托、UPS 同可維護性檢查。
+- 可選嘅營運、變更規劃、多機架／跨機架連線，以及 Port Labels 標籤同 CSV。
+- 自動儲存、當次工作階段 undo／redo、機架 JSON 匯入／匯出、2D PNG，同儲存錯誤復原提示。Fleet 支援完整 workspace 匯入／匯出。
+
+詳細路徑、薄層板例子、繪線步驟同資料復原請睇[使用指南](USER_GUIDE.zh-Hant.md)。
+
+## 資料同限制
+
+呢個係純前端應用，冇共用後端或帳戶同步；轉裝置需要 JSON。機架 JSON 同完整 workspace JSON 範圍唔同，備份多機架資料要用 workspace 匯出。
+
+設備尺寸、用電、重量、散熱同噪音都係規劃輸入。請按實物確認通用範本同自訂數值；[裝置規格核對表](DEVICE_SPEC_AUDIT.zh-Hant.md)保留之前核對嘅來源、日期同未確認項目。更新範本唔會覆蓋已儲存設備。
+
+打印支架只係示意，唔會產生或匯入 STL／CAD。自動 3D 路線同自動 2D／BOM 長度估算有各自計算，唔應視為實際安裝線長。[已知限制](dev/KNOWN_ISSUES.md)有更完整說明。
+
+## 開發同驗證
+
+技術：React 18、TypeScript 5.7、Vite 6、Zustand 5、Tailwind CSS 3、Three.js 0.171、React Three Fiber 8、Drei 9。
 
 ```bash
 npm test
-```
-
-執行外掛平台測試套件：
-
-```bash
 npm run test:plugins
+npx playwright install chromium
+npx playwright test
+npm run build
+node scripts/check-bundle-size.mjs
+npm run preview
 ```
 
-啟動開發伺服器後，重新整理線材路由截圖：
+`npm run smoke:cables` 要先開 dev server，用嚟更新走線截圖。eager JavaScript 上限係 500 KB（壓縮前，入口加 modulepreload）；3D 同可選功能按需載入。呢次文件更新唔代表已重新跑過所有測試或量度 bundle。
 
-```bash
-npm run smoke:cables
-```
-
----
-
-## 📁 專案結構
-
-```text
-homelab-rack-simulator/
-├── src/
-│   ├── App.tsx                          ← 工具列、檢視切換器、頂層佈局
-│   ├── main.tsx                         ← Vite 進入點
-│   │
-│   ├── components/                      ← 所有 UI 元件
-│   │   ├── CableMap.tsx                 ← 托盤式線圖分頁
-│   │   ├── CablePlanner.tsx             ← 線材連接編輯器
-│   │   ├── CableTracePanel.tsx          ← 端點到端點追蹤詳情
-│   │   ├── CableViewer3D.tsx            ← 延遲載入 3D 線材路由場景
-│   │   ├── CanvasWithRecovery.tsx       ← Three.js 畫布與錯誤邊界
-│   │   ├── ComponentLibrary.tsx         ← 拖曳來源 — 設備範本庫
-│   │   ├── ConfirmDialog.tsx            ← 通用確認／刪除對話框
-│   │   ├── DepthCompatibilityPanel.tsx  ← 各設備深度符合性檢查
-│   │   ├── DocumentationAuditPanel.tsx  ← 標示／文件完整性稽核
-│   │   ├── EnergySummary.tsx            ← 功耗與電費面板
-│   │   ├── FaceplateGallery.tsx         ← 僅限開發模式的面板展示檢視
-│   │   ├── FileMenu.tsx                 ← 儲存、載入、JSON 匯入／匯出、PNG
-│   │   ├── IssueBar.tsx                 ← 編輯器上方的內聯警告列
-│   │   ├── KeyboardShortcuts.tsx        ← 鍵盤快捷鍵說明覆蓋層
-│   │   ├── MigrationSummaryPanel.tsx    ← 遷移規劃摘要
-│   │   ├── NoiseSummary.tsx             ← 聲學／噪音等級估算
-│   │   ├── PowerChainPanel.tsx          ← UPS／PDU／設備負載路徑分析
-│   │   ├── PrintableLabels.tsx          ← 可列印機架標籤頁
-│   │   ├── PluginManagerPanel.tsx       ← 外掛管理介面
-│   │   ├── PropertyPanel.tsx            ← 選取設備的屬性編輯器
-│   │   ├── RackEditor2D.tsx             ← 2D 前視／後視編輯器、拖放與對齊
-│   │   ├── RackHealthDashboard.tsx      ← 機架利用率／健康狀態摘要
-│   │   ├── RackReportsPanel.tsx         ← 機架報告面板（由外掛提供）
-│   │   ├── RackViewer3D.tsx             ← React Three Fiber 場景載入器
-│   │   ├── ServiceabilityPanel.tsx      ← 前後方存取與間隙檢查
-│   │   ├── ThemeToggle.tsx              ← 深色／淺色主題切換按鈕
-│   │   ├── UpsRuntimePanel.tsx          ← UPS 續航時間估算面板
-│   │   ├── ValidationPanel.tsx          ← 完整約束條件問題清單
-│   │   │
-│   │   └── three/                       ← Three.js 場景基本物件
-│   │       ├── DeviceModel.tsx          ← 設備幾何與連接埠方塊
-│   │       ├── RackModel.tsx            ← 機架框架幾何
-│   │       ├── SceneSetup.tsx           ← 光源、環境、相機預設值
-│   │       ├── SmoothCameraRig.tsx      ← 相機動畫轉場
-│   │       └── sharedGeometries.ts      ← 可重複使用的 Three.js 幾何快取
-│   │
-│   ├── data/
-│   │   ├── deviceCatalog.ts             ← 100+ 硬體範本（範本庫的資料來源）
-│   │   └── sampleLayouts.ts             ← 快速入門的種子佈局
-│   │
-│   ├── plugins/                         ← 外掛平台
-│   │   ├── pluginHost.ts                ← 外掛生命週期宿主
-│   │   ├── pluginCatalog.ts             ← 外掛目錄／探索
-│   │   ├── localPackageLoader.ts        ← 本地外掛套件載入器
-│   │   ├── builtInPlugins.ts            ← 內建外掛註冊
-│   │   ├── types.ts                     ← 外掛 API 型別
-│   │   └── local-manifests/             ← 本地外掛清單
-│   │
-│   ├── store/
-│   │   ├── rackStore.ts                 ← Zustand 儲存庫：狀態、變更、復原／重做
-│   │   ├── rackStore.test.ts            ← 儲存庫單元測試
-│   │   └── themeStore.ts                ← 深色／淺色主題狀態
-│   │
-│   ├── styles/
-│   │   ├── index.css                    ← 全域重置與基礎樣式
-│   │   └── theme.css                    ← Tailwind CSS 自訂主題 token
-│   │
-│   ├── types/
-│   │   ├── rack.ts                      ← 核心資料模型：RackLayout、PlacedDevice、CableRoute
-│   │   ├── appShell.ts                  ← 工作區 shell 型別（工作區、視角、面板插槽）
-│   │   ├── panelRegistry.tsx            ← 應用 shell 使用的面板註冊
-│   │   └── fileSystemAccess.d.ts        ← File System Access API 型別宣告
-│   │
-│   └── utils/                           ← 純函式（無 React 依賴）
-│       ├── animationMath.ts             ← 緩動與插值輔助函式
-│       ├── cableColors.ts               ← 線材類型 → 顏色對應
-│       ├── cablePath3D.ts               ← 3D 線材曲線路徑生成
-│       ├── cableTrace.ts                ← 端點到端點線材追蹤
-│       ├── documentationAudit.ts        ← 文件／標籤完整性評分
-│       ├── energyCalc.ts                ← 功耗與電費輔助函式
-│       ├── exporters.ts                 ← JSON 與 PNG 匯出邏輯
-│       ├── faceplateSvg.ts              ← 程序化 SVG 面板與連接埠點擊區域
-│       ├── featureFlags.ts              ← 執行期功能旗標輔助函式
-│       ├── fileSystem.ts                ← File System Access API 包裝器
-│       ├── layoutValidation.ts          ← 高階佈局約束檢查
-│       ├── migrationCalc.ts             ← 遷移規劃計算
-│       ├── noiseCalc.ts                 ← 聲學噪音等級估算
-│       ├── patchPanel.ts                ← 配線架連接埠分配輔助函式
-│       ├── portLayout.ts                ← 各設備面的連接埠定位
-│       ├── powerChain.ts                ← UPS／PDU／設備負載路徑分析
-│       ├── rackGeometry.ts              ← 機架實體尺寸輔助函式
-│       ├── rackMath.ts                  ← 對齊、重疊、空間輔助函式
-│       ├── routing.ts                   ← 線材路徑節點與托盤路由
-│       ├── serviceability.ts            ← 間隙與存取性評分
-│       ├── upsRuntime.ts                ← UPS 續航時間估算
-│       ├── validation.ts                ← 核心驗證規則與機架總計
-│       └── validationRecommendations.ts ← 各問題的具體修正建議
-│
-├── tests/                               ← Vitest 整合測試 + Playwright 煙霧測試
-│   ├── smoke/
-│   │   ├── app.spec.ts                  ← 煙霧測試：載入應用程式、檢視、設備／線材流程
-│   │   └── workspace.spec.ts            ← 工作區 shell 煙霧測試
-│   ├── routing.test.ts                  ← 線材路由整合測試
-│   ├── cablePath3D.test.ts              ← 3D 線材曲線路徑測試
-│   ├── layout-junchen.test.ts           ← 對照真實佈局的迴歸測試
-│   ├── junchen-22u-*.json               ← 真實世界佈局 fixtures
-│   └── setup.ts                         ← Vitest 設定（jest-dom）
-│
-├── scripts/                             ← 開發輔助指令碼
-│   ├── check-bundle-size.mjs            ← 確保 bundle 維持在預算內
-│   ├── smoke-cable-routing.mjs          ← 擷取線材路由截圖
-│   ├── import-devicetype.ts             ← 將 NetBox device-type YAML 匯入範本庫
-│   └── import-devicetype.test.ts        ← 匯入工具的測試
-│
-├── docs/                                ← 專案文件
-│   ├── design/                          ← 設計決策與 UI 研究
-│   │   └── game-studio-code-review.md
-│   ├── dev/                             ← 程式碼品質與已知問題
-│   │   ├── CODE_REVIEW.md
-│   │   ├── DECISIONS.md
-│   │   ├── KNOWN_ISSUES.md
-│   │   └── NEXT_STEPS.md
-│   ├── planning/                        ← 腦力激盪與目前任務追蹤
-│   │   ├── BRAINSTORM.md
-│   │   └── TASKS.md
-│   ├── archive/                         ← 已被取代的計畫、交接與 PR 筆記
-│   └── *.md                             ← 其他一次性規劃與修正文件
-│
-├── artifacts/smoke/                     ← 自動生成的 Playwright 截圖
-├── dist/                                ← 正式環境建置輸出（gitignored）
-├── index.html                           ← Vite HTML 進入點
-├── vite.config.ts
-├── tailwind.config.js
-├── postcss.config.js
-├── tsconfig.json / tsconfig.app.json / tsconfig.node.json / tsconfig.tests.json
-├── playwright.config.ts
-├── vitest.config.ts
-├── vitest.plugin-platform.config.ts
-└── package.json
-```
-
-### 🗝️ 關鍵檔案
-
-| 檔案 | 用途 |
-|------|---------|
-| `src/types/rack.ts` | 📐 核心資料模型：`RackLayout`、`PlacedDevice`、`CableRoute`、`PortLayout` |
-| `src/data/deviceCatalog.ts` | 📦 100+ 可重複使用的設備範本，顯示於左側邊欄 |
-| `src/data/sampleLayouts.ts` | 🌱 10 吋與 19 吋入門佈局種子 |
-| `src/store/rackStore.ts` | 🐻 Zustand 儲存庫 — 佈局狀態、變更、復原／重做、localStorage 持久化 |
-| `src/store/themeStore.ts` | 🌗 深色／淺色主題狀態 |
-| `src/utils/rackMath.ts` | 📏 機架尺寸、對齊、重疊、空間輔助函式 |
-| `src/utils/portLayout.ts` | 🔌 各設備面的連接埠定位（3D 與線材路由共用） |
-| `src/utils/routing.ts` | 🗺️ 線材路徑節點與托盤式路由邏輯 |
-| `src/utils/validation.ts` | ✅ 核心佈局驗證規則與機架總計 |
-| `src/utils/layoutValidation.ts` | ⚠️ 高階約束檢查（重量、風流、UPS 擺放） |
-| `src/utils/validationRecommendations.ts` | 💡 各問題搭配的具體修正建議 |
-| `src/utils/powerChain.ts` | ⚡ UPS／PDU／設備負載路徑分析 |
-| `src/utils/upsRuntime.ts` | 🔋 UPS 供電負載的續航時間估算 |
-| `src/utils/serviceability.ts` | 🔧 後方／前方存取與維護間隙評分 |
-| `src/utils/documentationAudit.ts` | 📋 文件與標示完整性檢查 |
-| `src/utils/migrationCalc.ts` | 🚚 遷移規劃成本與工時計算 |
-| `src/utils/featureFlags.ts` | 🚩 執行期功能旗標輔助函式 |
-| `src/utils/exporters.ts` | 📤 JSON 與 PNG 匯出邏輯 |
-| `src/utils/faceplateSvg.ts` | 🖼️ 程序化 SVG 面板生成與連接埠點擊區域 |
-| `src/plugins/pluginHost.ts` | 🧩 外掛平台宿主（生命週期、目錄、本地套件載入） |
-| `src/components/FaceplateGallery.tsx` | 🖼️ 僅限開發模式的面板展示檢視 |
-| `src/components/RackEditor2D.tsx` | 🖱️ 2D 編輯器，支援拖放與對齊 U 槽 |
-| `src/components/RackViewer3D.tsx` | 🧊 React Three Fiber 場景載入器 |
-| `src/components/CableMap.tsx` | 🗺️ 線圖分頁與路由 SVG 追蹤檢視 |
-| `src/components/CableViewer3D.tsx` | 🔌 延遲載入的 3D 線材路由場景 |
-| `src/components/MigrationSummaryPanel.tsx` | 🚚 遷移規劃 UI 面板 |
-| `src/components/PrintableLabels.tsx` | 🖨️ 可列印機架標籤頁 |
-| `src/components/three/RackModel.tsx` | 🗄️ 機架框架幾何 |
-| `src/components/three/DeviceModel.tsx` | 📦 設備幾何與連接埠方塊 |
-| `src/components/three/SceneSetup.tsx` | 💡 Three.js 光源、環境與相機預設值 |
-| `src/components/three/SmoothCameraRig.tsx` | 🎥 相機動畫轉場 |
-
----
-
-## ➕ 新增設備類型
-
-將新的 `DeviceTemplate` 物件加入 `src/data/deviceCatalog.ts`。
-
-重要欄位：
-
-- `category`：`src/types/rack.ts` 中支援的設備類別之一
-- `defaultU`：預設機架高度（以 U 為單位）
-- `rackMountable`：對於外部設備（例如天花板 AP）設為 `false`，這類設備應保留在範本庫中但無法放入機架內
-- `depthMm`：設備近似深度，用於驗證與 3D 顯示
-- `widthType`：`10in`、`19in`、`shelf` 或 `custom`
-- `customWidthMm`：當需要真實符合性檢查時，自訂寬度或層架式設備必填
-- `xMm`：已儲存設備的選擇性擺放欄位；可用機架寬度內的左側偏移量
-- `weightKg`、`powerW`、`heatLevel`：驗證時使用
-- `ports`：2D／3D 提示用的選擇性前面板連接埠數量。使用 `layoutColumns` 控制前面板的換行
-- `color`：2D 與 3D 都會使用
-
-範例：
-
-```ts
-{
-  id: 'my-lab-node',
-  category: 'mini-pc',
-  name: 'Lab node',
-  defaultU: 1,
-  depthMm: 140,
-  widthType: 'shelf',
-  customWidthMm: 130,
-  weightKg: 0.9,
-  powerW: 28,
-  heatLevel: 3,
-  ports: { ethernet: 2, usb: 4, power: 1, layoutColumns: 2 },
-  color: '#0891b2',
-  description: 'Shelf-mounted compute node.'
-}
-```
-
-左側範本庫、2D 編輯器、驗證系統、JSON 匯出與 3D 檢視器會自動識別新設備。
-
----
-
-## 🔬 範本研究筆記
-
-內含的硬體範本為**規劃用設定檔**，非 CAD 精確模型。尺寸、功耗與重量均為概略值，用於佈局驗證與粗略的風流／電源規劃。
-
-內建熱門硬體的參考資料來源：
-
-- ServeTheHome Project TinyMiniMicro 報導，涵蓋 Dell Micro、HP Mini 與 Lenovo Tiny 類別的 homelab 節點：https://www.servethehome.com/introducing-project-tinyminimicro-home-lab-revolution/
-- Minisforum MS-01 官方規格：https://store.minisforum.com/products/minisforum-ms-01
-- Protectli Vault VP2420 規格：https://eu.protectli.com/product/vp2420/
-- MikroTik CRS305 規格：https://mikrotik.com/product/crs305_1g_4s_in
-- Ubiquiti UniFi Dream Machine Pro 技術規格：https://techspecs.ui.com/unifi/cloud-gateways/udm-pro
-- Ubiquiti UniFi Cloud Gateway Max 技術規格：https://techspecs.ui.com/unifi/cloud-gateways/ucg-max
-- Ubiquiti UniFi U7 Pro 技術規格：https://techspecs.ui.com/unifi/wifi/u7-pro
-- Ubiquiti 2.5G PoE+ 變壓器技術規格：https://techspecs.ui.com/unifi/accessories/uacc-poe-plus-2-5g
-- Ubiquiti UniFi Flex 2.5G 8 埠交換器技術規格：https://techspecs.ui.com/unifi/switching/usw-flex-2-5g-8
-- Minisforum UM790 Pro 官方規格：https://store.minisforum.com/products/minisforum-um790-pro
-- Synology DS923+ 產品規格：https://global.download.synology.com/download/Document/Hardware/ProductSpec/DiskStation/23-year/DS923%2B/enu/Product_Spec_DS923%2B_enu.pdf
-- APC 1U Smart-UPS 產品系列：https://www.apc.com/us/en/product/SCL500RM1UC/
-- APC Back-UPS Pro Gaming BGM1500B-US 產品頁面：https://www.apc.com/us/en/product/BGM1500B-US/apc-backups-pro-for-gaming-1500va-900w-tower-120v-10x-nema-515r-outlets-rgb-lights-pure-sine-wave-midnight-black/
-- Sipeed NanoKVM 文件：https://wiki.sipeed.com/hardware/en/kvm/NanoKVM/introduction.html
-- Sipeed NanoKVM PCIe 文件：https://wiki.sipeed.com/hardware/en/kvm/NanoKVM_PCIe/introduction.html
-- JetKVM 文件與規格：https://jetkvm.com/docs 與 https://jetkvm.com/products/jetkvm
-- 寶藏盒 Pro NAS 規劃尺寸來自使用者提供的產品圖片。
+[開發指南](dev/DEVELOPMENT.md)列出測試範圍同 CI；[架構](dev/ARCHITECTURE.md)解釋 store、走線同插件。GitHub Pages 會喺推送 `main` 或手動觸發時部署 `dist/`，預設 base path 係 `/HomeLab_Rack_Simulator/`。

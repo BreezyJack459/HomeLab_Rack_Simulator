@@ -1,5 +1,8 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Download, ZoomIn, ZoomOut, RotateCcw, AlertTriangle } from 'lucide-react';
+import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
+import { matchesCableQuery } from '../utils/cableQuery';
+import { getPatchPanelLinkedCableIds } from '../utils/patchPanel';
 import { useRackStore } from '../store/rackStore';
 import type { RackLayout } from '../types/rack';
 import {
@@ -26,6 +29,11 @@ const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 3;
 
 export function NetworkTopology({ layout }: Props) {
+  const selectedCableId = useRackStore(s => s.selectedCableId);
+  const selectCable = useRackStore(s => s.selectCable);
+  const { query, hiddenTypes, focusMode } = useCableWorkspaceStore();
+  const selectedCableIds = useMemo(() => getPatchPanelLinkedCableIds(layout, selectedCableId), [layout, selectedCableId]);
+  const visibleCableIds = useMemo(() => new Set(layout.cables.filter(c => selectedCableIds.has(c.id) || (!hiddenTypes.includes(c.type) && matchesCableQuery(c, layout, query) && (focusMode !== 'hide' || !selectedCableId))).map(c => c.id)), [layout, selectedCableIds, hiddenTypes, query, focusMode, selectedCableId]);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const selectDevice = useRackStore((s) => s.selectDevice);
@@ -44,12 +52,14 @@ export function NetworkTopology({ layout }: Props) {
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const cr = entry.contentRect;
-        setContainerSize({ width: cr.width, height: cr.height });
+        if (cr.width > 0 && cr.height > 0) {
+          setContainerSize({ width: cr.width, height: cr.height });
+        }
       }
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [layout.devices.length === 0]);
 
   const { nodes, edges, singleUplinkIds, speedMismatchIds, mediaMismatchIds } = useMemo(() => {
     const graph = buildTopologyGraph(layout);
@@ -128,10 +138,10 @@ export function NetworkTopology({ layout }: Props) {
 
   if (nodes.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-content-muted">
+      <div ref={containerRef} className="flex h-full items-center justify-center text-content-muted">
         <div className="text-center">
-          <p className="text-lg font-medium">No devices to visualize</p>
-          <p className="text-sm">Add devices and cables to see the network topology.</p>
+          <p className="text-lg font-medium">No devices with ports</p>
+          <p className="text-sm">Add a device with ports to see the network topology. Shelves and accessories without ports are hidden.</p>
         </div>
       </div>
     );
@@ -229,19 +239,19 @@ export function NetworkTopology({ layout }: Props) {
         </defs>
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Edges */}
-          {edges.map((edge) => {
+          {edges.filter(edge => visibleCableIds.has(edge.id)).map((edge) => {
             const source = nodes.find((n) => n.id === edge.sourceId);
             const target = nodes.find((n) => n.id === edge.targetId);
             if (!source || !target) return null;
             const vlan = extractVlanFromNotes(edge.notes);
-            const isSelected = selectedDeviceId === edge.sourceId || selectedDeviceId === edge.targetId;
+            const isSelected = selectedCableIds.has(edge.id) || selectedDeviceId === edge.sourceId || selectedDeviceId === edge.targetId;
             const hasSpeedMismatch = speedMismatchIds.has(edge.id);
             const hasMediaMismatch = mediaMismatchIds.has(edge.id);
             const edgeLabel = edge.fromSpeed && edge.toSpeed
               ? `${edge.fromSpeed}↔${edge.toSpeed}`
               : edge.fromSpeed || edge.toSpeed || undefined;
             return (
-              <g key={edge.id}>
+              <g key={edge.id} data-topology-route={edge.id} role="button" tabIndex={0} aria-label={`Cable from ${source.name} to ${target.name}`} onClick={() => selectCable(edge.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectCable(edge.id); } }} opacity={focusMode === 'dim' && selectedCableId && !isSelected ? 0.15 : 1}>
                 <line
                   x1={source.x}
                   y1={source.y}
@@ -280,6 +290,7 @@ export function NetworkTopology({ layout }: Props) {
             return (
               <g
                 key={node.id}
+                data-topology-node={node.id}
                 transform={`translate(${node.x}, ${node.y})`}
                 className="cursor-pointer"
                 onClick={(e) => {

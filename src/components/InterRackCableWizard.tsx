@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { X, Cable, ChevronRight, ChevronLeft, Check } from 'lucide-react';
-import type { RackLayout, PortRef, InterRackCableType } from '../types/rack';
+import type { RackLayout, PortRef, InterRackCableType, Workspace } from '../types/rack';
 import { useRackStore } from '../store/rackStore';
-import { portOptionsForDevice } from '../utils/portSelection';
-import type { CableType } from '../types/rack';
+import { getTabbableElements } from '../utils/tabbable';
+import { interRackEndpointError, interRackPortOptions, interRackPortType, validateInterRackCable } from '../utils/interRackCables';
 
 interface InterRackCableWizardProps {
   open: boolean;
@@ -27,11 +27,6 @@ const COLOR_PRESETS = [
   { value: '#ec4899', label: 'Pink' },
   { value: '#64748b', label: 'Slate' },
 ];
-
-function interRackTypeToCableType(type: InterRackCableType): CableType {
-  if (type === 'fiber') return 'fiber';
-  return 'ethernet';
-}
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const steps = ['Source', 'Destination', 'Details'];
@@ -85,7 +80,7 @@ function EndpointSelector({
   onChangeRack,
   onChangeDevice,
   onChangePort,
-  excludeDeviceId,
+  workspace,
 }: {
   label: string;
   racks: RackLayout[];
@@ -96,16 +91,11 @@ function EndpointSelector({
   onChangeRack: (rackId: string) => void;
   onChangeDevice: (deviceId: string) => void;
   onChangePort: (port: PortRef | null) => void;
-  excludeDeviceId?: string;
+  workspace: Workspace;
 }) {
   const selectedRack = racks.find((r) => r.id === selectedRackId);
   const devices = selectedRack?.devices ?? [];
-  const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
-
-  const portOptions = useMemo(() => {
-    if (!selectedRack || !selectedDevice) return [];
-    return portOptionsForDevice(selectedDevice, interRackTypeToCableType(cableType), selectedRack);
-  }, [selectedRack, selectedDevice, cableType]);
+  const portOptions = interRackPortOptions(workspace, selectedRackId, selectedDeviceId, cableType);
 
   return (
     <div className="space-y-4">
@@ -114,7 +104,7 @@ function EndpointSelector({
       <label className="block text-xs text-content-muted">
         Rack
         <select
-          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedRackId}
           onChange={(e) => {
             onChangeRack(e.target.value);
@@ -134,7 +124,7 @@ function EndpointSelector({
       <label className="block text-xs text-content-muted">
         Device
         <select
-          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedDeviceId}
           onChange={(e) => {
             onChangeDevice(e.target.value);
@@ -144,7 +134,6 @@ function EndpointSelector({
         >
           <option value="">Select a device…</option>
           {devices
-            .filter((d) => d.id !== excludeDeviceId)
             .map((device) => (
               <option key={device.id} value={device.id}>
                 {device.name}
@@ -156,7 +145,7 @@ function EndpointSelector({
       <label className="block text-xs text-content-muted">
         Port
         <select
-          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+          className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
           value={selectedPort ? `${selectedPort.type}:${selectedPort.index}:${selectedPort.side ?? ''}` : ''}
           onChange={(e) => {
             const value = e.target.value;
@@ -177,10 +166,10 @@ function EndpointSelector({
           {portOptions.map((opt) => (
             <option
               key={`${opt.label}:${opt.index}:${opt.side ?? ''}`}
-              value={`${interRackTypeToCableType(cableType)}:${opt.index}:${opt.side ?? ''}`}
+              value={`${interRackPortType(cableType)}:${opt.index}:${opt.side ?? ''}`}
               disabled={opt.disabled}
             >
-              {opt.label} {opt.disabled ? '(used)' : ''}
+              {opt.label}{opt.reason ? ` — ${opt.reason}` : ''}
             </option>
           ))}
           {portOptions.length === 0 && selectedDeviceId && (
@@ -195,6 +184,23 @@ function EndpointSelector({
 function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
   const workspace = useRackStore((state) => state.workspace);
   const racks = workspace.racks;
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const activeElement = document.activeElement;
+    const opener = activeElement instanceof HTMLElement && activeElement !== document.body
+      ? activeElement : document.querySelector<HTMLElement>('[data-testid="workspace-tools-trigger"]');
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (opener?.isConnected) opener.focus();
+      else document.querySelector<HTMLElement>('[data-testid="workspace-tools-trigger"]')?.focus();
+    };
+  }, [open]);
 
   const [step, setStep] = useState(1);
   const [sourceRackId, setSourceRackId] = useState('');
@@ -214,11 +220,20 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
   const destRack = racks.find((r) => r.id === destRackId);
   const destDevice = destRack?.devices.find((d) => d.id === destDeviceId);
 
-  const isStep1Valid = Boolean(sourceRack && sourceDevice && sourcePort);
-  const isStep2Valid = Boolean(destRack && destDevice && destPort && destDeviceId !== sourceDeviceId);
-  const isStep3Valid = isStep1Valid && isStep2Valid;
+  const isStep1Valid = Boolean(sourcePort && !interRackEndpointError(workspace, sourceRackId, sourceDeviceId, sourcePort, cableType));
+  const isStep2Valid = Boolean(destPort && destRackId !== sourceRackId && !interRackEndpointError(workspace, destRackId, destDeviceId, destPort, cableType));
+  const cableError = sourcePort && destPort ? validateInterRackCable(workspace, {
+    fromRackId: sourceRackId, fromDeviceId: sourceDeviceId, fromPort: sourcePort,
+    toRackId: destRackId, toDeviceId: destDeviceId, toPort: destPort, type: cableType,
+  }) : null;
+  const isStep3Valid = isStep1Valid && isStep2Valid && !cableError;
+
+  useEffect(() => {
+    if (open) dialogRef.current?.querySelector<HTMLElement>('select, input')?.focus();
+  }, [step, open]);
 
   function reset() {
+    setError(null);
     setStep(1);
     setSourceRackId('');
     setSourceDeviceId('');
@@ -241,7 +256,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
   function handleCreate() {
     if (!isStep3Valid || !sourcePort || !destPort) return;
     const addInterRackCable = useRackStore.getState().addInterRackCable;
-    addInterRackCable({
+    const created = addInterRackCable({
       fromRackId: sourceRackId,
       fromDeviceId: sourceDeviceId,
       fromPort: sourcePort,
@@ -254,20 +269,41 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
       color: color || undefined,
       notes: notes || undefined,
     });
-    handleClose();
+    if (created) handleClose();
+    else setError(useRackStore.getState().statusMessage);
   }
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') event.stopPropagation();
+        if (event.key !== 'Tab') return;
+        const elements = getTabbableElements(dialogRef.current);
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }}
+      onCancel={(event) => { event.preventDefault(); handleClose(); }}
+      className="m-auto max-h-[85vh] w-[min(512px,calc(100vw-2rem))] overflow-y-auto rounded-xl border-0 bg-transparent p-0 text-content backdrop:bg-black/60"
+    >
       <div className="w-full max-w-lg rounded-xl border border-edge-strong bg-fill shadow-2xl dark:border-edge-strong dark:bg-surface-raised">
         <div className="flex items-center justify-between border-b border-edge-strong px-5 py-3 dark:border-edge-strong">
-          <div className="flex items-center gap-2 text-sm font-semibold text-content">
+          <h2 id={titleId} className="flex items-center gap-2 text-sm font-semibold text-content">
             <Cable size={16} className="text-accent" />
             Add Inter-Rack Cable
-          </div>
+          </h2>
           <button
+            aria-label="Close inter-rack cable wizard"
             onClick={handleClose}
             className="rounded-md p-1 text-content-muted hover:bg-fill-strong hover:text-content-secondary dark:text-content-muted dark:hover:bg-fill dark:hover:text-content"
             type="button"
@@ -278,25 +314,49 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
 
         <div className="px-5 py-4">
           <StepIndicator currentStep={step} />
+          {(error || cableError) && <p role="alert" className="mb-3 text-sm text-red-500">{error || cableError}</p>}
 
           {step === 1 && (
-            <EndpointSelector
-              label="Source Endpoint"
-              racks={racks}
-              selectedRackId={sourceRackId}
-              selectedDeviceId={sourceDeviceId}
-              selectedPort={sourcePort}
-              cableType={cableType}
-              onChangeRack={setSourceRackId}
-              onChangeDevice={setSourceDeviceId}
-              onChangePort={setSourcePort}
-            />
+            <div className="space-y-4">
+              <label className="block text-xs text-content-muted">
+                Cable Type
+                <select
+                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                  value={cableType}
+                  onChange={(e) => {
+                    setCableType(e.target.value as InterRackCableType);
+                    setSourcePort(null);
+                    setDestPort(null);
+                    setError(null);
+                  }}
+                >
+                  {CABLE_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <EndpointSelector
+                label="Source Endpoint"
+                workspace={workspace}
+                racks={racks}
+                selectedRackId={sourceRackId}
+                selectedDeviceId={sourceDeviceId}
+                selectedPort={sourcePort}
+                cableType={cableType}
+                onChangeRack={(id) => { setSourceRackId(id); setDestRackId(''); setDestDeviceId(''); setDestPort(null); }}
+                onChangeDevice={setSourceDeviceId}
+                onChangePort={setSourcePort}
+              />
+            </div>
           )}
 
           {step === 2 && (
             <EndpointSelector
               label="Destination Endpoint"
-              racks={racks}
+              workspace={workspace}
+              racks={racks.filter(rack => rack.id !== sourceRackId)}
               selectedRackId={destRackId}
               selectedDeviceId={destDeviceId}
               selectedPort={destPort}
@@ -304,7 +364,6 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               onChangeRack={setDestRackId}
               onChangeDevice={setDestDeviceId}
               onChangePort={setDestPort}
-              excludeDeviceId={sourceDeviceId}
             />
           )}
 
@@ -312,29 +371,14 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
             <div className="space-y-4">
               <div className="text-sm font-semibold text-content-secondary">Cable Details</div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-xs text-content-muted">
-                  Cable Type
-                  <select
-                    className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
-                    value={cableType}
-                    onChange={(e) => setCableType(e.target.value as InterRackCableType)}
-                  >
-                    {CABLE_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
+              <div className="grid gap-3">
                 <label className="block text-xs text-content-muted">
                   Length (m)
                   <input
                     type="number"
                     min={0}
                     step={0.5}
-                    className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                    className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                     value={lengthM}
                     onChange={(e) => setLengthM(e.target.value)}
                     placeholder="Optional"
@@ -346,7 +390,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                 Label
                 <input
                   type="text"
-                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="Optional label"
@@ -388,7 +432,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
               <label className="block text-xs text-content-muted">
                 Notes
                 <textarea
-                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                  className="mt-1 block w-full rounded-md border border-edge-strong bg-fill px-2 py-1.5 text-sm text-content outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-edge-strong dark:bg-surface-raised dark:text-content"
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -440,7 +484,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
             {step < 3 && (
               <button
                 onClick={() => setStep(step + 1)}
-                disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
+                disabled={step === 1 ? !isStep1Valid : !isStep2Valid || Boolean(cableError)}
                 className="inline-flex h-8 items-center gap-1 rounded-md bg-accent-solid px-3 text-xs font-medium text-content hover:bg-accent-solid-hover disabled:opacity-40 dark:bg-accent dark:text-accent-on dark:hover:bg-accent"
                 type="button"
               >
@@ -462,7 +506,7 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 

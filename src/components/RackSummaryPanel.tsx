@@ -40,6 +40,9 @@ function SummaryChip({
 
 interface RackSummaryPanelProps {
   embedded?: boolean;
+  // compact: always show the small "Rack info" popover trigger and hide the
+  // wide stats row (used by the new-shell CanvasHeader).
+  compact?: boolean;
   open: boolean;
   onToggle: () => void;
   layout: RackLayout;
@@ -60,6 +63,7 @@ interface RackSummaryPanelProps {
 
 export function RackSummaryPanel({
   embedded = false,
+  compact = false,
   open,
   onToggle,
   layout,
@@ -109,7 +113,15 @@ export function RackSummaryPanel({
       data-testid="rack-summary"
     >
       <div className={`flex flex-wrap items-center justify-between gap-2 min-[1180px]:flex-nowrap ${embedded ? '' : 'px-3 py-2'}`}>
-        <div className="relative min-[1180px]:hidden">
+        <div className={`relative flex items-center gap-2 ${compact ? '' : 'min-[1180px]:hidden'}`}>
+          {compact ? (
+            <span className="whitespace-nowrap text-xs text-content-faint">
+              {layout.rackType === '10in' ? '10"' : '19"'} {layout.viewSide}
+              <span className="mx-1.5 opacity-50">·</span>U {totals.occupiedU}/{layout.heightU}
+              <span className="mx-1.5 opacity-50">·</span>{layout.devices.length} devices
+              <span className="mx-1.5 opacity-50">·</span>{layout.cables.length} cables
+            </span>
+          ) : null}
           <button
             type="button"
             aria-expanded={infoOpen}
@@ -160,11 +172,16 @@ export function RackSummaryPanel({
           )}
         </div>
 
-        <div className="hidden min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pr-2 min-[1180px]:flex min-[1180px]:flex-nowrap">
-          <SummaryChip label="Rack" value={`${layout.rackType === '10in' ? '10"' : '19"'} ${layout.viewSide}`} />
-          <SummaryChip label="U" value={`${totals.occupiedU}/${layout.heightU}`} />
-          <SummaryChip label="Devices" value={`${layout.devices.length}`} />
-          <SummaryChip label="Cables" value={`${layout.cables.length}`} />
+        {!compact ? (
+          <div className="hidden min-w-0 flex-1 items-center gap-3 overflow-x-auto pr-2 min-[1180px]:flex min-[1180px]:flex-nowrap">
+          {/* Read-only rack stats as quiet text, not pills — borders are for
+              interactive elements; this row should inform, not compete. */}
+          <span className="whitespace-nowrap text-xs text-content-faint">
+            {layout.rackType === '10in' ? '10"' : '19"'} {layout.viewSide}
+            <span className="mx-1.5 opacity-50">·</span>U {totals.occupiedU}/{layout.heightU}
+            <span className="mx-1.5 opacity-50">·</span>{layout.devices.length} devices
+            <span className="mx-1.5 opacity-50">·</span>{layout.cables.length} cables
+          </span>
           <label className="inline-flex items-center gap-2 rounded-full border border-edge bg-surface/70 px-3 py-1 text-xs text-content-secondary dark:border-edge dark:bg-surface-raised/55 dark:text-content-secondary">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-content-faint">
               Lifecycle
@@ -181,7 +198,8 @@ export function RackSummaryPanel({
               <option value="decommissioning">Decommissioning</option>
             </select>
           </label>
-        </div>
+          </div>
+        ) : null}
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap">
           <button

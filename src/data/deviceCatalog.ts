@@ -1,5 +1,7 @@
 import type { DeviceTemplate, PlacedDevice } from '../types/rack';
 
+// Power/weight source audit and unresolved estimates: docs/DEVICE_SPEC_AUDIT.zh-Hant.md
+// powerW is device consumption, excluding downstream PoE/RPS output where specified.
 export const deviceCatalog: DeviceTemplate[] = [
   {
     id: 'cat6-patch-12',
@@ -366,8 +368,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 100,
     widthType: 'shelf',
     customWidthMm: 160,
-    weightKg: 0.8,
-    powerW: 60,
+    weightKg: 0.295,
+    powerW: 8,
     heatLevel: 3,
     ports: { ethernet: 8, power: 1, layoutColumns: 8 },
     portLayouts: {
@@ -454,7 +456,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 286,
     widthType: '19in',
     weightKg: 3.9,
-    powerW: 35,
+    powerW: 33,
     heatLevel: 3,
     ports: { ethernet: 9, fiber: 2, power: 1, layoutColumns: 11 },
     portLayouts: {
@@ -478,7 +480,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 128,
     widthType: 'shelf',
     customWidthMm: 142,
-    weightKg: 0.52,
+    weightKg: 0.519,
     powerW: 16.1,
     heatLevel: 3,
     ports: { ethernet: 5, power: 1, layoutColumns: 6 },
@@ -843,7 +845,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     widthType: 'shelf',
     customWidthMm: 197,
     weightKg: 2.7,
-    powerW: 370,
+    powerW: 480,
     heatLevel: 5,
     ports: { ethernet: 1, usb: 6, hdmi: 1, power: 1, layoutColumns: 4 },
     portLayouts: {
@@ -947,7 +949,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 93,
     widthType: 'shelf',
     customWidthMm: 62,
-    weightKg: 0.16,
+    weightKg: 0.156,
     powerW: 30,
     heatLevel: 2,
     ports: { ethernet: 2, power: 1, layoutColumns: 3 },
@@ -969,7 +971,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 76,
     widthType: 'shelf',
     customWidthMm: 213,
-    weightKg: 0.4,
+    weightKg: 0.395,
     powerW: 14,
     heatLevel: 3,
     ports: { ethernet: 9, fiber: 1, power: 1, layoutColumns: 10 },
@@ -1079,8 +1081,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 68,
     widthType: 'shelf',
     customWidthMm: 120,
-    weightKg: 0.25,
-    powerW: 10,
+    weightKg: 0.35,
+    powerW: 12,
     heatLevel: 3,
     ports: { ethernet: 1, usb: 2, hdmi: 1, atx: 1, layoutColumns: 4 },
     portLayouts: {
@@ -1144,8 +1146,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 223,
     widthType: 'shelf',
     customWidthMm: 199,
-    weightKg: 2.2,
-    powerW: 36,
+    weightKg: 2.24,
+    powerW: 35.51,
     heatLevel: 3,
     ports: { ethernet: 2, usb: 2, power: 1, layoutColumns: 3 },
     portLayouts: {
@@ -1165,7 +1167,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 306,
     widthType: '19in',
     weightKg: 6.9,
-    powerW: 75,
+    powerW: 49.89,
     heatLevel: 4,
     ports: { ethernet: 4, usb: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
@@ -1411,7 +1413,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 232,
     widthType: '19in',
-    weightKg: 8.1,
+    weightKg: 4.18,
     powerW: 8,
     heatLevel: 2,
     ports: { power: 4, ethernet: 1, usb: 1, layoutColumns: 4 },
@@ -1431,7 +1433,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 432,
     widthType: '19in',
-    weightKg: 18,
+    weightKg: 15.8,
     powerW: 10,
     heatLevel: 2,
     ports: { power: 4, usb: 1, layoutColumns: 4 },
@@ -1457,16 +1459,19 @@ export const deviceCatalog: DeviceTemplate[] = [
     weightKg: 11.5,
     powerW: 12,
     heatLevel: 2,
-    ports: { power: 10, ethernet: 1, usb: 3, coax: 2, layoutColumns: 5 },
+    ports: { power: 10, ethernet: 2, usb: 3, coax: 2, layoutColumns: 5 },
     portFaceOverrides: { power: 'rear', ethernet: 'rear', coax: 'rear', usb: 'front' },
     portLayouts: {
+      // Based on the real BGM1500B: 3 USB charging ports stacked vertically on
+      // the front; rear has 10 NEMA outlets in two columns of five (6 battery
+      // + 4 surge-only) with RJ45/coax dataline protection along the bottom.
       front: [
-        { type: 'usb', count: 3, columns: 3, rowIndex: 0, xRatio: 0.5, groupLabel: 'USB' },
+        { type: 'usb', count: 3, columns: 1, rowIndex: 0, yRatio: 0.35, xRatio: 0.55, groupLabel: 'USB' },
       ],
       rear: [
-        { type: 'ethernet', count: 1, columns: 1, rowIndex: 0, xRatio: 0.15, groupLabel: 'Data' },
-        { type: 'coax', count: 2, columns: 2, rowIndex: 0, xRatio: 0.85, groupLabel: 'Coax' },
-        { type: 'power', count: 10, columns: 5, rowIndex: 1, xRatio: 0.5, groupLabel: 'Outlets' },
+        { type: 'power', count: 10, columns: 2, rowIndex: 0, yRatio: 0.3, xRatio: 0.5, groupLabel: 'Outlets' },
+        { type: 'ethernet', count: 2, columns: 2, rowIndex: 1, yRatio: 0.85, xRatio: 0.25, groupLabel: 'Data' },
+        { type: 'coax', count: 2, columns: 2, rowIndex: 1, yRatio: 0.85, xRatio: 0.75, groupLabel: 'Coax' },
       ],
     },
     color: '#334155',
@@ -1514,23 +1519,47 @@ export const deviceCatalog: DeviceTemplate[] = [
     category: 'pdu-0u',
     name: '0U Vertical PDU',
     defaultU: 0,
-    depthMm: 600,
+    depthMm: 55,
+    physicalHeightMm: 700,
     widthType: 'custom',
     customWidthMm: 55,
     weightKg: 4.2,
     powerW: 0,
     heatLevel: 1,
-    ports: { power: 16, layoutColumns: 8 },
+    ports: { power: 16, layoutColumns: 1 },
     portLayouts: {
       front: [
-        { type: 'power', columns: 8, xRatio: 0.5 },
+        { type: 'power', columns: 1, xRatio: 0.5 },
       ],
     },
     mountType: 'rear-rail',
     mountSide0U: 'left',
-    outletFacing: 'forward',
+    outletFacing: 'outward',
     color: '#1f2937',
     description: 'Vertical 0U PDU. Mounts on the rear vertical rail behind the rack, does not consume U space.'  },
+  {
+    id: 'pdu-0u-short',
+    category: 'pdu-0u',
+    name: '0U Short PDU',
+    defaultU: 0,
+    depthMm: 55,
+    physicalHeightMm: 400,
+    widthType: 'custom',
+    customWidthMm: 55,
+    weightKg: 2.2,
+    powerW: 0,
+    heatLevel: 1,
+    ports: { power: 8, layoutColumns: 1 },
+    portLayouts: {
+      front: [
+        { type: 'power', columns: 1, xRatio: 0.5 },
+      ],
+    },
+    mountType: 'rear-rail',
+    mountSide0U: 'left',
+    outletFacing: 'outward',
+    color: '#1f2937',
+    description: 'Short 400 mm 0U PDU. Mounts on the rear vertical rail behind the rack, does not consume U space.'  },
   {
     id: 'shelf-1u',
     category: 'shelf',
@@ -1772,12 +1801,15 @@ export const deviceCatalog: DeviceTemplate[] = [
     heatLevel: 4,
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
+      // Ratios measured from the vendored front/rear photos: RJ45 block sits
+      // right-of-center (2 rows of 12), SFP+ pair stacked at the far right,
+      // IEC inlet on the rear right.
       front: [
-        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
-        { type: 'fiber', columns: 2, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
+        { type: 'ethernet', columns: 12, rowIndex: 0, yRatio: 0.5, xRatio: 0.81, portScale: 0.58, pairing: 'odd-even-vertical', speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 1, rowIndex: 0, yRatio: 0.5, xRatio: 0.97, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'power', columns: 1, xRatio: 0.9 }
       ]
     },
     faceplate: {
@@ -1799,12 +1831,16 @@ export const deviceCatalog: DeviceTemplate[] = [
     heatLevel: 4,
     ports: { ethernet: 48, fiber: 4, power: 1, layoutColumns: 24 },
     portLayouts: {
+      // Ratios measured from the vendored front/rear photos: RJ45 block is a
+      // left-of-center 2x24 grid (odd ports top, even bottom), 4 SFP+ in a
+      // 2x2 block at the right, IEC inlet on the rear right. portScale fits
+      // the 24-wide row onto the photo's real port pitch.
       front: [
-        { type: 'ethernet', columns: 24, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
-        { type: 'fiber', columns: 4, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
+        { type: 'ethernet', columns: 24, rowIndex: 0, yRatio: 0.5, xRatio: 0.23, portScale: 0.85, pairing: 'odd-even-vertical', speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 2, rowIndex: 0, yRatio: 0.5, xRatio: 0.96, pairing: 'odd-even-vertical', speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'power', columns: 1, xRatio: 0.88 }
       ]
     },
     faceplate: {
@@ -1822,16 +1858,20 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 325,
     widthType: '19in',
     weightKg: 5.2,
-    powerW: 100,
+    powerW: 60,
     heatLevel: 4,
     ports: { ethernet: 24, fiber: 2, power: 1, layoutColumns: 12 },
     portLayouts: {
+      // Ratios measured from the vendored front/rear photos: single row of 24
+      // RJ45 across the middle, 2 SFP+ side by side at the right, IEC inlet
+      // on the rear right. portScale fits the 24-wide row onto the photo's
+      // real port pitch.
       front: [
-        { type: 'ethernet', columns: 12, rowIndex: 0, xRatio: 0.38, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
-        { type: 'fiber', columns: 2, rowIndex: 0, xRatio: 0.9, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
+        { type: 'ethernet', columns: 24, rowIndex: 0, yRatio: 0.43, xRatio: 0.24, portScale: 0.84, speed: '1G', mediaType: 'rj45', groupLabel: 'Data' },
+        { type: 'fiber', columns: 2, rowIndex: 0, yRatio: 0.43, xRatio: 0.98, speed: '10G', mediaType: 'sfp+', groupLabel: 'Uplink' }
       ],
       rear: [
-        { type: 'power', columns: 1, xRatio: 0.5 }
+        { type: 'power', columns: 1, xRatio: 0.89 }
       ]
     },
     faceplate: {
@@ -1854,8 +1894,11 @@ export const deviceCatalog: DeviceTemplate[] = [
     heatLevel: 1,
     ports: { ethernet: 5, power: 1, layoutColumns: 5 },
     portLayouts: {
+      // Matches the official QSG hardware overview: 5 RJ45 in one centered
+      // row across the front (port 1 = PoE in), single USB-C power port
+      // centered on the back.
       front: [
-        { type: 'ethernet', count: 5, columns: 5, rowIndex: 0, xRatio: 0.15, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' }
+        { type: 'ethernet', count: 5, columns: 5, rowIndex: 0, xRatio: 0.5, speed: '1G', mediaType: 'rj45', groupLabel: 'Ports' }
       ],
       rear: [
         { type: 'power', count: 1, columns: 1, rowIndex: 0, xRatio: 0.5, groupLabel: 'Power' }
@@ -1871,8 +1914,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 200,
     widthType: '19in',
-    weightKg: 2.8,
-    powerW: 25,
+    weightKg: 2.9,
+    powerW: 18,
     heatLevel: 3,
     ports: { ethernet: 16, fiber: 2, power: 1, layoutColumns: 8 },
     portLayouts: {
@@ -1894,7 +1937,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 286,
     widthType: '19in',
-    weightKg: 4.95,
+    weightKg: 5,
     powerW: 50,
     heatLevel: 4,
     ports: { ethernet: 9, fiber: 2, power: 1, layoutColumns: 11 },
@@ -1919,8 +1962,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 285,
     widthType: '19in',
-    weightKg: 3.5,
-    powerW: 35,
+    weightKg: 3.42,
+    powerW: 30,
     heatLevel: 3,
     ports: { ethernet: 2, fiber: 2, power: 1, layoutColumns: 4 },
     portLayouts: {
@@ -1969,7 +2012,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 135,
     widthType: 'shelf',
     customWidthMm: 135,
-    weightKg: 0.37,
+    weightKg: 0.366,
     powerW: 7,
     heatLevel: 2,
     ports: { ethernet: 3, power: 1, layoutColumns: 3 },
@@ -2055,8 +2098,8 @@ export const deviceCatalog: DeviceTemplate[] = [
     depthMm: 134,
     widthType: 'shelf',
     customWidthMm: 131,
-    weightKg: 0.58,
-    powerW: 13,
+    weightKg: 0.582,
+    powerW: 12.95,
     heatLevel: 2,
     ports: { ethernet: 1, power: 1, layoutColumns: 1 },
     portLayouts: {
@@ -2075,7 +2118,7 @@ export const deviceCatalog: DeviceTemplate[] = [
     defaultU: 1,
     depthMm: 285,
     widthType: '19in',
-    weightKg: 5.0,
+    weightKg: 5.6,
     powerW: 0,
     heatLevel: 1,
     ports: { power: 6, layoutColumns: 6 },

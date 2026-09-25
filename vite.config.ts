@@ -5,8 +5,11 @@ export default defineConfig({
   base: '/HomeLab_Rack_Simulator/',
   plugins: [react()],
   server: {
-    host: '127.0.0.1',
-    port: 5173
+    // Bind every local interface so phones and other devices on the same LAN
+    // can use the development server. Vite still validates host headers.
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true
   },
   build: {
     chunkSizeWarningLimit: 400,

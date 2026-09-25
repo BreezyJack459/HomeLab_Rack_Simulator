@@ -1,16 +1,18 @@
-import { Text } from '@react-three/drei';
+import { Edges, Text } from '@react-three/drei';
 import * as THREE from 'three';
-import { memo, useEffect, useMemo, useState } from 'react';
-import type { DeviceTemplate, PlacedDevice, PortType, RackType, ViewSide } from '../../types/rack';
+import { memo, useEffect, useState } from 'react';
+import type { DeviceTemplate, PlacedDevice, RackType, ViewSide } from '../../types/rack';
 import { useRackStore } from '../../store/rackStore';
 import { getTemplateById, templateFromDevice } from '../../data/deviceCatalog';
 import { getDeviceMountSide, getDeviceSpatialZone, getZeroUEarSide } from '../../utils/rackMath';
-import { buildPortLayout } from '../../utils/portLayout';
 import { getFaceplateTexture } from '../../utils/faceplateSvg';
 import { getDeviceWorldBox, ZERO_U_REAR_GAP, ZERO_U_SIDE_GAP } from '../../utils/rackGeometry';
 import { UNIT_BOX_GEOMETRY } from './sharedGeometries';
-
-const MAX_DETAILED_PORT_LABELS = 24;
+import { SceneLabel3D } from './SceneSelection';
+import { DeviceSockets3D } from './DeviceSockets3D';
+import { CableManagerBody3D } from './CableManagerBody3D';
+import { ShelfBody3D } from './ShelfBody3D';
+import { isTrayShelf } from '../../utils/rackMath';
 
 const CANVAS_TEXTURE_CACHE = new Map<string, THREE.CanvasTexture>();
 const CANVAS_TEXTURE_REFCOUNT = new Map<string, number>();
@@ -103,189 +105,10 @@ function FaceplateTexture({
   );
 }
 
-/** Render ports on one face using the shared layout engine */
-function DevicePortFace({
-  device,
-  deviceWidth,
-  deviceHeight,
-  z,
-  face,
-  rotationY,
-}: {
-  device: PlacedDevice;
-  deviceWidth: number;
-  deviceHeight: number;
-  z: number;
-  face: 'front' | 'rear';
-  rotationY?: number;
-}) {
-  const groups = useMemo(
-    () => buildPortLayout(device, deviceWidth, deviceHeight, face),
-    [device.category, device.ports, device.portLayouts, device.portFaceOverrides, deviceWidth, deviceHeight, face]
-  );
-  // Pairing state from store — drives hover glow + click handler
-  const pairingStage = useRackStore((s) => s.pairingStage);
-  const onPortPick3D = useRackStore((s) => s.onPortPick3D);
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const isPairing = pairingStage !== 'idle';
-  const slotCount = groups.reduce((total, group) => total + group.slots.length, 0);
-  const showDetailedLabels = slotCount <= MAX_DETAILED_PORT_LABELS;
-
-  if (groups.length === 0) return null;
-
-  return (
-    <group position={[0, 0, z]} rotation={[0, rotationY ?? 0, 0]}>
-      {groups.map((group) => (
-        <group key={group.key ?? group.type}>
-          {group.slots.map((slot) => {
-            const slotKey = `${group.type}-${slot.index}`;
-            const isHovered = isPairing && hoveredKey === slotKey;
-            return (
-              <group key={slot.index} position={[slot.x, slot.y, 0.003]}>
-                <mesh
-                  scale={[slot.width, slot.height, isHovered ? 0.012 : 0.005]}
-                  onPointerOver={isPairing ? (e) => { e.stopPropagation(); setHoveredKey(slotKey); } : undefined}
-                  onPointerOut={isPairing ? (e) => { e.stopPropagation(); setHoveredKey(null); } : undefined}
-                  onClick={isPairing && onPortPick3D ? (e) => {
-                    e.stopPropagation();
-                    onPortPick3D({
-                      deviceId: device.id,
-                      portType: group.type as PortType,
-                      portIndex: slot.index,
-                      face,
-                      cableTypes: []
-                    });
-                  } : undefined}
-                >
-                  <primitive attach="geometry" object={UNIT_BOX_GEOMETRY} />
-                  <meshStandardMaterial
-                    color={isHovered ? '#ffffff' : group.color}
-                    emissive={isHovered ? '#06b6d4' : group.emissive}
-                    emissiveIntensity={isHovered ? 1.4 : 0.35}
-                    roughness={0.5}
-                    metalness={0.2}
-                  />
-                </mesh>
-                {(showDetailedLabels || isHovered) && (
-                  <>
-                    <Text
-                      fontSize={Math.min(0.016, slot.width * 0.4)}
-                      color={isHovered ? '#ffffff' : '#0f172a'}
-                      anchorX="center"
-                      anchorY="middle"
-                      position={[0, 0, 0.003]}
-                    >
-                      {`${slot.index + 1}`}
-                    </Text>
-                    {slot.speed && (
-                      <Text
-                        fontSize={Math.min(0.011, slot.width * 0.28)}
-                        color={isHovered ? '#ffffff' : '#0f172a'}
-                        anchorX="center"
-                        anchorY="bottom"
-                        position={[0, slot.height * 0.42, 0.004]}
-                      >
-                        {slot.speed}
-                        {slot.mediaType && slot.mediaType !== 'rj45' ? ` ${slot.mediaType}` : ''}
-                      </Text>
-                    )}
-                  </>
-                )}
-              </group>
-            );
-          })}
-          {!showDetailedLabels && (
-            <Text
-              fontSize={0.026}
-              color="#cbd5e1"
-              anchorX="center"
-              anchorY="middle"
-              position={[0, -deviceHeight * 0.34, 0.006]}
-              maxWidth={deviceWidth * 0.82}
-            >
-              {`${group.slots.length} ${group.type}${group.slots[0]?.speed ? ` ${group.slots[0].speed}${group.slots[0].mediaType && group.slots[0].mediaType !== 'rj45' ? ` ${group.slots[0].mediaType}` : ''}` : ''}`}
-            </Text>
-          )}
-        </group>
-      ))}
-    </group>
-  );
-}
-
 export const DeviceModel = memo(DeviceModelComponent);
 
-/** Render ports on the X-facing face of a side-mounted 0U device */
-function DeviceZeroUSideFace({
-  device,
-  faceWidth,
-  faceHeight,
-  xOffset,
-  textRotY,
-}: {
-  device: PlacedDevice;
-  faceWidth: number;
-  faceHeight: number;
-  xOffset: number;
-  textRotY: number;
-}) {
-  const groups = useMemo(
-    () => buildPortLayout(device, faceWidth, faceHeight, 'front'),
-    [device.category, device.ports, device.portLayouts, device.portFaceOverrides, faceWidth, faceHeight]
-  );
-  const slotCount = groups.reduce((total, group) => total + group.slots.length, 0);
-  const showDetailedLabels = slotCount <= MAX_DETAILED_PORT_LABELS;
-  if (groups.length === 0) return null;
-
-  return (
-    <group position={[xOffset, 0, 0]}>
-      {groups.map((group) => (
-        <group key={group.key ?? group.type}>
-          {group.slots.map((slot) => (
-            <group key={slot.index} position={[0.003, slot.y, slot.x]}>
-              <mesh scale={[0.005, slot.height * 0.9, slot.width * 0.9]}>
-                <primitive attach="geometry" object={UNIT_BOX_GEOMETRY} />
-                <meshStandardMaterial
-                  color={group.color}
-                  emissive={group.emissive}
-                  emissiveIntensity={0.35}
-                  roughness={0.5}
-                  metalness={0.2}
-                />
-              </mesh>
-              {showDetailedLabels && (
-                <Text
-                  fontSize={Math.min(0.016, slot.width * 0.4)}
-                  color="#0f172a"
-                  anchorX="center"
-                  anchorY="middle"
-                  position={[0.003, 0, 0]}
-                  rotation={[0, textRotY, 0]}
-                >
-                  {`${slot.index + 1}`}
-                </Text>
-              )}
-            </group>
-          ))}
-          {!showDetailedLabels && (
-            <Text
-              fontSize={0.026}
-              color="#cbd5e1"
-              anchorX="center"
-              anchorY="middle"
-              position={[0.006, -faceHeight * 0.34, 0]}
-              rotation={[0, textRotY, 0]}
-              maxWidth={faceWidth * 0.82}
-            >
-              {`${group.slots.length} ${group.type}`}
-            </Text>
-          )}
-        </group>
-      ))}
-    </group>
-  );
-}
-
 interface DeviceModelProps {
+  devices?: PlacedDevice[];
   device: PlacedDevice;
   rackType: RackType;
   rackDepthMm: number;
@@ -302,12 +125,12 @@ function heatEmissive(heatLevel: number) {
   return '#111827';
 }
 
-function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
+function DeviceModelComponent({ device, devices, rackType, rackDepthMm, rackWidth, rackDepth, rackHeight, selected }: DeviceModelProps) {
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
   const debugMode = useRackStore((state) => state.debugMode);
   const box = getDeviceWorldBox(
-    { rackType, rackDepthMm },
+    { rackType, rackDepthMm, devices },
     device,
     {
       rackWidth,
@@ -330,15 +153,21 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
   const faceZ = isRearMounted ? -depth / 2 - 0.006 : depth / 2 + 0.006;
 
   const zeroUPortSideX = isZeroULeft ? width / 2 : -width / 2;
+  // Keep the faceplate's outer surface behind the shared socket plane.
   const zeroUPortZ = (device.outletFacing ?? 'forward') === 'outward'
-    ? -depth / 2 - 0.014
-    : depth / 2 + 0.014;
-  const sideTextRotY = isZeroULeft ? Math.PI / 2 : -Math.PI / 2;
+    ? -depth / 2 - 0.006
+    : depth / 2 + 0.006;
 
   const isShelf = device.category === 'shelf';
+  const isCableManager = device.category === 'cable-management';
 
   return (
-    <group position={[x, y, z]}>
+    <group position={[x, y, z]} onClick={(event) => {
+      if (event.delta > 4) return;
+      event.stopPropagation();
+      selectDevice(device.id);
+      selectCable(null);
+    }}>
       {isZeroU && (
         <>
           {selected && (
@@ -376,14 +205,9 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
         </>
       )}
       {/* Main device body */}
-      <mesh
+      {isTrayShelf(device) ? <ShelfBody3D device={device} box={box} selected={selected} /> : isCableManager ? <CableManagerBody3D box={box} selected={selected} /> : <mesh
         castShadow
         receiveShadow
-        onClick={(event) => {
-          event.stopPropagation();
-          selectDevice(device.id);
-          selectCable(null);
-        }}
       >
         <boxGeometry args={[width, height, isShelf ? Math.max(depth, 0.55) : depth]} />
         <meshStandardMaterial
@@ -391,11 +215,22 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
           transparent={device.lifecycleStatus === 'planned'}
           opacity={device.lifecycleStatus === 'planned' ? 0.55 : 1}
           emissive={selected ? '#06b6d4' : heatEmissive(device.heatLevel)}
-          emissiveIntensity={selected ? (isZeroU ? 0.15 : 0.35) : isZeroU ? 0.12 : device.heatLevel >= 4 ? 0.16 : 0.04}
+          emissiveIntensity={selected ? 0.1 : isZeroU ? 0.12 : device.heatLevel >= 4 ? 0.16 : 0.04}
           metalness={isShelf ? 0.32 : isZeroU ? 0.25 : 0.12}
           roughness={isZeroU ? 0.45 : 0.58}
         />
-      </mesh>
+        {selected && <Edges scale={1.015} color="#22d3ee" raycast={() => null} />}
+      </mesh>}
+
+      {selected && isZeroU && <SceneLabel3D position={[0, height / 2 + 0.13, 0]}>
+        <div className="font-semibold">{device.label || device.name}</div>
+        <div className="mt-0.5 text-content-secondary">0U · {earSide} rail · {device.physicalHeightMm ? `${device.physicalHeightMm} mm` : 'estimated length'}</div>
+      </SceneLabel3D>}
+
+      {selected && !isZeroU && <SceneLabel3D position={[0, height / 2 + 0.12, faceZ]}>
+        <div className="font-semibold">{device.label || device.name}</div>
+        <div className="mt-0.5 text-content-secondary">U{device.positionU} · {device.sizeU}U</div>
+      </SceneLabel3D>}
 
       {overflowDepth > 0 && (
         <mesh position={[0, 0, overflowCenterZ]} castShadow receiveShadow>
@@ -413,7 +248,7 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
       )}
 
       {/* Selection highlight */}
-      {selected && (
+      {selected && isZeroU && (
         <mesh position={isZeroU ? (isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? [0, 0, zeroUPortZ] : [zeroUPortSideX, 0, 0]) : [0, 0, faceZ]}>
           {isZeroU ? (
             isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward'
@@ -427,6 +262,7 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
       )}
 
       {/* Face plate */}
+      {!isCableManager && !isTrayShelf(device) && <>
       {isZeroU ? (
         <mesh position={isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? [0, 0, zeroUPortZ] : [zeroUPortSideX, 0, 0]} castShadow>
           {isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? (
@@ -446,95 +282,32 @@ function DeviceModelComponent({ device, rackType, rackDepthMm, rackWidth, rackDe
       {/* Faceplate textures */}
       {!isZeroU && (
         <>
-          <group position={[0, 0, isRearMounted ? -depth / 2 - 0.016 : depth / 2 + 0.016]}>
+          <group position={[0, 0, depth / 2 + 0.016]}>
             <FaceplateTexture
               template={template}
               face="front"
               width={width}
               height={height}
-              rotationY={isRearMounted ? Math.PI : 0}
+              rotationY={0}
             />
           </group>
-          <group position={[0, 0, isRearMounted ? depth / 2 + 0.016 : -depth / 2 - 0.016]}>
+          <group position={[0, 0, -depth / 2 - 0.016]}>
             <FaceplateTexture
               template={template}
               face="rear"
               width={width}
               height={height}
-              rotationY={isRearMounted ? 0 : Math.PI}
+              rotationY={Math.PI}
             />
           </group>
         </>
       )}
 
-      {/* Ports */}
-      {device.ports && (
-        <>
-          {isZeroU ? (
-            <>
-              {isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward' ? (
-                <DevicePortFace
-                  device={device}
-                  deviceWidth={width * 0.9}
-                  deviceHeight={height}
-                  z={zeroUPortZ}
-                  face="front"
-                />
-              ) : (
-                <DeviceZeroUSideFace
-                  device={device}
-                  faceWidth={depth}
-                  faceHeight={height}
-                  xOffset={zeroUPortSideX}
-                  textRotY={sideTextRotY}
-                />
-              )}
-            </>
-          ) : (
-            <>
-              <DevicePortFace
-                device={device}
-                deviceWidth={width * 0.9}
-                deviceHeight={height}
-                z={isRearMounted ? -depth / 2 - 0.02 : depth / 2 + 0.02}
-                face="front"
-                rotationY={isRearMounted ? Math.PI : 0}
-              />
-              <DevicePortFace
-                device={device}
-                deviceWidth={width * 0.9}
-                deviceHeight={height}
-                z={isRearMounted ? depth / 2 + 0.02 : -depth / 2 - 0.02}
-                face="rear"
-                rotationY={isRearMounted ? 0 : Math.PI}
-              />
-            </>
-          )}
-        </>
-      )}
+      </>}
+      <DeviceSockets3D device={device} box={box} allowPicking />
 
       {/* Device label */}
-      {isZeroU ? (
-        <Text
-          position={
-            isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward'
-              ? [0, height * 0.08, zeroUPortZ + ((device.outletFacing ?? 'forward') === 'outward' ? -0.02 : 0.02)]
-              : [zeroUPortSideX + (isZeroULeft ? 0.032 : -0.032), height * 0.08, 0]
-          }
-          rotation={
-            isRearRail0U && (device.outletFacing ?? 'forward') !== 'inward'
-              ? ((device.outletFacing ?? 'forward') === 'outward' ? [0, Math.PI, 0] : undefined)
-              : [0, isZeroULeft ? Math.PI / 2 : -Math.PI / 2, 0]
-          }
-          fontSize={Math.min(0.06, Math.max(0.038, height * 0.28))}
-          maxWidth={isRearRail0U ? Math.max(width * 2.2, 0.22) : depth * 0.84}
-          color="#f8fafc"
-          anchorX="center"
-          anchorY="middle"
-        >
-          {device.label || device.name}
-        </Text>
-      ) : (
+      {isZeroU ? null : (
         <Text
           position={[0, height * 0.08, isRearMounted ? -depth / 2 - 0.032 : depth / 2 + 0.032]}
           rotation={isRearMounted ? [0, Math.PI, 0] : undefined}

@@ -1,35 +1,28 @@
-import type { ReactNode } from 'react';
 import { Command, LayoutGrid, Search } from 'lucide-react';
 import type {
   ToolbarActionDefinition,
   ViewModeDefinition,
+  WorkspaceContribution,
 } from '../plugins/types';
 import { ThemeToggle } from './ThemeToggle';
+import { PluginsMenu } from './PluginsMenu';
+import type { PluginToggleItem } from './PluginsMenu';
 import type { AppWorkspace } from '../types/appShell';
 import type { RackLayout, ViewMode, Workspace } from '../types/rack';
-import { RACK_SPECS } from '../utils/rackMath';
 
-const workspaceLabel: Record<AppWorkspace, string> = {
+const coreWorkspaceLabel: Record<string, string> = {
   model: 'Build',
   audit: 'Check',
-  operate: 'Run',
-  plan: 'Plan',
-  portfolio: 'Fleet',
 };
 
 interface TopContextBarProps {
   workspace: Workspace;
   layout: RackLayout;
   currentWorkspace: AppWorkspace;
+  pluginWorkspaces?: WorkspaceContribution[];
   viewMode: ViewMode;
   viewModes: ViewModeDefinition[];
-  pluginToggles?: Array<{
-    id: string;
-    label: string;
-    enabled: boolean;
-    disabled?: boolean;
-    onToggle: () => void;
-  }>;
+  pluginToggles?: PluginToggleItem[];
   toolbarActions?: ToolbarActionDefinition[];
   onOpenCommand: () => void;
   onRenameLayout: (name: string) => void;
@@ -41,6 +34,7 @@ export function TopContextBar({
   workspace,
   layout,
   currentWorkspace,
+  pluginWorkspaces = [],
   viewMode,
   viewModes,
   pluginToggles = [],
@@ -50,17 +44,21 @@ export function TopContextBar({
   onToggleViewMode,
   onSetViewSide,
 }: TopContextBarProps) {
-  const primaryMeta = [
-    workspaceLabel[currentWorkspace],
-    RACK_SPECS[layout.rackType].label,
-    `${layout.heightU}U`,
-  ];
+  const workspaceLabel =
+    coreWorkspaceLabel[currentWorkspace] ??
+    pluginWorkspaces.find((item) => item.id === currentWorkspace)?.nav.label ??
+    currentWorkspace;
+  // Rack spec pills were removed: the rack summary chips below the bar already
+  // show rack type / U usage, so repeating them here was duplicate metadata.
+  const primaryMeta = [workspaceLabel];
 
   return (
     <div className="border-b border-edge/80 bg-gradient-to-r from-white via-fill-subtle to-white px-4 py-2.5 dark:border-edge dark:from-surface dark:via-surface dark:to-surface-raised">
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 flex-1">
+          {/* min-w keeps this block from being flex-squashed to zero width when
+              the toolbar row is crowded (the right block wraps instead). */}
+          <div className="min-w-[16rem] flex-1">
             <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
               {primaryMeta.map((item) => (
                 <span
@@ -118,23 +116,7 @@ export function TopContextBar({
               {pluginToggles.length > 0 ? (
                 <>
                   <div className="mx-0.5 h-5 w-px bg-fill-strong dark:bg-fill" />
-                  {pluginToggles.map((plugin) => (
-                    <button
-                      key={plugin.id}
-                      type="button"
-                      disabled={plugin.disabled}
-                      onClick={plugin.onToggle}
-                      className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
-                        plugin.disabled
-                          ? 'cursor-not-allowed bg-fill text-content-faint dark:bg-surface-raised dark:text-content-faint'
-                          : plugin.enabled
-                            ? 'bg-emerald-500/12 text-emerald-700 hover:bg-emerald-500/18 dark:text-emerald-300'
-                            : 'bg-fill text-content-muted hover:bg-fill-strong dark:bg-surface-raised dark:text-content-muted dark:hover:bg-fill'
-                      }`}
-                    >
-                      {plugin.label}
-                    </button>
-                  ))}
+                  <PluginsMenu pluginToggles={pluginToggles} />
                 </>
               ) : null}
               {toolbarActions.length > 0 ? (

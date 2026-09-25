@@ -2,6 +2,7 @@ import type { LifecycleViewFilter, RackLayout, RackType } from '../types/rack';
 import { getDepthSummary, RACK_HEIGHT_OPTIONS } from '../utils/rackMath';
 
 interface RackSummarySettingsPanelProps {
+  inline?: boolean;
   layout: RackLayout;
   lifecycleFilter: LifecycleViewFilter;
   onLifecycleFilterChange: (filter: LifecycleViewFilter) => void;
@@ -16,6 +17,7 @@ interface RackSummarySettingsPanelProps {
 
 export function RackSummarySettingsPanel({
   layout,
+  inline = false,
   lifecycleFilter,
   onLifecycleFilterChange,
   onRackTypeChange,
@@ -47,7 +49,7 @@ export function RackSummarySettingsPanel({
   };
 
   return (
-    <div className="absolute right-0 top-full z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-4 shadow-2xl dark:border-edge dark:bg-surface">
+    <div className={inline ? "bg-surface" : "absolute right-0 top-full z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-4 shadow-2xl dark:border-edge dark:bg-surface"}>
       <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
         Layout settings
       </div>

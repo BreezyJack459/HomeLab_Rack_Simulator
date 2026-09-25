@@ -1,4 +1,7 @@
 # Game Studio Plugin — Code Review Report
+
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../dev/ARCHITECTURE.md) and [documentation index](../README.md) for present behavior. This document does not authorize new implementation.
+
 ## HomeLab Rack Simulator (R3F + React Configurator)
 
 **Review Date:** 2026-05-06  

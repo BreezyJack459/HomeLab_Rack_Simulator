@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "vite --host 0.0.0.0 --strictPort",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:plugins": "node node_modules/vitest/vitest.mjs run --config vitest.plugin-platform.config.ts",

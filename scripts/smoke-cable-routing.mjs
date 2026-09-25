@@ -3,19 +3,19 @@ import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { chromium } from '@playwright/test';
 
-const baseUrl = process.env.SMOKE_URL ?? 'http://127.0.0.1:5173';
-const outDir = resolve('artifacts/smoke');
+const baseUrl = process.env.SMOKE_URL ?? 'http://127.0.0.1:5173/HomeLab_Rack_Simulator/';
+const outDir = resolve(process.env.SMOKE_OUT_DIR ?? 'artifacts/smoke');
 
 await mkdir(outDir, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, channel: process.env.SMOKE_BROWSER_CHANNEL });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
 
 try {
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
   await page.screenshot({ path: resolve(outDir, 'desktop-routing-2d.png'), fullPage: true });
 
-  await page.getByRole('button', { name: 'Cables', exact: true }).click();
+  await page.getByRole('button', { name: 'Cable', exact: true }).click();
   await page.waitForSelector('[data-testid="cable-map-svg"]', { timeout: 10_000 });
   await page.screenshot({ path: resolve(outDir, 'desktop-routing-map.png'), fullPage: true });
 
@@ -33,6 +33,26 @@ try {
 
   await writeFile(resolve(outDir, 'desktop-routing-3d-canvas.png'), canvasPng);
   await page.screenshot({ path: resolve(outDir, 'desktop-routing-3d.png'), fullPage: true });
+
+  const viewer = page.getByTestId('cable-viewer-3d');
+  for (const mode of ['clean', 'realistic']) {
+    await viewer.locator('summary').click();
+    await viewer.getByRole('button', { name: mode, exact: true }).click();
+    await viewer.locator('summary').click();
+    await viewer.getByRole('combobox', { name: 'Camera view' }).selectOption('rear');
+    // Reapply the same rear angle after each mode's scene bounds are fitted.
+    await page.waitForTimeout(1000);
+    const bounds = await canvas.boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width / 2 + 100, bounds.y + bounds.height / 2 + 45, { steps: 20 });
+    await page.mouse.up();
+    await page.waitForTimeout(1000);
+    const png = await canvas.screenshot();
+    if (countPixelsDifferentFromCorner(png) < 50) throw new Error(`${mode} rear canvas appears blank`);
+    await writeFile(resolve(outDir, `desktop-routing-rear-${mode}.png`), png);
+  }
+  if (await page.locator('#runtime-error-overlay').count()) throw new Error('Runtime error during routing smoke test');
 } finally {
   await browser.close();
 }

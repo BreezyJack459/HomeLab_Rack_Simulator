@@ -1,3 +1,4 @@
+import { withoutHiddenZeroUPdu } from './featureFlags';
 import type { CableType, RackLayout, Workspace } from '../types/rack';
 import { normalizeWorkspace } from '../store/rackStore';
 import { buildBom } from './bom';
@@ -32,7 +33,8 @@ export function exportLayoutJson(layout: RackLayout) {
   );
 }
 
-export function exportRackPng(layout: RackLayout) {
+export function exportRackPng(sourceLayout: RackLayout) {
+  const layout = withoutHiddenZeroUPdu(sourceLayout);
   const unitHeight = 38;
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const labelWidth = 52;

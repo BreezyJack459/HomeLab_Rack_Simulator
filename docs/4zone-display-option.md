@@ -1,5 +1,7 @@
 # 4-Zone Display Option — Design Note
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](dev/ARCHITECTURE.md) and [documentation index](README.md) for present behavior. This document does not authorize new implementation.
+
 ## Problem
 With the 4-zone spatial model (front / rear / side-left / side-right), the 2D editor
 only shows 3 zones at once:

@@ -15,17 +15,17 @@ async function openMenu(page: import('@playwright/test').Page, testId: string) {
 }
 
 const openCreateMenu = (page: import('@playwright/test').Page) =>
-  openMenu(page, 'create-dropdown');
-const openActionsMenu = (page: import('@playwright/test').Page) =>
-  openMenu(page, 'actions-dropdown');
+  openMenu(page, 'more-dropdown');
+
 const openFileMenu = (page: import('@playwright/test').Page) =>
   openMenu(page, 'more-dropdown');
 
-// Device count is shown as a "Devices" summary chip in the rack summary bar.
+// Device count is shown as quiet text ("…·N devices·…") in the rack summary bar.
+// The [^0-9] guard keeps "0 devices" from matching inside "10 devices".
 function deviceCountChip(page: import('@playwright/test').Page, count: number | string) {
   return page
-    .locator('[data-testid="rack-summary"]')
-    .getByText(new RegExp(`^Devices\\s*${count}$`));
+    .locator('[data-testid="rack-device-count"]')
+    .getByText(new RegExp(`(^|[^0-9])${count}\\s*devices`));
 }
 
 async function clearLayout(page: any) {
@@ -60,6 +60,7 @@ async function loadFirstSample(page: any) {
 
 test.describe('Rack Simulator Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({width:1440,height:900});
     await page.goto('/');
     // Reset theme to ensure consistent dark-mode default
     await page.evaluate(() => {
@@ -75,8 +76,18 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(deviceCountChip(page, 0)).toBeVisible();
     // No validation issues on an empty rack
     await expect(
-      page.locator('[data-testid="rack-summary"]').getByRole('button', { name: '0' }),
+      page.getByRole('button', { name: '0 issues',exact:true }),
     ).toBeVisible();
+  });
+
+  test('fresh install shows only core workspaces in the nav', async ({ page }) => {
+    // Workspace packs (operate/plan/portfolio) are opt-in plugins, so a fresh
+    // install only shows the core Build + Check workspaces.
+    await expect(page.getByRole('button', { name: /Build\s*Rack/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Check\s*Health/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Run\s*Ops/ })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Plan\s*Changes/ })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Fleet\s*Rooms/ })).not.toBeVisible();
   });
 
   test('switches between 2D, 3D, and Cables views', async ({ page }) => {
@@ -90,10 +101,11 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(page.getByRole('button', { name: '3D', exact: true })).toHaveClass(activeClass);
 
     // Switch to Cables view
-    await page.getByRole('button', { name: 'Cables', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Cables', exact: true })).toHaveClass(activeClass);
+    await page.getByRole('button', { name: 'Cable', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Cable', exact: true })).toHaveClass(activeClass);
 
-    // Switch back to 2D
+    // Switch back to Build, retaining its previous 3D view.
+    await page.getByRole('button', {name:'Build Rack', exact:true}).click();
     await page.getByRole('button', { name: '2D', exact: true }).click();
     await expect(page.getByRole('button', { name: '2D', exact: true })).toHaveClass(activeClass);
   });
@@ -102,7 +114,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(deviceCountChip(page, 0)).toBeVisible();
 
     await openDeviceLibrary(page);
-    await page.getByRole('button', { name: /Add to/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
 
     // Verify device count increased
     await expect(deviceCountChip(page, 1)).toBeVisible();
@@ -110,17 +122,19 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
   test('cable planner shows ports after device selection', async ({ page }) => {
     await openDeviceLibrary(page);
-    await page.getByRole('button', { name: /Add to/ }).first().click();
-    await page.getByRole('button', { name: /Add to/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
     await expect(deviceCountChip(page, 2)).toBeVisible();
 
+    await page.getByRole('button', {name:'Cable', exact:true}).click();
+    await page.getByRole('button', {name:'+ Connect cable', exact:true}).click();
     // CablePlanner "Add cable" button should be visible in the inspector
-    await expect(page.getByRole('button', { name: 'Add cable' })).toBeVisible();
+    await expect(page.getByText('Pick a source port', { exact:true })).toBeVisible();
   });
 
   test('exports and imports layout JSON', async ({ page }) => {
     await openDeviceLibrary(page);
-    await page.getByRole('button', { name: /Add to/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
     await expect(deviceCountChip(page, 1)).toBeVisible();
 
     // Export JSON from the File & export menu
@@ -156,6 +170,8 @@ test.describe('Rack Simulator Smoke Tests', () => {
     // Verify dark mode default
     await expect(page.locator('html')).toHaveClass(/dark/);
 
+    await page.getByRole('button', {name:/Tools/}).click();
+    await page.getByRole('button', {name:/Settings →/}).click();
     // Click theme toggle
     await page.getByRole('button', { name: 'Light' }).click();
 
@@ -179,23 +195,21 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
   test('undo and redo after adding device', async ({ page }) => {
     await openDeviceLibrary(page);
-    await page.getByRole('button', { name: /Add to/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
     await expect(deviceCountChip(page, 1)).toBeVisible();
 
     // Undo (in the Actions menu)
-    await openActionsMenu(page);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(deviceCountChip(page, 0)).toBeVisible();
 
     // Redo
-    await openActionsMenu(page);
     await page.getByRole('button', { name: 'Redo' }).click();
     await expect(deviceCountChip(page, 1)).toBeVisible();
   });
 
   test('deletes a selected device', async ({ page }) => {
     await openDeviceLibrary(page);
-    await page.getByRole('button', { name: /Add to/ }).first().click();
+    await page.getByRole('button', { name: /^Add .* to (front|rear)$/ }).first().click();
     await expect(deviceCountChip(page, 1)).toBeVisible();
 
     // Click on the device in the rack to select it
@@ -216,12 +230,15 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(deviceCountChip(page, '[1-9]')).toBeVisible();
 
     // Shrink the rack to 6U so devices no longer fit
-    await page.getByRole('button', { name: 'Tune' }).click();
+    await page.getByRole('button', {name:/Tools/}).click();
+    await page.getByRole('button', {name:/Settings →/}).click();
+    await page.getByRole('button', {name:'Rack settings',exact:true}).click();
     await page.getByLabel('Height').selectOption('6');
 
+    await page.getByRole('dialog').getByRole('button', {name:'Close',exact:true}).click();
     // Verify the alerts button shows a non-zero issue count
     await expect(
-      page.locator('[data-testid="rack-summary"]').getByRole('button', { name: /^[1-9]\d*$/ }),
+      page.getByRole('button', { name: /^[1-9]\d* issues$/ }),
     ).toBeVisible();
   });
 });

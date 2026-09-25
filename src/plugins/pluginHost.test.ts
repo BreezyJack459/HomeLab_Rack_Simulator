@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { cableManagementPlugin } from './cableManagementPlugin';
 import { governanceToolsPlugin } from './governanceToolsPlugin';
+import { portDocumentationPlugin } from './portDocumentationPlugin';
 import type { RackPluginManifest, RackPluginModule } from './types';
 import { buildPluginRegistry } from './pluginHost';
+import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 
 type PluginOverrides = {
   manifest?: Partial<RackPluginManifest>;
@@ -160,6 +162,7 @@ describe('buildPluginRegistry', () => {
       'topology',
     ]);
     expect(registry.panels.map((panel) => panel.id)).toContain('cable-planner');
+    expect(registry.panels.find((panel) => panel.id === 'cable-planner')?.supportedViewModes).toContain('3d');
     expect(registry.commands.map((command) => command.id)).toContain(
       'cable.open-planner',
     );
@@ -223,6 +226,12 @@ describe('buildPluginRegistry', () => {
   });
 
   it('omits cable workflow contributions when cable management is disabled', () => {
+    useCableWorkspaceStore.setState({
+      subview: '3d',
+      query: 'nas',
+      hiddenTypes: ['power'],
+      focusMode: 'all',
+    });
     const registry = buildPluginRegistry({
       appVersion: '1.0.0',
       plugins: [cableManagementPlugin],
@@ -232,6 +241,27 @@ describe('buildPluginRegistry', () => {
 
     expect(registry.viewModes).toEqual([]);
     expect(registry.panels).toEqual([]);
+    expect(registry.commands).toEqual([]);
+    expect(registry.toolbarActions).toEqual([]);
+    expect(useCableWorkspaceStore.getState()).toMatchObject({
+      subview: '3d',
+      query: 'nas',
+      hiddenTypes: ['power'],
+      focusMode: 'all',
+    });
+  });
+
+  it('registers the port documentation view when enabled', () => {
+    const registry = buildPluginRegistry({
+      appVersion: '1.0.0',
+      plugins: [portDocumentationPlugin],
+      enabledPluginIds: ['port-labels'],
+      core: { viewModes: [], panels: [], toolbarActions: [], commands: [] },
+    });
+
+    expect(registry.viewModes.map((view) => view.id)).toEqual([
+      'port-labels',
+    ]);
     expect(registry.commands).toEqual([]);
     expect(registry.toolbarActions).toEqual([]);
   });

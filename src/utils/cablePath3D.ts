@@ -81,7 +81,6 @@ function pushFrontPatchLoopPoints(
   cableIndex: number,
   managerY: number
 ): void {
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
   const cubic = (p0: number, p1: number, p2: number, p3: number, t: number) => {
     const inv = 1 - t;
     return inv * inv * inv * p0
@@ -94,27 +93,28 @@ function pushFrontPatchLoopPoints(
   const exitZ = frontPlaneZ + 0.024 + stagger * 0.22;
   const verticalGap = Math.abs(fromPort.y - toPort.y);
   const horizontalGap = Math.abs(toPort.x - fromPort.x);
-  const loopDepth = Math.max(0.075, Math.min(0.26, 0.06 + horizontalGap * 0.16 + verticalGap * 0.52));
+  // A real patch cord drapes in one shallow loop just below the lower port;
+  // deep loops scaled by device distance read as excess coiled slack.
+  const loopDepth = Math.max(0.06, Math.min(0.16, 0.06 + horizontalGap * 0.2 + verticalGap * 0.15));
   const loopY = Math.min(
     managerY - 0.004 + laneSpread,
     Math.min(fromPort.y, toPort.y) - loopDepth
   );
-  const forwardBulge = Math.max(0.055, Math.min(0.16, 0.04 + horizontalGap * 0.12 + verticalGap * 0.16)) + stagger * 0.45;
+  const forwardBulge = Math.max(0.05, Math.min(0.12, 0.04 + horizontalGap * 0.12 + verticalGap * 0.12)) + stagger * 0.45;
   const loopZ = exitZ + forwardBulge;
   const samples = [0.07, 0.14, 0.22, 0.31, 0.41, 0.5, 0.59, 0.69, 0.78, 0.86, 0.93];
 
-  const startControlY = lerp(fromPort.y, loopY, 0.58);
-  const endControlY = lerp(toPort.y, loopY, 0.58);
-
+  // Both y controls sit at loopY so the cord falls out of the port, hangs in
+  // a single smooth drape, and rises back into the far port — no S-wiggles.
   pushPoint(points, fromPort.x, fromPort.y, fromPort.z);
-  pushPoint(points, fromPort.x, startControlY, exitZ);
+  pushPoint(points, fromPort.x, fromPort.y, exitZ);
   for (const t of samples) {
     const x = cubic(fromPort.x, fromPort.x, toPort.x, toPort.x, t);
-    const y = cubic(fromPort.y, startControlY, endControlY, toPort.y, t);
+    const y = cubic(fromPort.y, loopY, loopY, toPort.y, t);
     const z = cubic(exitZ, loopZ, loopZ, exitZ, t);
     pushPoint(points, x, y, z);
   }
-  pushPoint(points, toPort.x, endControlY, exitZ);
+  pushPoint(points, toPort.x, toPort.y, exitZ);
   pushPoint(points, toPort.x, toPort.y, toPort.z);
 }
 
@@ -143,6 +143,9 @@ export function buildCablePath3D(
   const isDirectPath = !hasRailNodes && fromFace === toFace;
   const realistic = cableRoutingMode === 'realistic';
   const points: Vector3[] = [];
+  // Front patch loops already encode their drape; running gravity sag on top
+  // double-sags the curve and produces extra bends.
+  let usedFrontPatchLoop = false;
 
   if (isDirectPath) {
     const midX = (fromPort.x + toPort.x) / 2;
@@ -159,6 +162,7 @@ export function buildCablePath3D(
       const managerY = managerBox ? managerBox.y + laneSpread : midY + laneSpread;
       if (realistic && plan.discipline === 'patch') {
         pushFrontPatchLoopPoints(points, fromPort, toPort, baseZ, cableIndex, managerY);
+        usedFrontPatchLoop = true;
       } else {
         const laneZ = (managerBox ? managerBox.z + managerBox.depth / 2 : baseZ) + 0.075 + stagger;
         const exitZ = baseZ + 0.035 + stagger;
@@ -272,7 +276,7 @@ export function buildCablePath3D(
   if (points.length < 2) return null;
 
   const sagAmount = realistic ? plan.render.sagMm / 1000 : (plan.render.sagMm / 1000) * 0.35;
-  const withSag = insertGravitySag(points, sagAmount, realistic);
+  const withSag = usedFrontPatchLoop ? points : insertGravitySag(points, sagAmount, realistic);
   const totalLength = withSag.reduce((sum, p, i) => (i > 0 ? sum + p.distanceTo(withSag[i - 1]) : sum), 0);
   const tension = Math.max(0.08, Math.min(0.35, 0.15 + totalLength * 0.02));
 

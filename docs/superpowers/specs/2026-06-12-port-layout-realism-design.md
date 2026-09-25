@@ -1,5 +1,7 @@
 # Design: Realistic Device Port Layout
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 **Date:** 2026-06-12  
 **Approach:** B — Enhance the layout engine + update templates  
 **Author:** Kimi Code CLI  

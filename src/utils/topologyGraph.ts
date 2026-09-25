@@ -76,7 +76,10 @@ export function categoryToRole(category: DeviceCategory): TopologyNodeRole {
 }
 
 export function buildTopologyGraph(layout: RackLayout): TopologyGraph {
-  const nodes: TopologyNode[] = layout.devices.map((d) => ({
+  const devices = layout.devices.filter(device => Object.entries(device.ports ?? {}).some(
+    ([type, count]) => type !== 'layoutColumns' && Number.isFinite(count) && count > 0
+  ));
+  const nodes: TopologyNode[] = devices.map((d) => ({
     id: d.id,
     name: d.name || d.category,
     category: d.category,
@@ -87,8 +90,8 @@ export function buildTopologyGraph(layout: RackLayout): TopologyGraph {
     depthMm: d.depthMm ?? 0,
   }));
 
-  const deviceMap = new Map(layout.devices.map((d) => [d.id, d]));
-  const edges: TopologyEdge[] = layout.cables.map((c) => {
+  const deviceMap = new Map(devices.map((d) => [d.id, d]));
+  const edges: TopologyEdge[] = layout.cables.filter(c => deviceMap.has(c.fromDeviceId) && deviceMap.has(c.toDeviceId)).map((c) => {
     const from = deviceMap.get(c.fromDeviceId);
     const to = deviceMap.get(c.toDeviceId);
     const fromFace = c.fromPort?.side ?? 'rear' as const;
@@ -206,75 +209,131 @@ export function layoutTopologyGraph(
   height: number,
   iterations = 120
 ): TopologyGraph {
-  const { nodes, edges } = graph;
+  // Stable seeds and force accumulation keep rebuilds independent of input order.
+  const nodes = [...graph.nodes].sort((a, b) => a.id.localeCompare(b.id));
   if (nodes.length === 0) return graph;
-
-  // Initialize random positions near center
-  nodes.forEach((n) => {
-    n.x = width / 2 + (Math.random() - 0.5) * width * 0.4;
-    n.y = height / 2 + (Math.random() - 0.5) * height * 0.4;
+  width = Number.isFinite(width) && width > 0 ? width : 800;
+  height = Number.isFinite(height) && height > 0 ? height : 600;
+  // Leave space for names, the toolbar and the legend.
+  const left = Math.min(100, width * 0.2);
+  const right = width - Math.min(220, width * 0.25);
+  const top = Math.min(80, height * 0.2);
+  const bottom = height - Math.min(70, height * 0.2);
+  const cx = (left + right) / 2;
+  const cy = (top + bottom) / 2;
+  nodes.forEach((node, index) => {
+    const angle = index * Math.PI * (3 - Math.sqrt(5));
+    const radius = Math.sqrt(index / nodes.length) * 0.45;
+    node.x = cx + Math.cos(angle) * radius * (right - left);
+    node.y = cy + Math.sin(angle) * radius * (bottom - top);
   });
-
-  const k = Math.sqrt((width * height) / (nodes.length + 1)) * 0.8;
+  const indices = new Map(nodes.map((node, index) => [node.id, index]));
+  // Parallel cables must not pull a device pair closer than a single cable.
+  const links = new Map<string, [number, number]>();
+  for (const edge of graph.edges) {
+    const a = indices.get(edge.sourceId);
+    const b = indices.get(edge.targetId);
+    if (a === undefined || b === undefined || a === b) continue;
+    const pair: [number, number] = [Math.min(a, b), Math.max(a, b)];
+    links.set(`${pair[0]}:${pair[1]}`, pair);
+  }
+  const pairs = [...links.values()].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const k = Math.sqrt(((right - left) * (bottom - top)) / (nodes.length + 1));
   const temperature = Math.min(width, height) / 10;
 
   for (let i = 0; i < iterations; i++) {
+    const displacement = nodes.map(n => ({ x: (cx - n.x) * 0.1, y: (cy - n.y) * 0.1 }));
     // Repulsion
     for (let a = 0; a < nodes.length; a++) {
       for (let b = a + 1; b < nodes.length; b++) {
         const na = nodes[a];
         const nb = nodes[b];
-        let dx = na.x - nb.x;
-        let dy = na.y - nb.y;
-        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const dx = na.x - nb.x || 0.01;
+        const dy = na.y - nb.y;
+        const dist = Math.hypot(dx, dy);
         const force = (k * k) / dist;
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-        na.x += fx * 0.05;
-        na.y += fy * 0.05;
-        nb.x -= fx * 0.05;
-        nb.y -= fy * 0.05;
+        displacement[a].x += fx;
+        displacement[a].y += fy;
+        displacement[b].x -= fx;
+        displacement[b].y -= fy;
       }
     }
 
     // Attraction along edges
-    for (const edge of edges) {
-      const na = nodes.find((n) => n.id === edge.sourceId);
-      const nb = nodes.find((n) => n.id === edge.targetId);
-      if (!na || !nb) continue;
-      let dx = nb.x - na.x;
-      let dy = nb.y - na.y;
-      let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    for (const [a, b] of pairs) {
+      const dx = nodes[b].x - nodes[a].x;
+      const dy = nodes[b].y - nodes[a].y;
+      const dist = Math.hypot(dx, dy) || 1;
       const force = (dist * dist) / k;
-      const fx = (dx / dist) * force * 0.05;
-      const fy = (dy / dist) * force * 0.05;
-      na.x += fx;
-      na.y += fy;
-      nb.x -= fx;
-      nb.y -= fy;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      displacement[a].x += fx;
+      displacement[a].y += fy;
+      displacement[b].x -= fx;
+      displacement[b].y -= fy;
     }
 
-    // Gravity to center
-    for (const n of nodes) {
-      const dx = width / 2 - n.x;
-      const dy = height / 2 - n.y;
-      n.x += dx * 0.01;
-      n.y += dy * 0.01;
-    }
-
-    // Cool down
+    // Cool the movement per iteration, never the distance from the centre.
     const t = temperature * (1 - i / iterations);
-    for (const n of nodes) {
-      const dx = n.x - width / 2;
-      const dy = n.y - height / 2;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      if (dist > t) {
-        n.x = width / 2 + (dx / dist) * t;
-        n.y = height / 2 + (dy / dist) * t;
-      }
-    }
+    nodes.forEach((node, index) => {
+      const { x, y } = displacement[index];
+      const scale = Math.min(1, t / (Math.hypot(x, y) || 1));
+      node.x = Math.max(left, Math.min(right, node.x + x * scale));
+      node.y = Math.max(top, Math.min(bottom, node.y + y * scale));
+    });
   }
 
+  // Separate node-and-label footprints after the forces settle, including
+  // disconnected devices which may otherwise collect along the canvas edges.
+  for (let pass = 0; pass < 80; pass++) {
+    let overlaps = false;
+    for (let a = 0; a < nodes.length; a++) {
+      for (let b = a + 1; b < nodes.length; b++) {
+        const na = nodes[a];
+        const nb = nodes[b];
+        const overlapX = 180 - Math.abs(na.x - nb.x);
+        const overlapY = 92 - Math.abs(na.y - nb.y);
+        if (overlapX <= 0 || overlapY <= 0) continue;
+        overlaps = true;
+        const axis = overlapX < overlapY ? 'x' : 'y';
+        const gap = (axis === 'x' ? overlapX : overlapY) + 0.1;
+        const min = axis === 'x' ? left : top;
+        const max = axis === 'x' ? right : bottom;
+        const direction = na[axis] < nb[axis] ? -1 : 1;
+        const before = na[axis];
+        na[axis] = Math.max(min, Math.min(max, before + direction * gap / 2));
+        const moved = Math.abs(na[axis] - before);
+        const otherBefore = nb[axis];
+        nb[axis] = Math.max(min, Math.min(max, otherBefore - direction * (gap - moved)));
+        const remaining = gap - moved - Math.abs(nb[axis] - otherBefore);
+        na[axis] = Math.max(min, Math.min(max, na[axis] + direction * remaining));
+      }
+    }
+    if (!overlaps) break;
+  }
+  // If boundary constraints trap several labels together, assign the nearest
+  // free grid slots. Keep the force layout where there is already enough room.
+  const crowded = nodes.some((node, index) => nodes.slice(index + 1).some(other =>
+    Math.abs(node.x - other.x) < 179 && Math.abs(node.y - other.y) < 91));
+  if (crowded) {
+    const columns = Math.max(1, Math.ceil(Math.sqrt(nodes.length * (right - left) / (bottom - top) * 92 / 180)));
+    const rows = Math.ceil(nodes.length / columns);
+    const slots = Array.from({ length: columns * rows }, (_, index) => ({
+      x: columns === 1 ? cx : left + (index % columns) * (right - left) / (columns - 1),
+      y: rows === 1 ? cy : top + Math.floor(index / columns) * (bottom - top) / (rows - 1),
+    }));
+    for (const node of nodes) {
+      let nearest = 0;
+      for (let i = 1; i < slots.length; i++) {
+        if (Math.hypot(slots[i].x - node.x, slots[i].y - node.y) < Math.hypot(slots[nearest].x - node.x, slots[nearest].y - node.y)) nearest = i;
+      }
+      const [slot] = slots.splice(nearest, 1);
+      node.x = slot.x;
+      node.y = slot.y;
+    }
+  }
   return graph;
 }
 

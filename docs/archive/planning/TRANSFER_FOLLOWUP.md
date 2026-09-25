@@ -1,5 +1,7 @@
 # Transfer Follow-up
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Current State (2026-05-18)
 
 This repo has moved well beyond the original 2026-05-06 transfer scope. Most of the earlier follow-up items are now implemented and should no longer be treated as active transfer work.

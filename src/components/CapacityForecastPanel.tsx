@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { ForecastCategory, ForecastStatus } from '../utils/capacityForecast';
-import { analyzeCapacityForecast } from '../utils/capacityForecast';
+import { analyzeCapacityForecast, FORECAST_ASSUMPTION } from '../utils/capacityForecast';
 
 const categoryConfig: Record<
   ForecastCategory,
@@ -183,6 +183,8 @@ export function CapacityForecastPanel() {
               </div>
             </div>
           )}
+
+          <p className="text-xs text-content-muted">{FORECAST_ASSUMPTION}</p>
 
           {/* Category grid */}
           <div className="grid grid-cols-2 gap-2">

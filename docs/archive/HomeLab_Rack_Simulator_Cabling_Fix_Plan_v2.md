@@ -1,5 +1,7 @@
 # HomeLab Rack Simulator — Cabling Fix & Implementation Plan v2
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../dev/ARCHITECTURE.md) and [documentation index](../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Overview
 
 This document is a detailed agent-executable implementation plan for fixing two critical bugs and delivering six quality improvements to the cabling system. It extends the initial plan with precise file locations, root-cause analysis from code inspection, and concrete change specifications that a coding agent can act on directly.

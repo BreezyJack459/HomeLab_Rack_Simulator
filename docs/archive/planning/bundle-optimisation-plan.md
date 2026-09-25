@@ -1,5 +1,7 @@
 # Bundle Optimisation Plan — HomeLab Rack Simulator
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ## Overview
 
 This document outlines the next-step action plan for resolving the initial chunk size problem in the HomeLab Rack Simulator (Vite + React 18 + TypeScript). The current initial chunk sits at **432 KB**, just above the 430 KB budget guard limit. As the project grows, this will continue to increase unless a structured code-splitting strategy is applied.

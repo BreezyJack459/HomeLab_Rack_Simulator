@@ -1,3 +1,4 @@
+import { isCableRouteAnchor } from './manualCableRoute';
 import type { RackLayout } from '../types/rack';
 
 export type LayoutValidationResult =
@@ -41,6 +42,7 @@ function validateDevice(device: unknown, index: number): string[] {
   if (typeof device.sizeU !== 'number' || device.sizeU < 0 || !Number.isFinite(device.sizeU)) {
     errors.push(`${prefix}.sizeU must be a non-negative number`);
   }
+  if (device.physicalHeightMm !== undefined && !isPositiveNumber(device.physicalHeightMm)) errors.push(`${prefix}.physicalHeightMm must be > 0`);
   if (!isPositiveNumber(device.depthMm)) errors.push(`${prefix}.depthMm must be > 0`);
   if (!isNonEmptyString(device.widthType)) errors.push(`${prefix}.widthType missing or invalid`);
   if (!isNonNegativeNumber(device.weightKg)) errors.push(`${prefix}.weightKg must be >= 0`);
@@ -80,6 +82,9 @@ function validateCable(cable: unknown, index: number): string[] {
   if (!isNonEmptyString(cable.toDeviceId)) errors.push(`${prefix}.toDeviceId missing or invalid`);
   if (!isNonEmptyString(cable.type)) errors.push(`${prefix}.type missing or invalid`);
   if (!isNonEmptyString(cable.color)) errors.push(`${prefix}.color missing or invalid`);
+  if (cable.manualPath !== undefined && (!Array.isArray(cable.manualPath) || !cable.manualPath.every(isCableRouteAnchor))) {
+    errors.push(`${prefix}.manualPath must be a list of channel or manager routing points`);
+  }
   if (cable.fromPort !== undefined && !isValidPort(cable.fromPort)) {
     errors.push(`${prefix}.fromPort must be an object with type (string) and index (number)`);
   }
@@ -145,12 +150,23 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
     errors.push('procurementItems must be an array when present');
   }
 
+  for (const key of ['reservations', 'unplacedDevices', 'readinessChecks', 'commissioningChecks', 'changeEvents', 'changeRequests', 'policies', 'debtItems', 'services', 'portReservations', 'patchPanelDocs', 'credentials', 'domainAssignments', 'sensorReadings', 'evidenceRecords']) {
+    if (data[key] !== undefined && (!Array.isArray(data[key]) || !(data[key] as unknown[]).every(isPlainObject))) {
+      errors.push(`${key} must be an array of records`);
+    }
+  }
+  if (Array.isArray(data.reservations)) data.reservations.forEach((r, index) => {
+    if (!isPlainObject(r) || !isNonEmptyString(r.id) || typeof r.name !== 'string' || !isPositiveNumber(r.positionU) || !isPositiveNumber(r.sizeU)) errors.push(`reservations[${index}] is invalid`);
+  });
+  if (Array.isArray(data.unplacedDevices)) data.unplacedDevices.forEach((device, index) => errors.push(...validateDevice(device, index)));
+
   if (errors.length > 0) {
     return { valid: false, errors };
   }
 
-  // Build a validated RackLayout object explicitly instead of casting raw input
+  // Preserve extension fields as well as the validated planning data.
   const layout: RackLayout = {
+    ...data,
     id: String(data.id),
     name: typeof data.name === 'string' ? data.name : '',
     rackType: String(data.rackType) as RackLayout['rackType'],

@@ -48,6 +48,36 @@ export type CommandDefinition = {
   run: () => void;
 };
 
+export type LensContribution = {
+  id: string;
+  label: string;
+  panelIds: AppPanelId[];
+};
+
+export type WorkspaceNavMeta = {
+  label: string;
+  shortLabel: string;
+  description: string;
+  accent: string;
+};
+
+export type WorkspaceContribution = {
+  id: AppWorkspace;
+  title: string;
+  description: string;
+  icon: ReactNode;
+  nav: WorkspaceNavMeta;
+  lenses: LensContribution[];
+  renderWorkbench?: (
+    lens: string,
+    selectLens: (lens: string) => void,
+  ) => ReactNode;
+  renderInspector?: (
+    lens: string,
+    selectLens: (lens: string) => void,
+  ) => ReactNode;
+};
+
 export type RackPluginManifest = {
   id: string;
   name: string;
@@ -58,7 +88,12 @@ export type RackPluginManifest = {
   origin: 'built-in' | 'local-package';
   trustLevel: 'trusted' | 'review-required';
   capabilities: Array<
-    'view-modes' | 'panels' | 'commands' | 'toolbar-actions' | 'layout-read'
+    | 'view-modes'
+    | 'panels'
+    | 'commands'
+    | 'toolbar-actions'
+    | 'layout-read'
+    | 'workspaces'
   >;
 };
 
@@ -71,6 +106,7 @@ export type PluginHostContext = {
   registerPanel: (definition: PluginPanelDefinition) => void;
   registerToolbarAction: (definition: ToolbarActionDefinition) => void;
   registerCommand: (definition: CommandDefinition) => void;
+  registerWorkspace: (contribution: WorkspaceContribution) => void;
 };
 
 export type RackPluginModule = {

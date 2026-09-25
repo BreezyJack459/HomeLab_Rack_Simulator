@@ -1,3 +1,4 @@
+import { shouldHideDevice } from './featureFlags';
 import type { PlacedDevice, RackLayout, ValidationIssue, CableRoute } from '../types/rack';
 import { getPatchPanelJacks } from './patchPanel';
 import { calculateCablePlan, isPdu, standardCableLength } from './routing';
@@ -24,6 +25,7 @@ import { getServiceabilityIssues } from './serviceability';
 import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
 import { validatePrintedMountFit } from './printedMount';
 import { getPortFaceMap, getPortMetadata } from './portLayout';
+import { canShareShelf, isTrayShelf, shelfDeckHeight, deviceBodyHeightMm, U_HEIGHT_MM } from './rackMath';
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
@@ -94,6 +96,12 @@ function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationI
 
 export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const hidden = layout.devices.filter(shouldHideDevice);
+  if (hidden.length) issues.push({
+    id: 'unsupported-zero-u', severity: 'warning', title: 'Unsupported 0U hardware preserved',
+    detail: '0U physical planning is disabled. Devices and attached cables are retained in JSON, but are not rendered or editable. Export JSON for a compatible version; do not rely on this view to validate their fit.',
+    deviceIds: hidden.map(d => d.id),
+  });
   const rackSpec = RACK_SPECS[layout.rackType];
   const reservations = layout.reservations ?? [];
   const depthSummary = getDepthSummary(layout);
@@ -127,7 +135,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
 
   // Per-device checks stay independent so imported JSON can be audited even if editing prevented the same issue.
   layout.devices.forEach((device) => {
-    if (!isZeroU(device) && !isDeviceWithinRack(layout, device)) {
+    if (!isDeviceWithinRack(layout, device)) {
       issues.push({
         id: `bounds-${device.id}`,
         severity: 'critical',
@@ -149,7 +157,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       });
     }
 
-    if (!isZeroU(device) && hasOverlap(layout, layout.devices, device)) {
+    if (hasOverlap(layout, layout.devices, device)) {
       const severity = device.lifecycleStatus === 'planned' ? 'warning' : device.lifecycleStatus === 'decommissioning' ? 'info' : 'critical';
       issues.push({
         id: `overlap-${device.id}`,
@@ -215,9 +223,18 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       }
     }
 
-    if (device.widthType === 'shelf' && !isZeroU(device)) {
+    if (isTrayShelf(device)) {
+      const supported = layout.devices.filter(item => canShareShelf(layout, device, item));
+      const load = supported.reduce((sum, item) => sum + item.weightKg, 0);
+      if ((device.shelfLoadLimitKg ?? 0) > 0 && load > device.shelfLoadLimitKg!) issues.push({ id: `tray-load-${device.id}`, severity: 'warning', title: `${device.name}: shelf overloaded`, detail: `${load.toFixed(1)} kg / ${device.shelfLoadLimitKg} kg limit.`, deviceIds: [device.id, ...supported.map(item => item.id)] });
+      if (shelfDeckHeight(device) > device.sizeU * U_HEIGHT_MM) issues.push({ id: `tray-height-${device.id}`, severity: 'critical', title: `${device.name}: tray too high`, detail: 'Lower deck or increase Rack size U.', deviceIds: [device.id] });
+    }
+    if (device.physicalHeightMm !== undefined && deviceBodyHeightMm(device) + (device.clearanceAboveMm ?? 0) > device.sizeU * U_HEIGHT_MM) issues.push({ id: `physical-height-${device.id}`, severity: 'critical', title: `${device.name}: too tall`, detail: 'Increase Rack size U.', deviceIds: [device.id] });
+
+    if ((device.widthType === 'shelf' || device.widthType === 'custom') && device.category !== 'shelf' && device.mountingSupport !== 'printed-mount' && !isZeroU(device)) {
       const hasNearbyShelf = layout.devices.some((shelf) => {
         if (!isShelfSupport(shelf)) return false;
+        if (isTrayShelf(shelf)) return canShareShelf(layout, shelf, device);
         if (getDeviceMountSide(shelf) !== getDeviceMountSide(device)) return false;
         const shelfX = getDeviceXRange(layout, shelf);
         const deviceX = getDeviceXRange(layout, device);
@@ -231,7 +248,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
           id: `shelf-${device.id}`,
           severity: 'info',
           title: `${device.name} needs shelf support`,
-          detail: 'Shelf-mounted devices should sit on or directly above a shelf component in the plan.',
+          detail: 'Add a shelf on or directly below this device, or choose 3D-printed rack mount under Properties → Mounting support if an installed mount supports it.',
           deviceIds: [device.id]
         });
       }

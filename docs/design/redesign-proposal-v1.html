@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rack Simulator — UI Redesign Proposal</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --panel: #111a2e;
+    --panel-2: #16223c;
+    --edge: #22304f;
+    --text: #e2e8f0;
+    --muted: #8fa0bd;
+    --faint: #5c6b8a;
+    --accent: #22d3ee;
+    --accent-dim: rgba(34, 211, 238, .14);
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --violet: #a78bfa;
+    --blue: #60a5fa;
+    --orange: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+    line-height: 1.5;
+    padding: 40px 48px 80px;
+  }
+  .doc-head { max-width: 1280px; margin: 0 auto 36px; }
+  .doc-head .kicker {
+    color: var(--accent); font-size: 12px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .doc-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+  .doc-head p.sub { color: var(--muted); margin-top: 8px; max-width: 760px; font-size: 14px; }
+
+  section { max-width: 1280px; margin: 0 auto 64px; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.01em; }
+  .section-sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; max-width: 780px; }
+
+  /* ---------- before ---------- */
+  .before-grid { display: flex; flex-direction: column; gap: 20px; }
+  .shot {
+    border: 1px solid var(--edge); border-radius: 12px; overflow: hidden;
+    background: var(--panel); max-width: 980px;
+  }
+  .shot img { display: block; width: 100%; }
+  .shot .cap { padding: 10px 14px; font-size: 12px; color: var(--faint); border-top: 1px solid var(--edge); }
+  .issues { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .issue {
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px;
+  }
+  .issue b { color: var(--red); font-weight: 600; }
+  .issue .t { font-weight: 600; margin-bottom: 2px; }
+
+  /* ---------- mockup frame ---------- */
+  .mock-wrap { position: relative; }
+  .mock {
+    position: relative;
+    border: 1px solid var(--edge); border-radius: 14px; overflow: hidden;
+    background: #0d1526;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    font-size: 12px;
+    user-select: none;
+  }
+
+  /* top bar */
+  .m-top {
+    display: flex; align-items: center; gap: 18px;
+    height: 52px; padding: 0 16px;
+    background: var(--panel); border-bottom: 1px solid var(--edge);
+  }
+  .m-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+  .m-brand .logo {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    color: #04121a; font-size: 12px; font-weight: 800;
+  }
+  .m-ws {
+    display: flex; background: var(--bg); border: 1px solid var(--edge);
+    border-radius: 9px; padding: 3px; gap: 2px;
+  }
+  .m-ws span {
+    padding: 4px 12px; border-radius: 6px; color: var(--muted); font-weight: 500;
+  }
+  .m-ws span.on { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+  .m-search {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 8px;
+    color: var(--faint); padding: 5px 10px; width: 220px; font-size: 12px;
+  }
+  .m-search kbd {
+    margin-left: auto; background: var(--panel-2); border: 1px solid var(--edge);
+    border-radius: 4px; padding: 0 5px; font-size: 10px; font-family: inherit;
+  }
+  .m-iconbtn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--edge);
+    background: var(--bg); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+
+  .m-body { display: flex; height: 560px; }
+
+  /* icon rail */
+  .m-rail {
+    width: 52px; background: var(--panel); border-right: 1px solid var(--edge);
+    display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px;
+  }
+  .m-rail .ri {
+    width: 36px; height: 36px; border-radius: 9px; color: var(--faint);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .m-rail .ri.on { background: var(--accent-dim); color: var(--accent); }
+  .m-rail .sp { flex: 1; }
+
+  /* canvas column */
+  .m-canvas-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .m-canvas-head {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px; border-bottom: 1px solid var(--edge); background: rgba(17,26,46,.6);
+  }
+  .m-layout-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .m-health { display: flex; gap: 8px; margin-left: 6px; }
+  .m-chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 8px;
+    padding: 4px 10px; font-size: 11px; color: var(--muted); white-space: nowrap;
+  }
+  .m-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .m-chip b { color: var(--text); font-weight: 600; }
+  .m-chip .bar { width: 42px; height: 4px; border-radius: 2px; background: var(--edge); overflow: hidden; }
+  .m-chip .bar i { display: block; height: 100%; border-radius: 2px; }
+  .m-viewmodes {
+    margin-left: auto; display: flex; background: var(--bg);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .m-viewmodes span { padding: 3px 11px; border-radius: 6px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .m-viewmodes span.on { background: var(--panel-2); color: var(--text); font-weight: 600; }
+  .m-face {
+    display: flex; background: var(--bg); border: 1px solid var(--edge);
+    border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .m-face span { padding: 3px 10px; border-radius: 6px; color: var(--muted); white-space: nowrap; }
+  .m-face span.on { background: var(--panel-2); color: var(--text); font-weight: 600; }
+
+  .m-canvas {
+    flex: 1; position: relative; display: flex;
+    align-items: flex-start; justify-content: center; padding: 22px;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 30%, rgba(34,211,238,.05), transparent),
+      #0d1526;
+  }
+  /* rack */
+  .m-rack {
+    width: 400px; border: 2px solid #2c3d63; border-radius: 8px;
+    background: #0a101f; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .m-u { position: relative; display: flex; gap: 3px; }
+  .m-u .ulabel {
+    position: absolute; left: -26px; top: 50%; transform: translateY(-50%);
+    font-size: 9px; color: var(--faint);
+  }
+  .m-dev {
+    position: relative; flex: 1; border-radius: 4px;
+    background: var(--panel-2); border: 1px solid var(--edge);
+    border-left: 3px solid var(--faint);
+    padding: 3px 8px; font-size: 10.5px; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 22px;
+  }
+  .m-dev .meta { color: var(--faint); font-size: 9px; }
+  .m-dev.h2 { min-height: 47px; }
+  .m-dev.h6 { min-height: 142px; align-items: flex-start; padding-top: 8px; }
+  .m-dev.h7 { min-height: 166px; align-items: flex-start; padding-top: 8px; }
+  .m-dev.shelf {
+    background: repeating-linear-gradient(45deg, #101a30, #101a30 6px, #0d1526 6px, #0d1526 12px);
+    border-style: dashed; border-left-style: solid; color: var(--faint); font-style: italic;
+  }
+  .m-dev.net { border-left-color: var(--blue); }
+  .m-dev.compute { border-left-color: var(--violet); }
+  .m-dev.storage { border-left-color: var(--orange); }
+  .m-dev.power { border-left-color: var(--green); }
+  .m-dev.patch { border-left-color: var(--accent); }
+  .m-dev.sel {
+    border-color: var(--accent); border-left-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim), 0 0 18px rgba(34,211,238,.35);
+    background: #153049;
+  }
+  .m-zoom {
+    position: absolute; right: 18px; bottom: 18px;
+    display: flex; flex-direction: column;
+    background: var(--panel); border: 1px solid var(--edge); border-radius: 9px; overflow: hidden;
+  }
+  .m-zoom span {
+    width: 32px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 13px;
+  }
+  .m-zoom span + span { border-top: 1px solid var(--edge); }
+  .m-zoomhint {
+    position: absolute; left: 18px; bottom: 18px; color: var(--faint); font-size: 10.5px;
+    background: rgba(17,26,46,.75); border: 1px solid var(--edge); border-radius: 7px; padding: 4px 9px;
+  }
+
+  /* inspector */
+  .m-insp {
+    width: 300px; background: var(--panel); border-left: 1px solid var(--edge);
+    display: flex; flex-direction: column;
+  }
+  .m-insp-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--edge); }
+  .m-insp-head .nm { font-weight: 700; font-size: 14px; }
+  .m-insp-head .chips { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+  .m-insp-head .chips span {
+    font-size: 10px; color: var(--muted); background: var(--bg);
+    border: 1px solid var(--edge); border-radius: 5px; padding: 2px 7px;
+  }
+  .m-tabs { display: flex; border-bottom: 1px solid var(--edge); padding: 0 10px; }
+  .m-tabs span {
+    padding: 8px 10px; color: var(--muted); font-weight: 500; font-size: 12px;
+    border-bottom: 2px solid transparent;
+  }
+  .m-tabs span.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .m-tabs .cnt {
+    font-size: 9.5px; background: var(--panel-2); border-radius: 8px;
+    padding: 0 5px; margin-left: 4px; color: var(--faint);
+  }
+  .m-insp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .m-field label { display: block; font-size: 10.5px; color: var(--faint); margin-bottom: 4px; }
+  .m-field .in {
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 7px;
+    padding: 6px 9px; color: var(--text); font-size: 12px;
+  }
+  .m-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .m-row3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .m-port-count { text-align: center; }
+  .m-port-count .in { padding: 5px 2px; text-align: center; }
+  .m-insp-foot { padding: 12px 16px; border-top: 1px solid var(--edge); }
+  .m-danger {
+    border: 1px solid rgba(248,113,113,.4); color: var(--red); border-radius: 8px;
+    text-align: center; padding: 7px; font-weight: 600; font-size: 12px;
+    background: rgba(248,113,113,.06);
+  }
+
+  /* callout badges */
+  .co {
+    position: absolute; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #04121a; font-weight: 800; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 4px rgba(34,211,238,.22), 0 4px 10px rgba(0,0,0,.5);
+    z-index: 5;
+  }
+  .co::after {
+    content: ""; position: absolute; inset: -7px; border-radius: 50%;
+    border: 1.5px dashed rgba(34,211,238,.5);
+  }
+
+  /* legend */
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px; }
+  .leg {
+    display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--edge);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .leg .n {
+    flex: none; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #04121a; font-weight: 800; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .leg .t { font-weight: 650; font-size: 13.5px; margin-bottom: 3px; }
+  .leg .d { color: var(--muted); font-size: 12.5px; }
+  .leg .d b { color: var(--text); font-weight: 600; }
+  .leg .why { margin-top: 6px; font-size: 11.5px; color: var(--accent); }
+
+  /* comparison table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+  th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  td.before { color: var(--muted); width: 34%; }
+  td.after { width: 40%; }
+  td.prin { color: var(--accent); font-size: 12px; width: 26%; }
+  tr:last-child td { border-bottom: none; }
+  .tbl-wrap { border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; background: var(--panel); }
+
+  .footnote { color: var(--faint); font-size: 12px; margin-top: 18px; max-width: 800px; }
+  .footnote code { background: var(--panel-2); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div class="kicker">Design Proposal · v1 · Aug 2026</div>
+  <h1>Homelab Rack Simulator — Workspace Redesign</h1>
+  <p class="sub">A visual proposal for restructuring the main workspace shell. The goal: return screen space to the rack canvas, end the navigation confusion between workspaces and view modes, and make rack health glanceable. No data-model or feature changes — this is a re-organization of what already exists.</p>
+  <p style="margin-top:10px;font-size:13px"><a href="redesign-proposal.zh-CN.html" style="color:var(--accent);text-decoration:none">→ 阅读中文版 (Chinese version)</a></p>
+</div>
+
+<!-- ================= BEFORE ================= -->
+<section>
+  <h2>1 · The current design, as observed</h2>
+  <p class="section-sub">Captured live from the running app (18U rack, 14 devices, 18 cables, light theme). Five structural problems are visible in a single screen.</p>
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-light.png" alt="Current UI screenshot">
+      <div class="cap">Current main workspace — live capture, 1690×910 viewport.</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>P1 · Three rows of chrome</b></div>Title bar, stats/filter bar, and Create/Actions/File bar stack ~150px of UI above the canvas before any rack is visible. The rack — the product — gets what is left over.</div>
+      <div class="issue"><div class="t"><b>P2 · 12+ controls in one toolbar</b></div>View modes (2D/3D/Cables), lenses (Port Labels/Topology/Gallery), tools (Cable Planner), actions (Add inter-rack cable), view flip (Front/Rear), and settings (Search/Dark) all sit in one undifferentiated row. Nothing says what is global vs canvas-level.</div>
+      <div class="issue"><div class="t"><b>P3 · Two navigation systems collide</b></div>The left rail offers workspaces (Build Rack / Check Health / Run Ops…); the toolbar offers view modes (2D / 3D / Cables). "Build" (workspace) vs "2D" (view) is a distinction users must discover by trial and error — they are two different axes rendered as competing peers.</div>
+      <div class="issue"><div class="t"><b>P4 · Rack contents rendered twice</b></div>The U-by-U device list next to the rack repeats exactly what the rack already shows spatially — two representations of the same data competing for the same attention, doubling the width the canvas needs.</div>
+      <div class="issue"><div class="t"><b>P5 · Inspector is an endless stack</b></div>Properties, 18 cable routes, Port Reservations, Port Speed/Media and the Plugin Manager are piled into one scroll column. Admin concerns (plugins) sit inside a working panel, and the cable list pushes device properties off screen.</div>
+      <div class="issue"><div class="t"><b>P6 · Stats read like debug output</b></div><i>"19″ front·U 17/18·14 devices·18 cables"</i> is a log line, not a health readout. Capacity, power, weight and heat — the four things a rack planner actually watches — have no thresholds and no visual status.</div>
+      <div class="issue"><div class="t"><b>P7 · Zoom controls in three places</b></div>A floating panel (100%, zoom-in, search), a separate Pan button, and a "44" badge in the toolbar above — three partial controls for one mental operation, one of them floating on top of the canvas content.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AFTER MOCKUP ================= -->
+<section>
+  <h2>2 · The proposed design</h2>
+  <p class="section-sub">Same app, same data, same features — reorganized. Numbered badges are explained in the legend below.</p>
+
+  <div class="mock-wrap">
+  <div class="mock">
+    <!-- top bar -->
+    <div class="m-top">
+      <div class="m-brand"><span class="logo">▦</span> RackSim</div>
+      <div class="m-ws">
+        <span class="on">Build</span><span>Check</span><span>Ops</span><span>Plan</span><span>Fleet</span>
+      </div>
+      <div class="m-search">⌕&nbsp; Search devices, cables, commands… <kbd>⌘K</kbd></div>
+      <div class="m-iconbtn">☾</div>
+      <div class="m-iconbtn">⚙</div>
+    </div>
+
+    <div class="m-body">
+      <!-- icon rail -->
+      <div class="m-rail">
+        <div class="ri on">▤</div>
+        <div class="ri">⌁</div>
+        <div class="ri">▦</div>
+        <div class="ri">◫</div>
+        <div class="sp"></div>
+        <div class="ri">?</div>
+      </div>
+
+      <!-- canvas column -->
+      <div class="m-canvas-col">
+        <div class="m-canvas-head">
+          <span class="m-layout-name">My On-hand Gear</span>
+          <div class="m-health">
+            <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>Capacity <b>17/18 U</b><span class="bar"><i style="width:94%;background:var(--amber)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--green)"></i>Power <b>402 / 900 W</b><span class="bar"><i style="width:45%;background:var(--green)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--green)"></i>Weight <b>38 / 60 kg</b><span class="bar"><i style="width:63%;background:var(--green)"></i></span></span>
+            <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>Heat <b>1 hotspot</b></span>
+          </div>
+          <div class="m-viewmodes"><span class="on">2D</span><span>3D</span><span>Cables</span></div>
+          <div class="m-face"><span class="on">Front</span><span>Rear</span></div>
+        </div>
+
+        <div class="m-canvas">
+          <div class="m-rack">
+            <div class="m-u"><span class="ulabel">U18</span><div class="m-dev patch sel"><span>24-port patch panel</span><span class="meta">eth 15/24</span></div></div>
+            <div class="m-u"><span class="ulabel">U17</span><div class="m-dev"><span>Front cable manager</span></div></div>
+            <div class="m-u"><span class="ulabel">U16</span><div class="m-dev net"><span>UniFi UCG-Max</span></div><div class="m-dev net"><span>UniFi Flex 2.5G</span></div></div>
+            <div class="m-u"><span class="ulabel">U15</span><div class="m-dev shelf"><span>shelf</span></div></div>
+            <div class="m-u"><span class="ulabel">U14</span><div class="m-dev net"><span>Modem A</span></div><div class="m-dev net"><span>Modem B</span></div><div class="m-dev net"><span>PoE Inj</span></div></div>
+            <div class="m-u"><span class="ulabel">U13</span><div class="m-dev shelf"><span>shelf</span></div></div>
+            <div class="m-u"><span class="ulabel">U11</span><div class="m-dev compute h2"><span>Minisforum UM790 Pro<br><span class="meta">U11–U12 · 65 W</span></span></div></div>
+            <div class="m-u"><span class="ulabel">U10</span><div class="m-dev shelf"><span>shelf</span></div></div>
+            <div class="m-u"><span class="ulabel">U2</span><div class="m-dev power h7"><span>APC Gaming UPS<br><span class="meta">U2–U8 · 12 W</span></span></div><div class="m-dev storage h6" style="margin-top:0"><span>寶藏盒 Pro NAS<br><span class="meta">U2–U7 · 120 W</span></span></div></div>
+            <div class="m-u"><span class="ulabel">U1</span><div class="m-dev shelf"><span>bottom shelf</span></div></div>
+          </div>
+
+          <div class="m-zoomhint">Scroll to zoom · drag to pan</div>
+          <div class="m-zoom"><span>＋</span><span>－</span><span>⤢</span></div>
+        </div>
+      </div>
+
+      <!-- inspector -->
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">24-port patch panel</div>
+          <div class="chips"><span>patch-panel</span><span>U18</span><span>19″</span><span>front</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">Properties</span><span>Cables<i class="cnt">15</i></span><span>Ports<i class="cnt">24</i></span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-field"><label>Name</label><div class="in">24-port patch panel</div></div>
+          <div class="m-row2">
+            <div class="m-field"><label>Position U</label><div class="in">18</div></div>
+            <div class="m-field"><label>Height U</label><div class="in">1</div></div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>Depth mm</label><div class="in">65</div></div>
+            <div class="m-field"><label>Weight kg</label><div class="in">1.7</div></div>
+          </div>
+          <div class="m-field"><label>Ports</label>
+            <div class="m-row3">
+              <div class="m-port-count"><label>ETH</label><div class="in">24</div></div>
+              <div class="m-port-count"><label>Fiber</label><div class="in">0</div></div>
+              <div class="m-port-count"><label>USB</label><div class="in">0</div></div>
+              <div class="m-port-count"><label>Pwr</label><div class="in">0</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">Remove component</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:14px; left:60px;">1</div>
+    <div class="co" style="top:14px; left:250px;">2</div>
+    <div class="co" style="top:130px; left:66px;">3</div>
+    <div class="co" style="top:66px; left:340px;">4</div>
+    <div class="co" style="top:66px; right:330px;">5</div>
+    <div class="co" style="top:320px; left:64%;">6</div>
+    <div class="co" style="top:150px; right:14px;">7</div>
+    <div class="co" style="bottom:26px; right:330px;">8</div>
+    <div class="co" style="top:200px; left:33%;">9</div>
+  </div>
+  </div>
+
+  <!-- legend -->
+  <div class="legend">
+    <div class="leg"><span class="n">1</span><div>
+      <div class="t">One top bar, not three rows of chrome</div>
+      <div class="d">Brand, workspace switcher, global search (⌘K), theme and settings merge into a single 52px bar. The stats row and the Create/Actions/File row leave the chrome — actions move into the canvas header's overflow menu.</div>
+      <div class="why">Why better: ~150px of vertical space returns to the rack. One scan line for "where am I" instead of three.</div>
+    </div></div>
+    <div class="leg"><span class="n">2</span><div>
+      <div class="t">Workspaces become one segmented control</div>
+      <div class="d">Build / Check / Ops / Plan / Fleet is the only top-level navigation — a single segmented control in the bar. The duplicate left-rail workspace buttons disappear; the rail keeps tool shortcuts only.</div>
+      <div class="why">Why better: ends the P3 collision. Workspace = which job; view mode = how I look at it. Each axis now has exactly one home.</div>
+    </div></div>
+    <div class="leg"><span class="n">3</span><div>
+      <div class="t">Icon rail for tools, library slides over</div>
+      <div class="d">The rail shrinks to 52px of icon shortcuts (library, cables, reports, outline). The device library opens as a slide-over panel on the canvas and closes after a drag — it is a picker, not permanent furniture.</div>
+      <div class="why">Why better: reclaims ~260px of horizontal space for the rack 95% of the time; the library is full-width only while picking.</div>
+    </div></div>
+    <div class="leg"><span class="n">4</span><div>
+      <div class="t">Rack health strip replaces the debug string</div>
+      <div class="d">Capacity, Power, Weight and Heat become four chips with mini-bars and green/amber/red status dots, sitting in the canvas header next to the layout name. Values come from the existing <b>validation.ts</b> rack totals — no new computation.</div>
+      <div class="why">Why better: the four numbers a rack planner watches are glanceable at threshold, not decoded from "19″ front·U 17/18·14 devices…".</div>
+    </div></div>
+    <div class="leg"><span class="n">5</span><div>
+      <div class="t">View modes scoped to the canvas</div>
+      <div class="d">2D / 3D / Cables and Front / Rear live at the top-right of the canvas header — the thing they actually mutate. Lenses (Port Labels, Topology) and tools (Cable Planner) go into a canvas overflow menu.</div>
+      <div class="why">Why better: controls sit next to their effect (proximity principle). The global bar stops carrying canvas-local state.</div>
+    </div></div>
+    <div class="leg"><span class="n">6</span><div>
+      <div class="t">The duplicate U-list is gone</div>
+      <div class="d">The rack <i>is</i> the list — click a device to select it. For keyboard and screen-reader users the same list survives as an optional "Outline" rail tab, not permanent pixels.</div>
+      <div class="why">Why better: one representation of rack contents instead of two; the canvas nearly doubles its effective width.</div>
+    </div></div>
+    <div class="leg"><span class="n">7</span><div>
+      <div class="t">Inspector gets single-context tabs</div>
+      <div class="d">Properties / Cables / Ports tabs with counts replace the endless stack — one context visible at a time, badges preserve awareness of the others. Plugin Manager moves out of the inspector entirely, into ⚙ Settings.</div>
+      <div class="why">Why better: the inspector answers "the thing I selected" instead of being a second app. No more scrolling past 18 cable routes to rename a device.</div>
+    </div></div>
+    <div class="leg"><span class="n">8</span><div>
+      <div class="t">One zoom cluster, bottom-right, map-style</div>
+      <div class="d">＋ / － / fit in one corner cluster, plus scroll-to-zoom and drag-to-pan as primary input. The floating panel, the Pan toggle and the toolbar zoom badge all collapse into this.</div>
+      <div class="why">Why better: one control for one mental operation, in the corner every map/canvas app has trained users to look.</div>
+    </div></div>
+    <div class="leg"><span class="n">9</span><div>
+      <div class="t">Category accents and honest shelves</div>
+      <div class="d">Every device block carries a 3px category accent (network blue, compute violet, storage orange, power green, patch cyan). Shelves render as dashed, hatched, italic — visually "not equipment". Selection is a glow ring, not a 1px outline.</div>
+      <div class="why">Why better: rack composition is readable at a glance — you can spot "all network gear up top, power at the bottom" without reading a single label.</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= WHY ================= -->
+<section>
+  <h2>3 · Why this design is better — change by change</h2>
+  <p class="section-sub">Each change maps a observed problem to a concrete re-organization and the UX principle behind it.</p>
+  <div class="tbl-wrap">
+  <table>
+    <tr><th>Before (observed)</th><th>After (proposed)</th><th>Principle</th></tr>
+    <tr>
+      <td class="before">Three stacked chrome rows (~150px) before any rack pixels.</td>
+      <td class="after">Single 52px top bar; canvas header carries layout name + health + view modes.</td>
+      <td class="prin">Content over chrome — maximize pixels for the primary object.</td>
+    </tr>
+    <tr>
+      <td class="before">Workspaces (rail) and view modes (toolbar) compete as peers; "Build" vs "2D" learned by trial.</td>
+      <td class="after">Two axes, two homes: workspaces in the bar, view modes on the canvas.</td>
+      <td class="prin">One control per conceptual axis; mode errors (Norman) eliminated.</td>
+    </tr>
+    <tr>
+      <td class="before">12+ toolbar controls at equal weight: views, lenses, tools, actions, settings.</td>
+      <td class="after">Bar holds 3 global things (workspaces, search, settings); everything canvas-local moves to the canvas.</td>
+      <td class="prin">Hick's law — fewer, grouped choices decide faster; proximity couples control with effect.</td>
+    </tr>
+    <tr>
+      <td class="before">Stats as a punctuation-delimited debug string, no thresholds.</td>
+      <td class="after">Four health chips with bars + status dots from existing validation totals.</td>
+      <td class="prin">Glanceability — status perceived pre-attentively (color/shape), not read.</td>
+    </tr>
+    <tr>
+      <td class="before">Rack contents rendered twice: visual rack + adjacent U-by-U list.</td>
+      <td class="after">Rack is the single representation; U-list demoted to an optional Outline tab (a11y preserved).</td>
+      <td class="prin">Single source of truth per screen; redundancy splits attention.</td>
+    </tr>
+    <tr>
+      <td class="before">Inspector = infinite stack of Properties + 18 routes + reservations + speed + Plugin Manager.</td>
+      <td class="after">Tabbed inspector (Properties / Cables / Ports) with count badges; admin moved to Settings.</td>
+      <td class="prin">Progressive disclosure — one context at a time, badges retain ambient awareness.</td>
+    </tr>
+    <tr>
+      <td class="before">Zoom in three places: floating panel, Pan toggle, toolbar badge.</td>
+      <td class="after">One bottom-right cluster + scroll/drag gestures.</td>
+      <td class="prin">Convention (every map/canvas tool) + one control per operation.</td>
+    </tr>
+    <tr>
+      <td class="before">Devices and shelves look identical; selection is a hairline outline.</td>
+      <td class="after">Category color accents, hatched shelf style, glow-ring selection.</td>
+      <td class="prin">Pre-attentive attributes carry category; selection must be unmistakable.</td>
+    </tr>
+  </table>
+  </div>
+  <p class="footnote">
+    Implementation note: this proposal re-arranges existing components only. The health strip consumes <code>src/utils/validation.ts</code> rack totals; the tabbed inspector re-slices <code>PropertyPanel.tsx</code> and cable panels; the slide-over library reuses <code>ComponentLibrary.tsx</code>; the segmented workspace control re-skins the existing workspace switcher from <code>App.tsx</code>. No store, routing, or data-model changes are required. Estimated scope: App shell + 3 component wrappers, behind one layout feature flag.
+  </p>
+</section>
+
+<style>
+  /* ---------- cables mock ---------- */
+  .m-cable-rail {
+    width: 148px; background: var(--panel); border-right: 1px solid var(--edge);
+    padding: 12px 10px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .m-cable-rail .rlab {
+    font-size: 10px; color: var(--faint); text-transform: uppercase;
+    letter-spacing: .09em; margin-bottom: 7px;
+  }
+  .m-ctype {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px;
+    border-radius: 7px; font-size: 11.5px; color: var(--muted);
+  }
+  .m-ctype.on { background: var(--accent-dim); color: var(--text); font-weight: 600; }
+  .m-ctype .dot { width: 8px; height: 8px; border-radius: 2.5px; flex: none; }
+  .m-ctype .cnt { margin-left: auto; color: var(--faint); font-size: 10.5px; }
+  .m-ctype .eye { color: var(--faint); font-size: 10px; }
+  .m-map {
+    flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse 65% 55% at 45% 40%, rgba(34,211,238,.05), transparent), #0d1526;
+  }
+  .m-btn {
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid rgba(34,211,238,.4); border-radius: 8px;
+    padding: 5px 11px; font-weight: 600; font-size: 11.5px; white-space: nowrap;
+  }
+  .m-btn.ghost { background: var(--bg); color: var(--muted); border-color: var(--edge); }
+  .m-ep { background: var(--bg); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .m-ep .lbl { color: var(--faint); font-size: 10px; margin-bottom: 2px; text-transform: uppercase; letter-spacing: .07em; }
+  .m-ep b { font-weight: 600; }
+  .m-ep .port { color: var(--accent); font-weight: 600; }
+  .m-arrow { text-align: center; color: var(--faint); font-size: 11px; line-height: 1; }
+  .m-len { display: flex; justify-content: space-between; background: var(--bg); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; }
+  .m-len .ok { color: var(--green); font-weight: 650; }
+  .m-len .warn { color: var(--amber); font-weight: 650; }
+  .m-note { font-size: 10.5px; color: var(--faint); }
+  .m-healthrow { display: flex; gap: 6px; }
+  .m-healthrow .hb {
+    flex: 1; border: 1px solid var(--edge); border-radius: 8px; padding: 6px 8px;
+    font-size: 10.5px; color: var(--muted); background: var(--bg); text-align: center;
+  }
+  .m-healthrow .hb b { display: block; font-size: 13px; color: var(--text); }
+  .m-healthrow .hb.warn b { color: var(--amber); }
+
+  /* ---------- 3d mock ---------- */
+  .m-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .m-scene-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(12,19,34,.3), rgba(12,19,34,0) 30%, rgba(12,19,34,0) 70%, rgba(12,19,34,.4));
+  }
+  .m-stage3d {
+    flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(ellipse 60% 45% at 50% 60%, rgba(34,211,238,.07), transparent), #0c1322;
+  }
+  .m-dock {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px;
+    background: rgba(17,26,46,.92); border: 1px solid var(--edge);
+    border-radius: 11px; padding: 3px;
+  }
+  .m-dock span { padding: 5px 13px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+  .m-dock span.on { background: var(--panel-2); color: var(--text); font-weight: 650; }
+  .m-dock .sep { width: 1px; align-self: stretch; background: var(--edge); margin: 4px 3px; }
+  .m-tooltip {
+    position: absolute; background: rgba(10,16,31,.95); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  }
+  .m-tooltip .sub { color: var(--muted); font-size: 10px; }
+  .m-toast {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(17,26,46,.95); border: 1px solid rgba(52,211,153,.5);
+    color: var(--green); border-radius: 9px; padding: 6px 12px; font-size: 11.5px; font-weight: 600;
+  }
+  .m-depth { background: var(--bg); border: 1px solid var(--edge); border-radius: 9px; padding: 10px 11px; }
+  .m-depth .dt { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+  .m-depth .dt b { color: var(--text); }
+  .m-depth .track { position: relative; height: 8px; border-radius: 4px; background: var(--edge); margin: 12px 0 5px; }
+  .m-depth .range { position: absolute; top: 0; bottom: 0; background: rgba(52,211,153,.35); border-radius: 4px; }
+  .m-depth .mark { position: absolute; top: -4px; width: 3px; height: 16px; background: var(--accent); border-radius: 2px; }
+  .m-depth .scale { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--faint); }
+  .m-depth .verdict { margin-top: 8px; font-size: 11px; color: var(--green); font-weight: 600; }
+  .m-toggle {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg); border: 1px solid var(--edge); border-radius: 8px;
+    color: var(--muted); padding: 4px 10px; font-size: 11px; white-space: nowrap;
+  }
+  .m-toggle.on { color: var(--accent); border-color: rgba(34,211,238,.45); background: var(--accent-dim); }
+</style>
+
+<!-- ================= CABLES VIEW ================= -->
+<section>
+  <h2>4 · Cables view redesign</h2>
+  <p class="section-sub">Same shell as section 2 — only the canvas column and inspector change. The current cable map is visually strong, but everything around it fights it.</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-cables.png" alt="Current cables view">
+      <div class="cap">Current Cables view — live capture.</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>PC1 · Filters hidden behind "+5 more"</b></div>Cable-type filters are chips that overflow into a "+5 more" — the filter you need (e.g. power) is the one that got hidden.</div>
+      <div class="issue"><div class="t"><b>PC2 · Inspector shows device properties, not the cable</b></div>In a cable view, the right panel still edits the selected device's name and weight. Cable context — endpoints, length, type — is buried in a collapsed list under Properties.</div>
+      <div class="issue"><div class="t"><b>PC3 · "Dim others" vs "Hide others"</b></div>Two adjacent toggles for one mental operation (focus on some cables). The difference is only discoverable by clicking both.</div>
+      <div class="issue"><div class="t"><b>PC4 · Length health is invisible</b></div>The app knows each route's length and the standard cable-length table, but mismatches surface only after exporting a BOM — not where you route.</div>
+      <div class="issue"><div class="t"><b>PC5 · View toggle wraps and uneven</b></div>"2D map / 3D routing / Table" renders as uneven two-line pills next to a giant "18 routes" block — the primary mode switch of this view looks like an afterthought.</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <!-- canvas head -->
+    <div class="m-canvas-head">
+      <span class="m-layout-name">My On-hand Gear</span>
+      <div class="m-viewmodes" style="margin-left:14px"><span class="on">Map</span><span>3D routing</span><span>Table</span></div>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><b>18</b> routes</span>
+        <span class="m-chip"><b>42 m</b> total</span>
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i><b>2</b> length warnings</span>
+      </div>
+      <span class="m-btn" style="margin-left:auto">Export BOM</span>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <!-- type filter rail -->
+      <div class="m-cable-rail">
+        <div class="rlab">Cable type</div>
+        <div class="m-ctype on"><i class="dot" style="background:var(--text)"></i>All<span class="cnt">18</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--accent)"></i>Structured<span class="cnt">11</span><span class="eye">◉</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--blue)"></i>Patch<span class="cnt">4</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--green)"></i>Coax<span class="cnt">2</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--amber)"></i>USB<span class="cnt">1</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--red)"></i>Power<span class="cnt">0</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--violet)"></i>Fiber<span class="cnt">0</span><span class="eye">◌</span></div>
+      </div>
+
+      <!-- map -->
+      <div class="m-map">
+        <svg width="640" height="470" viewBox="0 0 640 470" style="max-width:100%">
+          <!-- rack frame -->
+          <rect x="30" y="14" width="300" height="442" rx="8" fill="#0a101f" stroke="#2c3d63" stroke-width="2"/>
+          <!-- tray -->
+          <g stroke-dasharray="4 5" stroke-width="2" opacity=".45">
+            <line x1="392" y1="20" x2="392" y2="450" stroke="#22d3ee"/>
+            <line x1="412" y1="20" x2="412" y2="450" stroke="#60a5fa"/>
+            <line x1="432" y1="20" x2="432" y2="450" stroke="#34d399"/>
+            <line x1="452" y1="20" x2="452" y2="450" stroke="#fbbf24"/>
+          </g>
+          <text x="392" y="465" fill="#5c6b8a" font-size="9">DATA</text>
+          <text x="440" y="465" fill="#5c6b8a" font-size="9">PWR</text>
+          <!-- devices -->
+          <g font-size="10" fill="#e2e8f0">
+            <rect x="40" y="24" width="280" height="24" rx="4" fill="#153049" stroke="#22d3ee"/>
+            <text x="48" y="40">24-port patch panel</text>
+            <rect x="40" y="54" width="280" height="16" rx="4" fill="#16223c" stroke="#22304f"/>
+            <rect x="40" y="76" width="128" height="24" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="48" y="92">UniFi UCG-Max</text>
+            <rect x="176" y="76" width="144" height="24" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="184" y="92">UniFi Flex 2.5G</text>
+            <rect x="40" y="106" width="280" height="14" rx="4" fill="#101a30" stroke="#22304f" stroke-dasharray="4 3"/>
+            <rect x="40" y="126" width="86" height="22" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="47" y="141">Modem A</text>
+            <rect x="134" y="126" width="86" height="22" rx="4" fill="#16223c" stroke="#22304f"/>
+            <text x="141" y="141">Modem B</text>
+            <rect x="40" y="196" width="150" height="42" rx="4" fill="#1d1740" stroke="#a78bfa"/>
+            <text x="48" y="220">Minisforum UM790</text>
+            <rect x="40" y="290" width="104" height="100" rx="4" fill="#12241c" stroke="#34d399"/>
+            <text x="48" y="308">APC UPS</text>
+            <rect x="152" y="310" width="168" height="80" rx="4" fill="#2a1a08" stroke="#fb923c"/>
+            <text x="160" y="328">寶藏盒 Pro NAS</text>
+          </g>
+          <!-- dimmed routes (auto-dimmed background cables) -->
+          <g fill="none" stroke-width="2" opacity=".22">
+            <path d="M 320 137 H 356 V 330 H 320" stroke="#fbbf24"/>
+            <path d="M 320 137 H 372 V 350 H 320" stroke="#fbbf24"/>
+            <path d="M 320 217 H 392 V 340 H 320" stroke="#60a5fa"/>
+            <path d="M 320 350 H 432 V 220 H 320" stroke="#34d399"/>
+          </g>
+          <!-- patch arcs -->
+          <g fill="none" stroke-width="2" opacity=".5">
+            <path d="M 180 48 C 210 60, 220 66, 230 76" stroke="#22d3ee"/>
+            <path d="M 210 48 C 245 62, 260 68, 272 76" stroke="#22d3ee"/>
+          </g>
+          <!-- selected cable: patch panel eth3 -> Flex eth1 -->
+          <path d="M 300 36 C 350 36, 350 88, 320 88" fill="none" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 300 36 C 350 36, 350 88, 320 88" fill="none" stroke="#22d3ee" stroke-width="9" stroke-linecap="round" opacity=".18"/>
+          <circle cx="300" cy="36" r="5" fill="#22d3ee"/>
+          <circle cx="320" cy="88" r="5" fill="#22d3ee"/>
+          <text x="352" y="60" fill="#22d3ee" font-size="10" font-weight="700">eth3 → eth1</text>
+          <!-- length warning marker -->
+          <g transform="translate(356,322)">
+            <path d="M0 -8 L8 6 L-8 6 Z" fill="#fbbf24"/>
+            <text y="4" text-anchor="middle" font-size="9" font-weight="800" fill="#0b1120">!</text>
+          </g>
+          <text x="370" y="326" fill="#fbbf24" font-size="9.5">3 m run · 2 m recommended</text>
+        </svg>
+        <div class="m-zoom"><span>＋</span><span>－</span><span>⤢</span></div>
+      </div>
+
+      <!-- cable inspector -->
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">Structured cable</div>
+          <div class="chips"><span>structured</span><span>cyan</span><span>1.0 m</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">Route</span><span>Ports</span><span>Notes</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-ep"><div class="lbl">From</div><b>24-port patch panel</b> · <span class="port">eth3</span> <span style="color:var(--faint)">(front)</span></div>
+          <div class="m-arrow">↓</div>
+          <div class="m-ep"><div class="lbl">To</div><b>UniFi Flex 2.5G 8-port</b> · <span class="port">eth1</span> <span style="color:var(--faint)">(front)</span></div>
+          <div class="m-len"><span style="color:var(--muted)">Routed 1.0 m · recommended 1.0 m</span><span class="ok">✓</span></div>
+          <div class="m-note">Slack and service-loop allowance included via the standard length table.</div>
+          <div class="m-healthrow">
+            <div class="hb"><b>18</b>routes</div>
+            <div class="hb warn"><b>2</b>length ⚠</div>
+            <div class="hb"><b>42 m</b>BOM total</div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">Delete route</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:120px; left:70px;">C1</div>
+    <div class="co" style="top:210px; right:14px;">C2</div>
+    <div class="co" style="top:330px; left:56%;">C3</div>
+    <div class="co" style="top:390px; left:42%;">C4</div>
+    <div class="co" style="top:14px; left:56%;">C5</div>
+    <div class="co" style="top:14px; left:270px;">C6</div>
+  </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><span class="n">C1</span><div>
+      <div class="t">Type filter rail — nothing hidden</div>
+      <div class="d">Every cable type gets a permanent row: color swatch, count, and a solo (◉) eye. The "+5 more" overflow disappears; the filter you need is always visible.</div>
+      <div class="why">Why better: recognition over recall — and one click solos a type instead of chip-hunting.</div>
+    </div></div>
+    <div class="leg"><span class="n">C2</span><div>
+      <div class="t">Cable-first inspector</div>
+      <div class="d">Selecting a cable replaces the device form with a cable card: From device/port → To device/port, routed vs recommended length, slack note, and route actions. Device editing stays one click away in 2D.</div>
+      <div class="why">Why better: the inspector answers the question this view exists for — "where does this cable go and is its length sane".</div>
+    </div></div>
+    <div class="leg"><span class="n">C3</span><div>
+      <div class="t">One highlight behavior, no toggle pair</div>
+      <div class="d">Hover or select any route — in the map, the rail, or the list — and the rest auto-dim (as shown by the faded tray lines). "Dim others" / "Hide others" collapse into this single, predictable behavior.</div>
+      <div class="why">Why better: one mental operation, one mechanism; no mode discovery by clicking both toggles.</div>
+    </div></div>
+    <div class="leg"><span class="n">C4</span><div>
+      <div class="t">Length health where you route</div>
+      <div class="d">Routes whose length deviates from <b>STANDARD_CABLE_LENGTHS_MM</b> get an amber ⚠ marker on the map and a badge in the inspector — the data already exists in <b>routing.ts</b> / <b>validation.recommendCableLength()</b>.</div>
+      <div class="why">Why better: problems surface at the point of decision, not after a BOM export.</div>
+    </div></div>
+    <div class="leg"><span class="n">C5</span><div>
+      <div class="t">BOM summary in the header</div>
+      <div class="d">Routes, total meters, and warning count as chips next to the layout name; Export BOM lives here too instead of inside a collapsed inspector section.</div>
+      <div class="why">Why better: procurement-facing numbers are ambient, and export is one click from the view that produces it.</div>
+    </div></div>
+    <div class="leg"><span class="n">C6</span><div>
+      <div class="t">Map / 3D routing / Table as one clean control</div>
+      <div class="d">The sub-view switch becomes a single segmented control in the canvas header — equal-width pills, no wrapping, no giant "18 routes" block competing with it.</div>
+      <div class="why">Why better: the primary mode switch of the view finally looks like one.</div>
+    </div></div>
+  </div>
+
+  <h3 style="font-size:16px; font-weight:700; margin:44px 0 6px; letter-spacing:-.01em">4b · The 3D routing mode — the wiring reference for the build</h3>
+  <p class="section-sub">Same capture technique: the real scene from the current app with the proposed UI composited on top. If the device 3D is the build reference, 3D routing is its wiring counterpart — which tray a cable takes, where it drops, how much slack it keeps. Today it is a dark, uncontrollable corner; the redesign gives it the same rail, the same inspector and the same camera language as every other view.</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-cables-3d.png" alt="Current 3D cable routing view">
+      <div class="cap">Current Cables → 3D routing mode — live capture.</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>PR1 · Small, dark, uncontrollable scene</b></div>No camera presets, no zoom control, no way to isolate one cable. Thin runs on a ghosted rack — you squint and orbit blindly.</div>
+      <div class="issue"><div class="t"><b>PR2 · "Clean / Realistic" is a cryptic pair</b></div>The one control that changes what the scene <i>means</i> — idealized tray runs vs slack-and-sag realism — is two unexplained text buttons.</div>
+      <div class="issue"><div class="t"><b>PR3 · Inspector still edits the device</b></div>Same failure as the 2D map: in a view that exists to inspect cables, the right panel edits the selected device's name and mount side.</div>
+      <div class="issue"><div class="t"><b>PR4 · Filters and highlight don't carry over</b></div>The "+5 more" chips and the Dim/Hide toggle pair belong to the 2D map; the 3D mode inherits the same problems instead of shared solutions.</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <div class="m-canvas-head">
+      <span class="m-layout-name">My On-hand Gear</span>
+      <div class="m-viewmodes" style="margin-left:14px"><span>Map</span><span class="on">3D routing</span><span>Table</span></div>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><b>18</b> routes</span>
+        <span class="m-chip"><b>42 m</b> total</span>
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i><b>2</b> length warnings</span>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
+        <span style="font-size:10.5px; color:var(--faint)">Style</span>
+        <div class="m-face"><span>Clean</span><span class="on">Realistic</span></div>
+        <span class="m-btn">Export BOM</span>
+      </div>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <div class="m-cable-rail">
+        <div class="rlab">Cable type</div>
+        <div class="m-ctype on"><i class="dot" style="background:var(--text)"></i>All<span class="cnt">18</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--accent)"></i>Structured<span class="cnt">11</span><span class="eye">◉</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--blue)"></i>Patch<span class="cnt">4</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--green)"></i>Coax<span class="cnt">2</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--amber)"></i>USB<span class="cnt">1</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--red)"></i>Power<span class="cnt">0</span><span class="eye">◌</span></div>
+        <div class="m-ctype"><i class="dot" style="background:var(--violet)"></i>Fiber<span class="cnt">0</span><span class="eye">◌</span></div>
+      </div>
+
+      <div class="m-stage3d">
+        <img class="m-scene" src="scene-cables-3d-raw.png" alt="The app's real 3D cable routing scene — proposed UI composited on top">
+        <div class="m-scene-shade"></div>
+        <div class="m-tooltip" style="left:30%; top:24%">Structured cable<div class="sub">patch panel eth3 → Flex 2.5G eth1 · 1.0 m</div></div>
+        <div class="m-dock">
+          <span>Front</span><span>Rear</span><span class="on">ISO</span><span>Top</span>
+          <div class="sep"></div>
+          <span>⟳</span>
+        </div>
+      </div>
+
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">Structured cable</div>
+          <div class="chips"><span>structured</span><span>cyan</span><span>1.0 m</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">Route</span><span>Ports</span><span>Notes</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-ep"><div class="lbl">From</div><b>24-port patch panel</b> · <span class="port">eth3</span> <span style="color:var(--faint)">(front)</span></div>
+          <div class="m-arrow">↓</div>
+          <div class="m-ep"><div class="lbl">To</div><b>UniFi Flex 2.5G 8-port</b> · <span class="port">eth1</span> <span style="color:var(--faint)">(front)</span></div>
+          <div class="m-len"><span style="color:var(--muted)">Routed 1.0 m · recommended 1.0 m</span><span class="ok">✓</span></div>
+          <div style="display:flex; gap:8px">
+            <span class="m-btn" style="flex:1; text-align:center">▶ Follow route</span>
+            <span class="m-btn ghost" style="flex:1; text-align:center">Focus in map</span>
+          </div>
+          <div class="m-note">Follow route animates the camera along the path — tray, drop and service loop — at inspection speed.</div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">Delete route</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="top:14px; left:270px;">R1</div>
+    <div class="co" style="top:14px; right:430px;">R2</div>
+    <div class="co" style="bottom:24px; left:44%;">R3</div>
+    <div class="co" style="top:20%; left:34%;">R4</div>
+    <div class="co" style="top:170px; right:14px;">R5</div>
+    <div class="co" style="top:120px; left:70px;">R6</div>
+  </div>
+  </div>
+
+  <p class="footnote" style="margin:-8px 0 16px">The scene above is the app's real 3D cable-routing render, captured live — the proposed UI is composited on top.</p>
+  <div class="legend">
+    <div class="leg"><span class="n">R1</span><div>
+      <div class="t">One mode switch, one header</div>
+      <div class="d">Map / 3D routing / Table is the same segmented control with the same BOM summary as the 2D map. 3D routing is a mode of the cables view — not a separate page with its own furniture.</div>
+      <div class="why">Why better: switching modes changes the visualization, never the layout around it.</div>
+    </div></div>
+    <div class="leg"><span class="n">R2</span><div>
+      <div class="t">Routing style becomes a real control</div>
+      <div class="d">Clean vs Realistic moves to the header as a labeled Style switch: <b>Clean</b> = idealized tray runs for planning; <b>Realistic</b> = slack, sag and service loops for verifying the physical build.</div>
+      <div class="why">Why better: the control that changes what the scene <i>means</i> is finally labeled — you always know which truth you are looking at.</div>
+    </div></div>
+    <div class="leg"><span class="n">R3</span><div>
+      <div class="t">Same camera language as the device 3D</div>
+      <div class="d">The Front / Rear / ISO / Top + auto-rotate dock from section 5 appears here unchanged. One set of camera habits covers both 3D scenes (and the cable layer from D6).</div>
+      <div class="why">Why better: learned once, used everywhere — no per-scene orbit guesswork.</div>
+    </div></div>
+    <div class="leg"><span class="n">R4</span><div>
+      <div class="t">Hover a cable, know the cable</div>
+      <div class="d">Hovering floats type, endpoints and length; clicking selects. The ghosted devices already tell you this view is about cables — identification completes the sentence.</div>
+      <div class="why">Why better: thin colored lines become named routes without a single blind click.</div>
+    </div></div>
+    <div class="leg"><span class="n">R5</span><div>
+      <div class="t">Cable-first inspector, plus Follow route</div>
+      <div class="d">The same cable card as the 2D map (endpoints, length vs recommended), with two actions: <b>Follow route</b> — <b>SmoothCameraRig</b> flies the camera along the path — and <b>Focus in map</b> for jumping back to the 2D context.</div>
+      <div class="why">Why better: the inspector answers the same question in both modes, and Follow route is the build-verification move a 2D map cannot offer.</div>
+    </div></div>
+    <div class="leg"><span class="n">R6</span><div>
+      <div class="t">One rail, synced across modes</div>
+      <div class="d">The type filter rail — including solo — is shared view state: solo "structured" here and the 2D map shows the same subset when you switch back.</div>
+      <div class="why">Why better: filters are a property of what you're looking for, not of which mode you're in.</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ================= 3D VIEW ================= -->
+<section>
+  <h2>5 · 3D view redesign — a build reference, not a gimmick</h2>
+  <p class="section-sub">The 3D view is the spatial truth of the rack: how the build will actually look once assembled, how devices organize by depth, what collides with what — things the 2D view structurally cannot show. It is a reference you build and compare against, not a demo. The current shell treats it as look-only "inspection"; the redesign makes it a first-class working view with real controls, real data, and a path to act on what you see.</p>
+
+  <div class="before-grid">
+    <div class="shot">
+      <img src="before-3d.png" alt="Current 3D view">
+      <div class="cap">Current 3D view — live capture.</div>
+    </div>
+    <div class="issues">
+      <div class="issue"><div class="t"><b>P3D1 · No camera controls</b></div>OrbitControls are hidden knowledge — drag, scroll, right-drag. "Front view" is a label, not a button. There is no way back to a canonical angle except guessing.</div>
+      <div class="issue"><div class="t"><b>P3D2 · The depth promise is not kept</b></div>The subtitle says "compare device depth" but no depth readout exists anywhere in the view — you rotate and eyeball it.</div>
+      <div class="issue"><div class="t"><b>P3D3 · No labels, no hover info</b></div>Dark slabs in a dark rack. Without clicking, you cannot tell the NAS from the UPS — faceplate textures only resolve at close zoom.</div>
+      <div class="issue"><div class="t"><b>P3D4 · Loading and recovery are invisible</b></div>The 3D chunk is lazy-loaded (~860KB) and WebGL recovery exists in code, but the user sees neither a loading state nor a recovery notice.</div>
+      <div class="issue"><div class="t"><b>P3D5 · Devices and cables live on separate islands</b></div>The 3D device view shows no cables; 3D cable routing is a different mode buried inside the Cables view. You can never see the rack the way it will actually be — devices and their wiring together.</div>
+      <div class="issue"><div class="t"><b>P3D6 · Framed as look-but-don't-touch</b></div>The view is labeled "3D inspection". For a builder using the render as their assembly reference, there is no path to act on what they see — no labels to identify gear, no depth readout, no clean view to hold against the physical rack.</div>
+    </div>
+  </div>
+
+  <div class="mock-wrap" style="margin-top:26px">
+  <div class="mock">
+    <div class="m-canvas-head">
+      <span class="m-layout-name">My On-hand Gear</span>
+      <div class="m-health" style="margin-left:14px">
+        <span class="m-chip"><i class="dot" style="background:var(--amber)"></i>Capacity <b>17/18 U</b></span>
+        <span class="m-chip"><i class="dot" style="background:var(--green)"></i>Power <b>402 W</b></span>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:6px">
+        <span class="m-toggle on">Cables</span>
+        <span class="m-toggle on">Labels</span>
+        <span class="m-toggle">⟳ Auto-rotate</span>
+        <span class="m-toggle">Photo mode</span>
+      </div>
+    </div>
+
+    <div style="display:flex; height:500px">
+      <div class="m-stage3d">
+        <img class="m-scene" src="scene-3d-raw.png" alt="The app's real 3D render — proposed UI composited on top">
+        <div class="m-scene-shade"></div>
+        <div class="m-toast">✓ 3D engine ready · WebGL context healthy</div>
+        <svg style="position:absolute; left:26%; top:14%; pointer-events:none" width="420" height="360" viewBox="0 0 420 360">
+          <g fill="none" stroke-linecap="round">
+            <path d="M 210 30 C 300 30, 330 90, 340 150" stroke="#22d3ee" stroke-width="3" opacity=".85"/>
+            <path d="M 215 60 C 295 65, 320 120, 332 165" stroke="#60a5fa" stroke-width="2.5" opacity=".6"/>
+            <path d="M 205 250 C 300 250, 330 200, 345 170" stroke="#fbbf24" stroke-width="2.5" opacity=".55"/>
+          </g>
+          <circle cx="210" cy="30" r="4.5" fill="#22d3ee"/>
+          <circle cx="205" cy="250" r="4" fill="#fbbf24"/>
+        </svg>
+        <div class="m-tooltip" style="left:55%; top:62%">寶藏盒 Pro NAS<div class="sub">U2–U7 · 292 mm · 120 W · storage</div></div>
+        <div class="m-dock">
+          <span>Front</span><span>Rear</span><span class="on">ISO</span><span>Top</span>
+          <div class="sep"></div>
+          <span>⟳</span>
+        </div>
+      </div>
+
+      <div class="m-insp">
+        <div class="m-insp-head">
+          <div class="nm">寶藏盒 Pro NAS</div>
+          <div class="chips"><span>storage</span><span>U2–U7</span><span>6U</span></div>
+        </div>
+        <div class="m-tabs">
+          <span class="on">Properties</span><span>Cables<i class="cnt">2</i></span><span>Ports</span>
+        </div>
+        <div class="m-insp-body">
+          <div class="m-depth">
+            <div class="dt"><span>Depth check</span><b>292 mm</b></div>
+            <div class="track">
+              <div class="range" style="left:44%; width:40%"></div>
+              <div class="mark" style="left:58.4%"></div>
+            </div>
+            <div class="scale"><span>0</span><span>rails 220–420 mm</span><span>500</span></div>
+            <div class="verdict">✓ Fits rails · 78 mm rear clearance</div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>Position U</label><div class="in">2</div></div>
+            <div class="m-field"><label>Height U</label><div class="in">6</div></div>
+          </div>
+          <div class="m-row2">
+            <div class="m-field"><label>Power W</label><div class="in">120</div></div>
+            <div class="m-field"><label>Weight kg</label><div class="in">8.5</div></div>
+          </div>
+        </div>
+        <div class="m-insp-foot"><div class="m-danger">Remove component</div></div>
+      </div>
+    </div>
+
+    <!-- callouts -->
+    <div class="co" style="bottom:24px; left:44%;">D1</div>
+    <div class="co" style="top:58%; left:58%;">D2</div>
+    <div class="co" style="top:220px; right:14px;">D3</div>
+    <div class="co" style="top:60px; left:46%;">D4</div>
+    <div class="co" style="top:14px; left:330px;">D5</div>
+    <div class="co" style="top:14px; right:340px;">D6</div>
+    <div class="co" style="top:14px; right:14px;">D7</div>
+  </div>
+  </div>
+
+  <p class="footnote" style="margin:-8px 0 16px">The scene above is the app's real 3D render, captured live from the current build — the proposed UI is composited on top, so you are judging the design on the actual rack, not a redrawn approximation.</p>
+  <div class="legend">
+    <div class="leg"><span class="n">D1</span><div>
+      <div class="t">Camera preset dock</div>
+      <div class="d">Front / Rear / ISO / Top plus auto-rotate, bottom-center. <b>SmoothCameraRig</b> already animates transitions — the presets just give it buttons. OrbitControls stay as the free-look fallback.</div>
+      <div class="why">Why better: hidden gestures become discoverable controls; "get me back to front" is one click, not a guessing drag.</div>
+    </div></div>
+    <div class="leg"><span class="n">D2</span><div>
+      <div class="t">Hover tooltips + labels toggle</div>
+      <div class="d">Hovering a device floats its name, U-span, depth and watts; the Labels toggle pins them for all devices. Identification no longer requires clicking blind.</div>
+      <div class="why">Why better: identification precedes selection — you can find the NAS without opening three wrong inspectors first.</div>
+    </div></div>
+    <div class="leg"><span class="n">D3</span><div>
+      <div class="t">Depth-check card makes the promise real</div>
+      <div class="d">The inspector gains a depth card: device depth plotted against the rack's <b>railMinDepthMm–railMaxDepthMm</b> band, with rear clearance computed. Data already in the layout model, previously unexposed.</div>
+      <div class="why">Why better: depth organization is exactly what 2D cannot show — the card makes it numeric, so you organize by millimetre instead of by eyeball.</div>
+    </div></div>
+    <div class="leg"><span class="n">D4</span><div>
+      <div class="t">Loading and recovery made visible</div>
+      <div class="d">A skeleton + progress chip while the lazy 3D chunk loads, and a toast when <b>CanvasWithRecovery</b> rebuilds the scene after a context loss. The mechanisms exist; they were just silent.</div>
+      <div class="why">Why better: a 860KB lazy chunk and GPU recovery without UI feedback reads as "broken" — status makes it read as "working".</div>
+    </div></div>
+    <div class="leg"><span class="n">D5</span><div>
+      <div class="t">Same shell, same health strip, plus a perf escape hatch</div>
+      <div class="d">The canvas header carries the same health chips as 2D/Cables, so status is identical across views. A perf mode (in the overflow) drops port-level geometry and labels on weak GPUs.</div>
+      <div class="why">Why better: one shell everywhere means zero relearning per view; perf mode keeps big layouts usable on integrated graphics.</div>
+    </div></div>
+    <div class="leg"><span class="n">D6</span><div>
+      <div class="t">Cable layer — devices and routes in one spatial view</div>
+      <div class="d">The Cables toggle overlays routed paths (<b>CableViewer3D</b> splines) on the device scene, merging the two existing 3D islands into one. You see the UPS, the NAS <i>and</i> the actual cable slack between them — the rack as it will physically be.</div>
+      <div class="why">Why better: wiring is half of "how it will look"; hiding it in a separate mode made the 3D view lie by omission.</div>
+    </div></div>
+    <div class="leg"><span class="n">D7</span><div>
+      <div class="t">Work from the 3D view — and hold it against the physical rack</div>
+      <div class="d">Selection, the tabbed inspector and move actions behave identically in 3D, so organizing (nudge a device a U, re-check the depth card) happens where the spatial consequence is visible. Photo mode strips all chrome for a clean render you can compare against the real rack during assembly.</div>
+      <div class="why">Why better: the view graduates from "inspection" to the builder's reference — organize in it, then verify the physical build against it.</div>
+    </div></div>
+  </div>
+</section>
+
+</body>
+</html>

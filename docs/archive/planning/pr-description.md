@@ -1,5 +1,7 @@
 ## perf: reduce initial chunk 432 KB → 184 KB via vendor split + lazy panels
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 ### Summary
 
 Resolves the initial-chunk budget breach. The initial JS bundle was at **432 KB**, over

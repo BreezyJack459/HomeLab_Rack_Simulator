@@ -1,5 +1,7 @@
 # HomeLab Rack Simulator — Code Review Report
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](ARCHITECTURE.md) and [documentation index](../README.md) for present behavior. This document does not authorize new implementation.
+
 **Review date:** 2026-05-07  
 **Stack:** Vite + React 18 + TypeScript + React Three Fiber + Zustand + Tailwind CSS  
 **Reviewer perspective:** Game Studio 3D + React track

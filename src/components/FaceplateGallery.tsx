@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { deviceCatalog } from '../data/deviceCatalog';
 import type { DeviceTemplate, ViewSide } from '../types/rack';
-import { getFaceplateArtifact, getFaceplateSvg } from '../utils/faceplateSvg';
+import { getFaceplateArtifact, getFaceplateSvg, resolveFaceplateUrl } from '../utils/faceplateSvg';
 import { getDeviceFaceSizeMm } from '../utils/rackMath';
 
 const MAX_DISPLAY_WIDTH = 400;
+const MIN_DISPLAY_WIDTH = 120;
+// Scale faceplates by real-world width: a full 19-inch device (482.6mm)
+// fills MAX_DISPLAY_WIDTH, smaller devices shrink proportionally (clamped to
+// MIN_DISPLAY_WIDTH so tiny boxes like a JetKVM stay inspectable).
+const FULL_RACK_WIDTH_MM = 482.6;
+const PX_PER_MM = MAX_DISPLAY_WIDTH / FULL_RACK_WIDTH_MM;
 
 export function FaceplateGallery() {
   return (
@@ -14,20 +20,25 @@ export function FaceplateGallery() {
         Review vendored faceplate images and procedural layouts. Front/rear faces
         are stacked so both are visible without horizontal scrolling.
       </p>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="flex flex-wrap content-start gap-6">
         {deviceCatalog
           .filter((template) => template.ports && Object.keys(template.ports).length > 0)
           .map((template) => {
-            const { width, height } = getDeviceFaceSizeMm({
+            const { width } = getDeviceFaceSizeMm({
               widthType: template.widthType,
               customWidthMm: template.customWidthMm,
               sizeU: template.defaultU,
             });
-            const aspectRatio = width > 0 ? width / height : 1;
+            const displayWidth = Math.round(
+              Math.min(
+                MAX_DISPLAY_WIDTH,
+                Math.max(MIN_DISPLAY_WIDTH, width * PX_PER_MM),
+              ),
+            );
             return (
               <div
                 key={template.id}
-                className="min-w-0 rounded border border-edge-strong bg-surface-raised p-4"
+                className="w-fit min-w-0 max-w-full rounded border border-edge-strong bg-surface-raised p-4"
               >
                 <h2 className="mb-3 text-sm font-semibold">{template.name}</h2>
                 <div className="flex flex-col gap-3">
@@ -42,7 +53,7 @@ export function FaceplateGallery() {
                         <FaceplatePreview
                           template={template}
                           face={face}
-                          aspectRatio={aspectRatio}
+                          displayWidth={displayWidth}
                         />
                       </div>
                     );
@@ -59,11 +70,11 @@ export function FaceplateGallery() {
 function FaceplatePreview({
   template,
   face,
-  aspectRatio,
+  displayWidth,
 }: {
   template: DeviceTemplate;
   face: ViewSide;
-  aspectRatio: number;
+  displayWidth: number;
 }) {
   const artifact = getFaceplateArtifact(template, face);
   const [failed, setFailed] = useState(false);
@@ -71,12 +82,12 @@ function FaceplatePreview({
   if (artifact.kind === 'image' && !failed) {
     return (
       <img
-        src={artifact.path}
+        src={resolveFaceplateUrl(artifact.path)}
         alt={`${template.name} ${face}`}
-        className="block w-full max-w-full rounded border border-edge-strong bg-black object-contain"
+        className="block rounded border border-edge-strong bg-black object-contain"
         style={{
-          maxWidth: `${MAX_DISPLAY_WIDTH}px`,
-          aspectRatio,
+          width: `${displayWidth}px`,
+          maxWidth: '100%',
           height: 'auto',
         }}
         onError={() => setFailed(true)}
@@ -87,11 +98,11 @@ function FaceplatePreview({
   const svg = getFaceplateSvg(template, face);
   return (
     <div
-      className="w-full max-w-full overflow-hidden rounded border border-edge-strong bg-black [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full [&>svg]:!w-full]"
+      className="overflow-hidden rounded border border-edge-strong bg-black [&>svg]:block [&>svg]:h-auto [&>svg]:!w-full"
       dangerouslySetInnerHTML={{ __html: svg }}
       style={{
-        maxWidth: `${MAX_DISPLAY_WIDTH}px`,
-        aspectRatio,
+        width: `${displayWidth}px`,
+        maxWidth: '100%',
       }}
       aria-label={`${template.name} ${face} generated faceplate`}
     />

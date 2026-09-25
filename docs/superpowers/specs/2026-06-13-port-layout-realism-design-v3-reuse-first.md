@@ -1,5 +1,7 @@
 # Design: Realistic Device Port Layout (v3 — Reuse First)
 
+> **Historical reference — classified 2026-09-18.** Original proposal, review or session evidence is preserved below. Statuses, code snippets, test counts and pending decisions describe that document’s original context, not the current release. Use the [current architecture](../../dev/ARCHITECTURE.md) and [documentation index](../../README.md) for present behavior. This document does not authorize new implementation.
+
 **Date:** 2026-06-13
 **Approach:** C — Borrow existing data and patterns; build only the thin glue
 **Supersedes:** v2 (engine-heavy approach). v2's placement model survives in reduced form as the fallback renderer.
