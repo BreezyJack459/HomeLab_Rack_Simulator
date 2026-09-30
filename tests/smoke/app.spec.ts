@@ -29,33 +29,32 @@ function deviceCountChip(page: import('@playwright/test').Page, count: number | 
 }
 
 async function clearLayout(page: any) {
-  // Click "New rack layout" in the Create menu to clear any existing layout
+  const hasContents = await page.evaluate(() => {
+    const { layout } = (window as unknown as { __rackStore: { getState: () => { layout: { devices: unknown[]; cables: unknown[] } } } }).__rackStore.getState();
+    return layout.devices.length > 0 || layout.cables.length > 0;
+  });
   await openCreateMenu(page);
   await page.getByRole('button', { name: 'New rack layout' }).click();
-
-  // Handle confirmation dialog if it appears (layout had devices)
-  const confirmButton = page.getByRole('button', { name: 'Confirm' });
-  if (await confirmButton.isVisible().catch(() => false)) {
-    await confirmButton.click();
+  if (hasContents) {
+    const dialog = page.getByRole('dialog', { name: 'Start a new layout?', exact: true });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Confirm', exact: true }).click();
   }
-
-  // Wait for device count to show 0
   await expect(deviceCountChip(page, 0)).toBeVisible();
 }
 
-async function loadFirstSample(page: any) {
+async function loadFirstSample(page: any, sampleId = 'learn-beginner-10in') {
   await openCreateMenu(page);
   await page.getByRole('button', { name: 'Load sample' }).click();
 
   // Select the first sample from the modal
   await expect(page.locator('[data-testid="sample-picker-modal"]')).toBeVisible();
-  await page.locator('[data-testid="sample-picker-modal"] button').filter({ hasText: /devices/ }).first().click();
+  await page.getByTestId(`sample-card-${sampleId}`).getByRole('button').click();
 
-  // If confirmation dialog appears (layout was not empty), confirm it
-  const confirmButton = page.getByRole('button', { name: 'Confirm' });
-  if (await confirmButton.isVisible().catch(() => false)) {
-    await confirmButton.click();
-  }
+  // Explicit sample replacement always requires confirmation, even if empty.
+  const dialog = page.getByRole('dialog', { name: 'Load sample layout?', exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Confirm', exact: true }).click();
 }
 
 test.describe('Rack Simulator Smoke Tests', () => {
@@ -69,6 +68,12 @@ test.describe('Rack Simulator Smoke Tests', () => {
     });
     await page.reload();
     await clearLayout(page);
+    // These library regressions exercise 19-inch hardware, independently of
+    // the 10-inch beginner example used only on a genuinely fresh browser.
+    await page.evaluate(() => {
+      const store = (window as unknown as { __rackStore: { getState: () => { newLayout: (rackType: '19in', heightU: number) => void } } }).__rackStore;
+      store.getState().newLayout('19in', 18);
+    });
   });
 
   test('loads app with default layout', async ({ page }) => {
@@ -76,7 +81,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(deviceCountChip(page, 0)).toBeVisible();
     // No validation issues on an empty rack
     await expect(
-      page.getByRole('button', { name: '0 critical',exact:true }),
+      page.getByRole('button', { name: '0 confirmed issues',exact:true }),
     ).toBeVisible();
   });
 
@@ -225,8 +230,8 @@ test.describe('Rack Simulator Smoke Tests', () => {
   });
 
   test('shows validation alerts when rack constraints are exceeded', async ({ page }) => {
-    // Load a sample layout with devices
-    await loadFirstSample(page);
+    // This resize regression needs devices above U6, independent of the starter.
+    await loadFirstSample(page, 'learn-advanced-19in');
 
     // Verify devices loaded
     await expect(deviceCountChip(page, '[1-9]')).toBeVisible();
@@ -241,7 +246,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await page.getByRole('dialog').getByRole('button', {name:'Close',exact:true}).click();
     // Verify the alerts button shows a non-zero issue count
     await expect(
-      page.getByRole('button', { name: /^[1-9]\d* critical$/ }),
+      page.getByRole('button', { name: /^[1-9]\d* confirmed issues$/ }),
     ).toBeVisible();
   });
 });

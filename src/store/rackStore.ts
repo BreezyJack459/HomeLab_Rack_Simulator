@@ -4,7 +4,7 @@ import { checkConnectorCompatibility } from '../utils/connectorCompatibility';
 import { getPowerReference } from '../utils/powerAssumptions';
 import { create } from 'zustand';
 import { getTemplateById } from '../data/deviceTemplateRegistry';
-import { sampleLayouts } from '../data/sampleLayouts';
+import { beginnerSample, getSampleDefinition } from '../data/sampleLayouts';
 import type { CableRoute, DeviceTemplate, PlacedDevice, RackDebtItem, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
 import { shouldHideDevice } from '../utils/featureFlags';
@@ -275,7 +275,10 @@ interface RackState {
 }
 
 const MAX_HISTORY = 50;
-const initialLayout = normalizeLayout(sampleLayouts[1]);
+// This is only a fresh-browser fallback. Saved workspaces and legacy layouts
+// are restored below before consumers can use the store, without saving this
+// example over existing or unreadable data.
+const initialLayout = normalizeLayout(cloneLayout(beginnerSample));
 
 const initialWorkspace: Workspace = {
   id: `workspace-${Date.now()}`,
@@ -958,9 +961,17 @@ export const useRackStore = create<RackState>((set, get) => ({
   },
 
   loadSample: (sampleId) => {
-    const sample = sampleLayouts.find((layout) => layout.id === sampleId);
+    const sample = getSampleDefinition(sampleId)?.layout;
     if (!sample) return;
-    const layout = normalizeLayout(sample);
+    // Normalization copies some fields, but nested records must never share
+    // references with the canonical example or another loaded instance.
+    const layout = normalizeLayout(cloneLayout(sample));
+    const { workspace, currentRackId } = get();
+    // A sample ID names its canonical content, not every workspace instance.
+    // Reusing it in another slot must not alias an existing sibling rack.
+    if (workspace.racks.some(rack => rack.id !== currentRackId && rack.id === layout.id)) {
+      layout.id = newId('layout');
+    }
     set({
       layout,
       selectedDeviceId: layout.devices.find(d => !shouldHideDevice(d))?.id ?? null,

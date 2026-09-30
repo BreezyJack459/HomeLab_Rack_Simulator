@@ -682,6 +682,8 @@ export interface Workspace {
 }
 
 export interface RackLayout {
+  /** Identifies an illustrative learning example; does not suppress validation. */
+  example?: { version: 1; sampleId: string };
   findingReviewVersion?: 1;
   planningGoals?: PlanningGoals;
   findingExceptions?: FindingException[];

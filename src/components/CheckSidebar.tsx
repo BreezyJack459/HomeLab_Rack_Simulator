@@ -1,8 +1,11 @@
+import { FindingSummaryBadges } from "./FindingSummaryBadges";
 import { useEffect, useRef } from "react";
 import { issueGroupTitle } from "../utils/checkWorkflow";
-import { issueMatchesCategory, summarizeFindings, type FindingSection } from "../utils/findingSummary";
+import { issueMatchesCategory, summarizeFindings, findingSectionLabels, type FindingSection } from "../utils/findingSummary";
 import type { RackLayout, ValidationIssue } from "../types/rack";
 import type { AuditLens } from "../types/appShell";
+
+export type FindingFilter = 'attention' | ValidationIssue['severity'] | 'all' | FindingSection;
 
 export function CheckSidebar({
   issues,
@@ -24,8 +27,8 @@ export function CheckSidebar({
   onSelect: (issue: ValidationIssue) => void;
   lens: AuditLens;
   onLens: (lens: AuditLens) => void;
-  severity: 'attention' | ValidationIssue['severity'] | 'all';
-  onSeverity: (severity: 'attention' | ValidationIssue['severity'] | 'all') => void;
+  severity: FindingFilter;
+  onSeverity: (severity: FindingFilter) => void;
   category: 'overview' | 'thermal' | 'power' | 'capacity' | 'weight' | 'cable';
   onCategory: (category: 'overview' | 'thermal' | 'power' | 'capacity' | 'weight' | 'cable') => void;
   strictCabling: boolean;
@@ -37,24 +40,23 @@ export function CheckSidebar({
   const visibleGroups = summary.groups.filter(group => group.issues.some(issue => issueMatchesCategory(issue, category)))
     .filter(group => severity === 'all' || (severity === 'attention'
       ? group.section === 'confirmed' || group.section === 'verification'
-      : group.severity === severity));
-  const sectionTitles: Record<FindingSection, string> = { confirmed: 'Issues to address', verification: 'Needs verification', information: 'Information & optional checks', accepted: 'Accepted exceptions' };
+      : (['confirmed', 'verification', 'information', 'accepted'] as string[]).includes(severity) ? group.section === severity : group.issues.some(issue => issue.severity === severity)));
+  const sectionTitles = findingSectionLabels;
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="space-y-3 border-b border-edge p-3">
+      <div className="min-h-0 max-h-[55%] shrink-0 space-y-3 overflow-y-auto border-b border-edge p-3">
         <h2 className="text-sm font-semibold">
           Check · {visibleGroups.length} of {summary.counts.roots} root causes
         </h2>
-        <p className="text-xs text-content-secondary">
-          {summary.counts.confirmed} confirmed conflicts · {summary.counts.verification} needs verification · {summary.counts.information} information · {summary.counts.accepted} accepted
-        </p>
+        <FindingSummaryBadges counts={summary.counts} />
         <label className="block text-xs text-content-muted">
           Show
           <select aria-label="Issue severity" value={severity} onChange={(event) => onSeverity(event.target.value as typeof severity)} className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs">
             <option value="attention">Action & verification</option>
-            <option value="critical">Critical only</option>
-            <option value="warning">Warnings only</option>
-            <option value="info">Info severity only</option>
+            {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => <option key={section} value={section}>{findingSectionLabels[section]}</option>)}
+            <option value="critical">Raw critical severity</option>
+            <option value="warning">Raw warning severity</option>
+            <option value="info">Raw info severity</option>
             <option value="all">All checks & accepted exceptions</option>
           </select>
         </label>
@@ -135,7 +137,7 @@ export function CheckSidebar({
                 <span className="mb-1 block font-semibold">{issue.title}</span>
                 {!!issue.cableIds?.length && <span className="mb-1 block text-content-muted">Cable: {issue.cableIds.join(', ')}</span>}
                 {!!issue.deviceIds?.length && <span className="mb-1 block text-content-muted">Device: {issue.deviceIds.join(', ')}</span>}
-                <span className="mb-1 block text-content-muted">Result: {issue.status ?? 'unknown'} · {issue.severity}</span>
+                <span className="mb-1 block text-content-muted">Result: {issue.status ?? 'unknown'} · Raw severity: {issue.severity}</span>
                 {issue.detail}
               </button>)}</div>
             </details>)}

@@ -18,7 +18,8 @@ import {
   Upload,
 } from "lucide-react";
 import { propertyTargetForIssue, type IssuePropertyTarget } from "./utils/checkWorkflow";
-import { summarizeFindings } from './utils/findingSummary';
+import { summarizeFindings, type FindingSection } from './utils/findingSummary';
+import type { SampleDefinition } from "./data/learningSamples";
 import type { CheckEditTarget } from './components/CheckIssueDetails';
 import { getShellWorkflow, TOOL_WORKSPACES } from "./utils/shellWorkflow";
 import { useCableWorkspaceStore } from "./store/cableWorkspaceStore";
@@ -110,6 +111,8 @@ const TopContextBar = lazy(() =>
 );
 const CheckIssueDetails = lazy(() => import("./components/CheckIssueDetails").then(m => ({ default: m.CheckIssueDetails })));
 const CableSidebar = lazy(() => import("./components/CableSidebar").then(m => ({ default: m.CableSidebar })));
+const SamplePicker = lazy(() => import("./components/SamplePicker").then(module => ({ default: module.SamplePicker })));
+const ExampleGuide = lazy(() => import("./components/ExampleGuide").then(module => ({ default: module.ExampleGuide })));
 const CheckSidebar = lazy(() => import("./components/CheckSidebar").then(m => ({ default: m.CheckSidebar })));
 const WorkspaceDialog = lazy(() => import("./components/WorkspaceDialog").then(m => ({ default: m.WorkspaceDialog })));
 const WorkspaceBackup = lazy(() => import("./components/WorkspaceBackup").then(m => ({ default: m.WorkspaceBackup })));
@@ -369,7 +372,7 @@ function App() {
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-  const [checkSeverity, setCheckSeverity] = useState<'attention' | ValidationIssue['severity'] | 'all'>('attention');
+  const [checkSeverity, setCheckSeverity] = useState<'attention' | ValidationIssue['severity'] | 'all' | FindingSection>('attention');
   const [checkCategory, setCheckCategory] = useState<HealthCheckCategory>('overview');
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [checkEditContext, setCheckEditContext] = useState<{ issue: ValidationIssue; rackId: string; deviceId?: string; targetRackId: string; target?: IssuePropertyTarget } | null>(null);
@@ -381,7 +384,7 @@ function App() {
   const [serviceabilityFocusDeviceIds, setServiceabilityFocusDeviceIds] =
     useState<string[]>([]);
   const [commandOpen, setCommandOpen] = useState(false);
-  const [sampleLayouts, setSampleLayouts] = useState<RackLayout[]>([]);
+  const [sampleDefinitions, setSampleDefinitions] = useState<SampleDefinition[]>([]);
   const [samplePickerOpen, setSamplePickerOpen] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] =
     useState<AppWorkspace>("model");
@@ -464,8 +467,8 @@ function App() {
     [layout, serviceabilityFocusDeviceIds],
   );
   const visibleSampleLayouts = useMemo(
-    () => sampleLayouts.filter((sample) => !layoutUsesHiddenZeroUPdu(sample)),
-    [sampleLayouts],
+    () => sampleDefinitions.filter((sample) => !layoutUsesHiddenZeroUPdu(sample.layout)),
+    [sampleDefinitions],
   );
   const hasSelection = Boolean(
     selectedDeviceId || selectedCableId || selectedInterRackCableId,
@@ -595,7 +598,7 @@ function App() {
     let active = true;
     void import("./data/sampleLayouts").then((module) => {
       if (active) {
-        setSampleLayouts(module.sampleLayouts);
+        setSampleDefinitions(module.sampleDefinitions);
       }
     });
     return () => {
@@ -682,11 +685,8 @@ function App() {
 
   function handleLoadSample(sampleId: string) {
     if (!sampleId) return;
-    if (layout.devices.length > 0 || layout.cables.length > 0) {
-      setConfirmAction({ type: "sample", payload: sampleId });
-      return;
-    }
-    loadSample(sampleId);
+    // Settings, inventory and records can matter even in an empty rack.
+    setConfirmAction({ type: "sample", payload: sampleId });
   }
 
   function handleConfirm() {
@@ -1708,12 +1708,17 @@ function App() {
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2">
+                {layout.example && (currentWorkspace === 'model' || currentWorkspace === 'audit') && (() => {
+                  const example = sampleDefinitions.find(sample => sample.layout.id === layout.example?.sampleId);
+                  return example ? <Suspense fallback={null}><ExampleGuide sample={example} /></Suspense> : null;
+                })()}
                 {renderWorkspaceMain()}
               </div>
               {NEW_SHELL && statusMessage && <div role="status" className="shrink-0 border-t border-edge px-3 py-1 text-xs text-content-muted">{statusMessage}</div>}
               {currentWorkspace !== "model" && !NEW_SHELL && (
                 <Suspense fallback={null}>
                   <BottomTray
+                    layout={layout}
                     issues={issues}
                     selectedIssueId={selectedIssueId}
                     statusMessage={statusMessage}
@@ -1783,85 +1788,25 @@ function App() {
           </Suspense>
         )}
         {workspaceBackupOpen && <Suspense fallback={null}><WorkspaceBackup onClose={() => setWorkspaceBackupOpen(false)} /></Suspense>}
-        {confirmAction && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-80 rounded-lg border border-edge-strong bg-fill p-5 shadow-xl dark:border-edge-strong dark:bg-surface-raised">
-              <div className="mb-3 text-sm font-semibold text-content">
-                {confirmAction.type === "new" && "Start a new layout?"}
-                {confirmAction.type === "sample" && "Load sample layout?"}
-              </div>
-              <div className="mb-4 text-xs text-content-muted">
-                {confirmAction.type === "new"
-                  ? "This will clear all devices and cables."
-                  : "This will replace your current rack with the selected sample."}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  className="h-9 flex-1 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 hover:bg-red-500/20 dark:text-red-100"
-                  onClick={handleConfirm}
-                  type="button"
-                >
-                  Confirm
-                </button>
-                <button
-                  className="h-9 flex-1 rounded-md border border-edge-strong bg-fill-strong text-sm text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
-                  onClick={() => setConfirmAction(null)}
-                  type="button"
-                >
-                  Cancel
-                </button>
-              </div>
+        {confirmAction && <Suspense fallback={null}>
+          <WorkspaceDialog title={confirmAction.type === 'new' ? 'Start a new layout?' : 'Load sample layout?'} onClose={() => setConfirmAction(null)}>
+            <p className="mb-3 text-sm text-content-secondary">{confirmAction.type === 'new' ? 'This will clear all devices and cables.' : 'This will replace the current rack, including its settings, inventory and records. Other racks remain unchanged.'}</p>
+            {confirmAction.type === 'sample' && <>
+              <p className="mb-3 text-sm font-semibold">{sampleDefinitions.find(sample => sample.layout.id === confirmAction.payload)?.title}</p>
+              {sampleDefinitions.find(sample => sample.layout.id === confirmAction.payload)?.kind === 'exercise' && <p className="mb-3 text-sm font-semibold text-amber-600">INTENTIONAL FAULTS · 故意設置問題：This exercise deliberately includes mistakes to repair.</p>}
+              <p className="mb-4 text-xs text-content-muted" lang="zh-Hant">將替換當前機架的設定、待放置設備及記錄。取消或關閉可保留現有計劃。</p>
+            </>}
+            <div className="flex gap-2">
+              <button autoFocus type="button" onClick={() => setConfirmAction(null)} className="min-h-10 flex-1 rounded-lg border border-edge px-3 py-2">Cancel</button>
+              <button type="button" onClick={handleConfirm} className="min-h-10 flex-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-red-700">Confirm</button>
             </div>
-          </div>
-        )}
+          </WorkspaceDialog>
+        </Suspense>}
+        {samplePickerOpen && <Suspense fallback={null}><SamplePicker definitions={visibleSampleLayouts} onClose={() => setSamplePickerOpen(false)} onSelect={sampleId => {
+          setSamplePickerOpen(false);
+          handleLoadSample(sampleId);
+        }} /></Suspense>}
 
-        {samplePickerOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div
-              className="w-full max-w-2xl rounded-3xl border border-edge-strong bg-fill p-5 shadow-xl dark:border-edge-strong dark:bg-surface-raised"
-              data-testid="sample-picker-modal"
-            >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-lg font-semibold text-content">
-                    Load sample layout
-                  </div>
-                  <div className="text-sm text-content-muted">
-                    Choose a sample to seed the current rack.
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSamplePickerOpen(false)}
-                  className="rounded-full border border-edge-strong bg-surface px-3 py-1 text-xs text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
-                >
-                  Close
-                </button>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {visibleSampleLayouts.map((sample) => (
-                  <button
-                    key={sample.id}
-                    type="button"
-                    onClick={() => {
-                      setSamplePickerOpen(false);
-                      handleLoadSample(sample.id);
-                    }}
-                    className="rounded-2xl border border-edge bg-surface/80 p-4 text-left hover:border-accent hover:bg-accent-subtle/60 dark:border-edge dark:bg-surface/60 dark:hover:border-accent dark:hover:bg-accent-subtle/20"
-                  >
-                    <div className="font-medium text-content">
-                      {sample.name}
-                    </div>
-                    <div className="mt-2 text-xs text-content-muted">
-                      {sample.devices.length} devices • {sample.cables.length}{" "}
-                      cables • {sample.heightU}U
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <Suspense fallback={null}>

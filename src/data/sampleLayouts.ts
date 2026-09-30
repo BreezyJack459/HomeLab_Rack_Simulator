@@ -1,4 +1,7 @@
 import type { RackLayout } from '../types/rack';
+import { learningSampleDefinitions, type SampleDefinition } from './learningSamples';
+export { beginnerSample, advancedSample, exerciseSample, learningSampleLayouts } from './learningSamples';
+export type { SampleDefinition } from './learningSamples';
 import { defaultWeightLimit, RACK_SPECS } from '../utils/rackMath';
 
 const now = new Date().toISOString();
@@ -1030,3 +1033,19 @@ export const sampleLayouts: RackLayout[] = [
     ]
   }
 ];
+
+
+/** The original array and its indexes remain stable for existing workflows. */
+export const sampleDefinitions: SampleDefinition[] = [
+  ...learningSampleDefinitions,
+  ...sampleLayouts.map((layout): SampleDefinition => ({
+    layout, kind: 'legacy', title: layout.name, titleZh: `舊版：${layout.name}`,
+    description: 'An original compatibility example. Its incomplete records intentionally retain normal validation and need review.',
+    descriptionZh: '原有兼容範例，保留未完成嘅紀錄及正常檢查，需要自行核實。',
+    audience: 'Existing example users', outcomes: ['Inspect the original layout and complete its missing evidence.'],
+    assumptions: ['Original catalog/example values may be incomplete. This legacy sample is not a verified purchase list.'],
+  })),
+];
+
+export const getSampleDefinition = (sampleId: string): SampleDefinition | undefined =>
+  sampleDefinitions.find(definition => definition.layout.id === sampleId);

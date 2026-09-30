@@ -23,6 +23,10 @@ const expectReadableNodes = async (page: Page) => {
 test('topology separates devices and preserves positions through filtering and view changes', async ({ page }) => {
   await page.setViewportSize({ width: 1932, height: 964 });
   await page.goto('/');
+  // This regression uses the original multi-device example explicitly.
+  await page.evaluate(() => {
+    (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState().loadSample('sample-my-onhand-gear');
+  });
   await page.getByRole('button', { name: 'Cable', exact: true }).click();
   await page.getByRole('button', { name: 'Topology', exact: true }).click();
   await expectReadableNodes(page);

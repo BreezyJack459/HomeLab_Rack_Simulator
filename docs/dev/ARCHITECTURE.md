@@ -76,3 +76,14 @@ Local package metadata does not grant arbitrary JavaScript loading. `localPackag
 ## Loading and recovery
 
 Three.js/R3F viewers, new-shell chrome and optional packs use lazy loading. Keep Three.js imports out of the eager root. The build guard allows 500 KB for entry plus modulepreload JS, pre-gzip. Manual chunks match exact React/react-dom/Zustand package boundaries; viewer-only react-reconciler and helpers stay with lazy viewer imports. `CanvasWithRecovery` remounts the Canvas after WebGL context restoration to rebuild GPU resources.
+
+
+## Learning example contracts
+
+`data/learningSamples.ts` defines three fictional worked examples and their learning metadata. `sampleLayouts.ts` keeps the original four layouts in their original array positions and exposes the combined `sampleDefinitions` lookup. Rack state uses a deep-cloned beginner only as its in-memory fresh fallback; the existing synchronous workspace/legacy restore and invalid-data protection run before any initialization write. Explicit sample replacement deep-clones the fixture and allocates a distinct rack ID when a sibling already uses its canonical ID.
+
+The additive `RackLayout.example` version-1 marker stores canonical sample origin independently of the rack instance ID. Import validates its version and nonempty ID and preserves additional data. It persists the lazily rendered `ExampleGuide`; it never changes finding status or exempts validation. `SamplePicker` retains legacy examples and always asks before replacing the current rack, including settings, inventory and records. Generic power/spec inputs explicitly identify fictional assumptions rather than verified manufacturer data.
+
+`learningSamples.test.ts` checks exact actionable outcomes, A/B traces, complete patch pairs, services and exercise remedies. `sampleBootstrap.test.ts` and `sampleMarkerValidation.test.ts` protect fresh-only startup, existing/legacy/malformed data, clone isolation and repeated multi-rack loads. `samples.spec.ts` covers desktop/mobile safe selection and persistent teaching context. Existing regression fixtures must declare their rack type and missing facts instead of inheriting the starter configuration.
+
+Summary entry points use `summarizeFindings` and shared `findingSectionLabels`/`FindingSummaryBadges` for confirmed, verification, optional information and accepted counts. Canvas buttons select these sections independently of raw-severity filters. The legacy tray, activity, dashboard, workbench and detailed validation headers use the same root counts; optional raw warnings do not create action counts or drive dashboard failure. Raw check severity/results remain in expanded records, and accepted applicable unknowns/conflicts still affect planning health.

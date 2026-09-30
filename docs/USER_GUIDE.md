@@ -4,6 +4,22 @@ Current working-tree workflows, reviewed 2026-09-30. [繁體中文](USER_GUIDE.z
 
 Screenshots below were captured from the local app on 2026-09-18 using example data. [Complete visual tour](SCREENSHOTS.md).
 
+## Learning examples and a safe first start
+
+A browser with no saved workspace starts with **Start small: one feed / 入門：單路供電小機架**, a 6U 10-inch generic router, switch and distribution plan. Its single-supply, optional recovery and disconnect-before-moving goals are explicit. Spare sockets are intentionally idle. Existing workspaces, legacy saved layouts and recoverable invalid backups are preserved; the starter does not replace them.
+
+Use **Create → Load sample layout** to choose among three learning examples:
+
+- **Start small: one feed** teaches socket faces, intended connections and sensible single-feed goals.
+- **Trace A/B and patch paths** uses a 14U 19-inch rack to demonstrate separate recorded A/B circuits and PSU inlets, complete front/rear patch pairs, rails and service dependencies.
+- **Repair three conflicts** is a deliberately broken copy of the advanced example. Its guide explains the three root causes and remedies: power budget, both server feeds using A, and a declared cable shorter than its modeled route. It is never the startup example.
+
+Summary buttons show **Confirmed issues**, **Needs verification**, **Optional information** and **Accepted exceptions**, counting root causes rather than raw severities. Select a button to open that section in Check; the raw-severity filters and individual heuristic details remain available. For example, the advanced sample has zero confirmed or prerequisite-review causes even though some optional routing checks retain a raw warning severity.
+
+The four original layouts remain under **Legacy examples**. Every explicit sample load asks before replacing the active rack, including an empty rack with edited settings or records; Cancel leaves it unchanged. Other workspace racks are retained. Loading the same sample again restores the original example values.
+
+The compact **Example guide & assumptions** stays with an example-derived plan across reloads and JSON backup/restore. All new devices and their dimensions, loads, socket identities, kits and supply ratings are fictional teaching inputs. A clean Check result means consistency within those stated assumptions; it does not establish manufacturer specifications, site circuit independence, physical fit, electrical safety or service failover. Replace the assumptions with evidence before purchasing. The examples use ordinary validation, and missing or changed evidence still needs review.
+
 ## Build your rack
 
 1. Open **Build**. Use **Tools → Settings → Rack settings** to configure the rack.

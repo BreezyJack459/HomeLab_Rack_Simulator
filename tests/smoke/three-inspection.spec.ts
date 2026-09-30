@@ -4,6 +4,10 @@ import type { useRackStore } from '../../src/store/rackStore';
 test('rack inspection has readable selection labels and shared camera controls', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
+  // This regression uses the original multi-device example explicitly.
+  await page.evaluate(() => {
+    (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState().loadSample('sample-my-onhand-gear');
+  });
   await page.getByRole('button', { name: '3D', exact: true }).click();
   const viewer = page.getByTestId('rack-inspection-3d');
   await expect(viewer.locator('canvas')).toBeVisible();

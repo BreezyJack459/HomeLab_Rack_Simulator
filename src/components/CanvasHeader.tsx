@@ -8,6 +8,7 @@ import { useCableWorkspaceStore } from "../store/cableWorkspaceStore";
 import { ActionMenus, type ActionMenusProps } from "./ActionBar";
 import { DeviceLibraryToggle } from "./DeviceLibraryToggle";
 import { ShellTopBar, type ShellTopBarProps } from "./ShellTopBar";
+import { summarizeFindings, findingSectionLabels, type FindingSection } from '../utils/findingSummary';
 import { RackHealthStrip, type HealthCheckCategory } from "./RackHealthStrip";
 
 type CanvasHeaderProps = ActionMenusProps & {
@@ -22,7 +23,7 @@ type CanvasHeaderProps = ActionMenusProps & {
   onToggleViewMode: (mode: ViewMode) => void;
   onSetViewSide: (side: "front" | "rear") => void;
   summaryContent?: ReactNode;
-  onOpenCheck?: (category?: HealthCheckCategory, severity?: ValidationIssue['severity']) => void;
+  onOpenCheck?: (category?: HealthCheckCategory, filter?: ValidationIssue['severity'] | FindingSection) => void;
   workflow?: ShellWorkflow;
 };
 
@@ -45,6 +46,7 @@ export function CanvasHeader({
   onUndo,
   onRedo,
 }: CanvasHeaderProps) {
+  const summary = summarizeFindings(issues, layout);
   const subview = useCableWorkspaceStore((s) => s.subview);
   const setSubview = useCableWorkspaceStore((s) => s.setSubview);
   const buttonClass = (active: boolean) =>
@@ -177,22 +179,14 @@ export function CanvasHeader({
           issues={issues}
           onOpenCheck={onOpenCheck}
         />
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="Issues by severity">
-          {(["critical", "warning", "info"] as const).map((severity) => {
-            const count = issues.filter((issue) => issue.severity === severity).length;
-            const label = severity === "critical" ? "Critical" : severity === "warning" ? "Warnings" : "Suggestions";
-            return (
-              <button
-                key={severity}
-                type="button"
-                onClick={() => onOpenCheck?.("overview", severity)}
-                aria-label={`${count} ${label.toLowerCase()}`}
-                className={`rounded-full border border-edge px-2.5 py-1 text-xs hover:bg-fill focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${count > 0 && severity === "critical" ? "text-red-500" : count > 0 && severity === "warning" ? "text-amber-500" : "text-content-secondary"}`}
-              >
-                {count} {label}
-              </button>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-1.5" aria-label="Finding summary">
+          {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => <button
+            key={section} type="button" data-testid={`finding-summary-${section}`}
+            onClick={() => onOpenCheck?.('overview', section)}
+            aria-label={`${summary.counts[section]} ${findingSectionLabels[section].toLowerCase()}`}
+            className={`rounded-full border border-edge px-2.5 py-1 text-xs hover:bg-fill focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${summary.counts[section] > 0 && section === 'confirmed' ? 'text-red-500' : 'text-content-secondary'}`}>
+            {summary.counts[section]} {findingSectionLabels[section]}
+          </button>)}
         </div>
       </div>
       {summaryContent}

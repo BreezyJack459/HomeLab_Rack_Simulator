@@ -8,7 +8,8 @@ it('shares root cause counts and exposes each affected check through accessible 
   const issues: ValidationIssue[] = ['a', 'b'].map(id => ({ id, title: `Endpoint ${id}`, detail: `Unknown cable length at ${id}`, severity: 'warning', status: 'unknown', rootCauseKey: 'service-motion:cable', cableIds: ['cable'], deviceIds: [id] }));
   const onIssueSelect = vi.fn();
   render(<RackSummaryAlertsPopover issues={issues} selectedIssueId="a" onIssueSelect={onIssueSelect} />);
-  expect(screen.getByLabelText('Finding summary')).toHaveTextContent('0 confirmed · 1 needs verification');
+  expect(screen.getByLabelText('Finding summary')).toHaveTextContent('0 Confirmed issues');
+  expect(screen.getByLabelText('Finding summary')).toHaveTextContent('1 Needs verification');
   const section = screen.getByRole('region', { name: 'Needs verification' });
   fireEvent.click(within(section).getByRole('button', { name: /Endpoint b/ }));
   expect(onIssueSelect).toHaveBeenCalledWith(issues[1]);

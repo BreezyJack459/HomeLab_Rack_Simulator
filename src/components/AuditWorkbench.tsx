@@ -9,6 +9,7 @@ import {
 import { useMemo } from "react";
 import type { AuditLens } from "../types/appShell";
 import type { RackLayout, ValidationIssue } from "../types/rack";
+import { summarizeFindings } from '../utils/findingSummary';
 import { recommendationForIssue } from "../utils/validationRecommendations";
 import { SnapshotCard, WorkbenchHeader } from "./WorkbenchPrimitives";
 
@@ -72,12 +73,6 @@ const lensMeta = {
 
 const lensKeys = Object.keys(lensMeta) as AuditLens[];
 
-const severityRank: Record<ValidationIssue["severity"], number> = {
-  critical: 0,
-  warning: 1,
-  info: 2,
-};
-
 export function AuditWorkbench({
   layout,
   issues,
@@ -91,16 +86,10 @@ export function AuditWorkbench({
   onSelectLens,
   onIssueSelect,
 }: AuditWorkbenchProps) {
+  const summary = summarizeFindings(issues, layout);
   const topIssues = useMemo(
-    () =>
-      [...issues]
-        .sort(
-          (a, b) =>
-            severityRank[a.severity] - severityRank[b.severity] ||
-            a.title.localeCompare(b.title),
-        )
-        .slice(0, 5),
-    [issues],
+    () => summarizeFindings(issues, layout).groups.flatMap(group => group.issues).slice(0, 5),
+    [issues, layout],
   );
   const selectedIssue = useMemo(
     () =>
@@ -130,19 +119,9 @@ export function AuditWorkbench({
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SnapshotCard
           title="Validation queue"
-          value={`${issues.length}`}
-          detail={
-            issues.length === 0
-              ? "No open layout alerts."
-              : "Critical and warning items waiting for review."
-          }
-          tone={
-            issues.some((issue) => issue.severity === "critical")
-              ? "danger"
-              : issues.length > 0
-                ? "warn"
-                : "default"
-          }
+          value={`${summary.counts.attention}`}
+          detail={`${summary.counts.confirmed} Confirmed issues · ${summary.counts.verification} Needs verification · ${summary.counts.information} Optional information · ${summary.counts.accepted} Accepted exceptions`}
+          tone={summary.counts.confirmed ? "danger" : summary.counts.verification ? "warn" : "default"}
           onClick={() => onSelectLens("issues")}
         />
         <SnapshotCard
@@ -179,10 +158,10 @@ export function AuditWorkbench({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-content">
-                Priority queue
+                Check previews
               </div>
               <div className="text-xs text-content-muted">
-                Start with the highest-risk item and drive selection from here.
+                Needs attention first; optional raw checks remain inspectable.
               </div>
             </div>
             <div className="rounded-full border border-edge bg-surface px-3 py-1 text-xs text-content-muted dark:border-edge dark:bg-surface-raised dark:text-content-muted">
@@ -228,7 +207,7 @@ export function AuditWorkbench({
                         </div>
                       </div>
                       <span className="rounded-full bg-surface/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] dark:bg-surface/60">
-                        {issue.severity}
+                        {issue.status ?? 'unknown'} · Raw severity: {issue.severity}
                       </span>
                     </div>
                   </button>
@@ -259,7 +238,7 @@ export function AuditWorkbench({
               </div>
             ) : (
               <div className="mt-3 text-sm text-content-muted">
-                No issue is selected. Pick one from the priority queue to sync
+                No issue is selected. Pick one from the check previews to sync
                 the right inspector with a concrete problem.
               </div>
             )}

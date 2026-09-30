@@ -208,7 +208,7 @@ export function RackSummaryPanel({
             }}
             aria-expanded={alertsOpen}
             aria-label={`Open checks: ${findingSummary.counts.attention} root causes need attention, ${findingSummary.counts.accepted} accepted exceptions`}
-            title={`${findingSummary.counts.confirmed} confirmed · ${findingSummary.counts.verification} needs verification · ${findingSummary.counts.information} information · ${findingSummary.counts.accepted} accepted`}
+            title={`${findingSummary.counts.confirmed} Confirmed issues · ${findingSummary.counts.verification} Needs verification · ${findingSummary.counts.information} Optional information · ${findingSummary.counts.accepted} Accepted exceptions`}
             className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
               findingSummary.counts.attention
                 ? 'border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300'

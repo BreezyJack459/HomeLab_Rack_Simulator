@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
-import type { ValidationIssue } from '../types/rack';
+import { summarizeFindings } from '../utils/findingSummary';
+import { FindingSummaryBadges } from './FindingSummaryBadges';
+import type { RackLayout, ValidationIssue } from '../types/rack';
 import { recommendationForIssue } from '../utils/validationRecommendations';
 
 interface IssueBarProps {
   issues: ValidationIssue[];
+  layout?: Pick<RackLayout, 'findingExceptions'>;
   selectedIssueId: string | null;
   onIssueSelect: (issue: ValidationIssue) => void;
   className?: string;
@@ -13,6 +16,7 @@ interface IssueBarProps {
 
 export function IssueBar({
   issues,
+  layout,
   selectedIssueId,
   onIssueSelect,
   className,
@@ -20,11 +24,7 @@ export function IssueBar({
 }: IssueBarProps) {
   const [open, setOpen] = useState(false);
 
-  const counts = {
-    critical: issues.filter((i) => i.severity === 'critical').length,
-    warning: issues.filter((i) => i.severity === 'warning').length,
-    info: issues.filter((i) => i.severity === 'info').length,
-  };
+  const summary = summarizeFindings(issues, layout);
 
   const listClassName =
     listMode === 'overlay'
@@ -50,18 +50,10 @@ export function IssueBar({
             color: 'var(--theme-text-primary)',
           }}
         >
-          {issues.length ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-          {issues.length ? `${issues.length} layout alerts` : 'Layout clear'}
+          {summary.counts.attention ? <AlertTriangle size={14} /> : issues.length ? <Info size={14} /> : <CheckCircle2 size={14} />}
+          {`${summary.counts.attention} root causes need attention`}
         </button>
-        <span className="rounded bg-red-500/15 px-2 py-1 text-xs text-red-800 dark:text-red-100">
-          {counts.critical} critical
-        </span>
-        <span className="rounded bg-amber-500/15 px-2 py-1 text-xs text-amber-800 dark:text-amber-100">
-          {counts.warning} warning
-        </span>
-        <span className="rounded bg-sky-500/15 px-2 py-1 text-xs text-sky-800 dark:text-sky-100">
-          {counts.info} info
-        </span>
+        <FindingSummaryBadges counts={summary.counts} />
         {selectedIssueId && (
           <span
             className="min-w-0 flex-1 truncate text-xs"
@@ -97,6 +89,7 @@ export function IssueBar({
                   <div className="truncate font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
                     {issue.title}
                   </div>
+                  <p className="text-content-muted">Result: {issue.status ?? 'unknown'} · Raw severity: {issue.severity}</p>
                   <div className="mt-1 line-clamp-2" style={{ color: 'var(--theme-text-muted)' }}>
                     {recommendationForIssue(issue)}
                   </div>

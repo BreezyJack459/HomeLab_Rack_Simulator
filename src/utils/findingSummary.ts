@@ -4,6 +4,7 @@ import { isThermalIssue } from './issueCategories';
 
 export type FindingTopic = 'overview' | 'thermal' | 'power' | 'capacity' | 'weight' | 'cable';
 export type FindingSection = 'confirmed' | 'verification' | 'information' | 'accepted';
+export const findingSectionLabels: Record<FindingSection, string> = { confirmed: 'Confirmed issues', verification: 'Needs verification', information: 'Optional information', accepted: 'Accepted exceptions' };
 export type FindingGroup = {
   key: string;
   representative: ValidationIssue;

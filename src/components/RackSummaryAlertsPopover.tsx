@@ -1,6 +1,7 @@
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import { recommendationForIssue } from '../utils/validationRecommendations';
-import { summarizeFindings, type FindingSection } from '../utils/findingSummary';
+import { summarizeFindings, findingSectionLabels } from '../utils/findingSummary';
+import { FindingSummaryBadges } from './FindingSummaryBadges';
 import { issueGroupTitle } from '../utils/checkWorkflow';
 
 interface RackSummaryAlertsPopoverProps {
@@ -12,11 +13,11 @@ interface RackSummaryAlertsPopoverProps {
 
 export function RackSummaryAlertsPopover({ issues, layout, selectedIssueId, onIssueSelect }: RackSummaryAlertsPopoverProps) {
   const summary = summarizeFindings(issues, layout);
-  const titles: Record<FindingSection, string> = { confirmed: 'Issues to address', verification: 'Needs verification', information: 'Information & optional checks', accepted: 'Accepted exceptions' };
+  const titles = findingSectionLabels;
   return (
     <div className="absolute right-3 top-full z-40 mt-2 w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-3 shadow-xl">
       <div className="mb-3 text-xs text-content-secondary" aria-label="Finding summary">
-        {summary.counts.confirmed} confirmed · {summary.counts.verification} needs verification · {summary.counts.information} information · {summary.counts.accepted} accepted
+        <FindingSummaryBadges counts={summary.counts} />
       </div>
       {summary.groups.length === 0 ? <p className="rounded-xl border border-edge px-3 py-4 text-sm text-content-secondary">No reported layout checks. This does not verify the physical installation.</p> : (
         <div className="max-h-72 space-y-3 overflow-y-auto pr-1 thin-scrollbar">

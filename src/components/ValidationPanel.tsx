@@ -2,6 +2,8 @@ import { AlertTriangle, CheckCircle2, ChevronDown, Info, Lightbulb, ShieldAlert,
 import { useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import type { ValidationIssue } from '../types/rack';
+import { summarizeFindings } from '../utils/findingSummary';
+import { FindingSummaryBadges } from './FindingSummaryBadges';
 import { recommendationForIssue } from '../utils/validationRecommendations';
 import { explainIssue } from '../utils/validationExplanations';
 
@@ -102,6 +104,8 @@ function IssueExplanation({ issueId }: { issueId: string }) {
 }
 
 export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect }: ValidationPanelProps) {
+  const layout = useRackStore(state => state.layout);
+  const summary = summarizeFindings(issues, layout);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
@@ -131,7 +135,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded bg-fill px-2 py-1 text-xs text-content-secondary dark:bg-surface dark:text-content-secondary">
-            {issues.length ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'Clear'}
+            {summary.counts.attention} root causes need attention
           </span>
           <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
         </div>
@@ -141,6 +145,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
+          <div className="mb-3"><FindingSummaryBadges counts={summary.counts} /></div>
           <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
             <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
               <span className="uppercase tracking-[0.18em] text-content-faint">Weight</span>
@@ -185,6 +190,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
                     <Info className="mt-0.5 shrink-0" size={15} />
                     <div className="flex-1">
                       <div className="font-semibold">{issue.title}</div>
+                      <p className="text-xs">Result: {issue.status ?? 'unknown'} · Raw severity: {issue.severity}</p>
                       <p className="mt-1 text-xs leading-5 opacity-90">{issue.detail}</p>
                       <p className="mt-2 rounded border border-edge bg-fill px-2 py-1.5 text-[11px] leading-4 opacity-95 dark:border-white/10 dark:bg-black/15">
                         {recommendationForIssue(issue)}

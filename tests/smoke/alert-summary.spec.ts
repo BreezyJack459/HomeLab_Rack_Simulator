@@ -5,7 +5,10 @@ for (const width of [1440, 390]) test(`Check separates root actions and raw evid
   await page.setViewportSize({ width, height: 1000 });
   await page.goto('/');
   await page.evaluate(() => {
-    const store = (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState();
+    const rackStore = (window as unknown as { __rackStore: typeof useRackStore }).__rackStore;
+    // Missing rail/clearance facts belong to this fixture, not the starter example.
+    rackStore.getState().newLayout('19in', 18);
+    const store = rackStore.getState();
     store.loadLayout({ ...store.layout, heightU: 18, rackType: '19in', rackDepthMm: 800, devices: [{
       id: 'server', name: 'Summary server', category: 'server', sizeU: 1, positionU: 1, widthType: '19in',
       depthMm: 400, powerW: 10, weightKg: 1, heatLevel: 1, color: '#333', ports: { ethernet: 24 },

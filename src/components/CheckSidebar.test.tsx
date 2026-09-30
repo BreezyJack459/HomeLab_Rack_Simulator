@@ -14,7 +14,9 @@ const props = { issues, selectedId: null, onSelect: vi.fn(), lens: 'issues' as c
 it('prioritizes critical and warnings while allowing suggestions explicitly', () => {
   const { rerender } = render(<CheckSidebar {...props} />);
   expect(screen.queryByText('Optional color')).not.toBeInTheDocument();
-  expect(screen.getByText(/2 confirmed conflicts · 0 needs verification · 1 information/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('2 Confirmed issues');
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('0 Needs verification');
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('1 Optional information');
   rerender(<CheckSidebar {...props} severity="info" />);
   expect(screen.getByText('Optional color')).toBeInTheDocument();
   expect(screen.queryByText('Reduce load')).not.toBeInTheDocument();
@@ -69,14 +71,14 @@ it('groups missing installation evidence without merging failed checks or loweri
   expect(within(verification).getByRole('button', { name: /Server B/ })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(within(verification).getByRole('button', { name: /Server A/ }));
   expect(onSelect).toHaveBeenCalledWith(pending[0]);
-  expect(within(screen.getByRole('region', { name: 'Issues to address' })).getByText('Rail spacing too short')).toBeInTheDocument();
+  expect(within(screen.getByRole('region', { name: 'Confirmed issues' })).getByText('Rail spacing too short')).toBeInTheDocument();
   expect(within(verification).queryByText('Rail spacing too short')).not.toBeInTheDocument();
 });
 
 it('uses explicit failure status even when a title mentions missing evidence', () => {
   render(<CheckSidebar {...props} issues={[{ id: 'missing-cable-device', title: 'Missing device', detail: 'Stale cable endpoint', severity: 'critical', status: 'fail' }]} />);
   expect(screen.queryByRole('region', { name: 'Needs verification' })).not.toBeInTheDocument();
-  expect(within(screen.getByRole('region', { name: 'Issues to address' })).getByText('Stale cable endpoint')).toBeInTheDocument();
+  expect(within(screen.getByRole('region', { name: 'Confirmed issues' })).getByText('Stale cable endpoint')).toBeInTheDocument();
 });
 
 it('explains when the reviewed issue is no longer reported without claiming installation is verified', () => {
@@ -101,21 +103,40 @@ it('counts one root cause for two endpoint checks and leaves their actions acces
   const grouped: ValidationIssue[] = ['a', 'b'].map(id => ({ id: `cable-strain-${id}`, title: `Endpoint ${id}`, detail: `Cable length unknown for ${id}`, severity: 'warning', status: 'unknown', rootCauseKey: 'service-motion:cable', cableIds: ['cable'], deviceIds: [id] }));
   render(<CheckSidebar {...props} issues={grouped} selectedId={grouped[0].id} />);
   expect(screen.getByRole('heading', { name: 'Check · 1 of 1 root causes' })).toBeInTheDocument();
-  expect(screen.getByText(/0 confirmed conflicts · 1 needs verification/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('0 Confirmed issues');
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('1 Needs verification');
   expect(screen.getByRole('button', { name: /Endpoint a/ })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Endpoint b/ })).toBeInTheDocument();
 });
 
 it('does not promote an untagged legacy warning based on severity or reassuring wording', () => {
   render(<CheckSidebar {...props} issues={[{ id: 'custom', severity: 'critical', title: 'Recorded conflict', detail: 'No evidence metadata supplied' }]} />);
-  expect(screen.queryByRole('region', { name: 'Issues to address' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Confirmed issues' })).not.toBeInTheDocument();
   expect(screen.getByRole('region', { name: 'Needs verification' })).toBeInTheDocument();
 });
 
 it('keeps explicit optional and nonapplicable conflicts in the default attention queue', () => {
   const conflicts: ValidationIssue[] = ['optional', 'not-applicable'].map((applicability, index) => ({ id: `physical-${index}`, severity: 'info', status: 'fail', applicability: applicability as 'optional' | 'not-applicable', title: `Known conflict ${index}`, detail: `Resolve conflict ${index}` }));
   render(<CheckSidebar {...props} issues={conflicts} />);
-  expect(screen.getByText(/2 confirmed conflicts/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Finding counts')).toHaveTextContent('2 Confirmed issues');
   expect(screen.getByRole('button', { name: /Resolve conflict 0/ })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Resolve conflict 1/ })).toBeInTheDocument();
+});
+
+it('filters by result sections independently of severity and retains raw severity filters', () => {
+  const checks: ValidationIssue[] = [
+    { id: 'known', status: 'fail', severity: 'warning', title: 'Known fit conflict', detail: 'Fix fit' },
+    { id: 'pending', status: 'unknown', severity: 'warning', title: 'Missing rating', detail: 'Review rating' },
+    { id: 'hint', status: 'unknown', applicability: 'optional', severity: 'warning', title: 'Optional advisory', detail: 'Inspect heuristic' },
+  ];
+  const { rerender } = render(<CheckSidebar {...props} issues={checks} severity="information" />);
+  expect(screen.getByText('Inspect heuristic')).toBeInTheDocument();
+  expect(screen.queryByText('Fix fit')).not.toBeInTheDocument();
+  expect(screen.getByText('Result: unknown · Raw severity: warning')).toBeInTheDocument();
+  rerender(<CheckSidebar {...props} issues={checks} severity="verification" />);
+  expect(screen.getByText('Review rating')).toBeInTheDocument();
+  expect(screen.queryByText('Inspect heuristic')).not.toBeInTheDocument();
+  rerender(<CheckSidebar {...props} issues={checks} severity="warning" />);
+  expect(screen.getByText('Fix fit')).toBeInTheDocument();
+  expect(screen.getByText('Inspect heuristic')).toBeInTheDocument();
 });

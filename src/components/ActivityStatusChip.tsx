@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Activity, ChevronDown } from 'lucide-react';
-import type { ValidationIssue } from '../types/rack';
+import { summarizeFindings } from '../utils/findingSummary';
+import { FindingSummaryBadges } from './FindingSummaryBadges';
+import type { RackLayout, ValidationIssue } from '../types/rack';
 
 interface ActivityStatusChipProps {
   statusMessage: string | null;
   issues: ValidationIssue[];
+  layout?: Pick<RackLayout, 'findingExceptions'>;
   showOpenAudit?: boolean;
   onOpenAudit?: () => void;
 }
@@ -12,13 +15,13 @@ interface ActivityStatusChipProps {
 export function ActivityStatusChip({
   statusMessage,
   issues,
+  layout,
   showOpenAudit = false,
   onOpenAudit,
 }: ActivityStatusChipProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const criticalCount = issues.filter((issue) => issue.severity === 'critical').length;
-  const warningCount = issues.filter((issue) => issue.severity === 'warning').length;
+  const summary = summarizeFindings(issues, layout);
   const preview = statusMessage ?? 'Workspace ready';
 
   useEffect(() => {
@@ -57,17 +60,7 @@ export function ActivityStatusChip({
           </div>
           <p className="text-sm text-content-secondary">{preview}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-content-muted">
-            <span>Active issues: {issues.length}</span>
-            {criticalCount > 0 && (
-              <span className="rounded-full bg-red-500/10 px-2 py-0.5 font-medium text-red-700 dark:text-red-300">
-                {criticalCount} critical
-              </span>
-            )}
-            {warningCount > 0 && (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-300">
-                {warningCount} warning
-              </span>
-            )}
+            <FindingSummaryBadges counts={summary.counts} />
           </div>
           {showOpenAudit && issues.length > 0 && onOpenAudit && (
             <button

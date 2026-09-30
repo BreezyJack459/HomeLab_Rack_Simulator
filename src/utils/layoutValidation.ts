@@ -198,6 +198,13 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
 
   if (!isNonEmptyString(data.id)) errors.push('id must be a non-empty string');
   if (typeof data.name !== 'string') errors.push('name must be a string');
+  if (data.example !== undefined) {
+    if (!isPlainObject(data.example)) errors.push('example must be an object');
+    else {
+      if (data.example.version !== 1) errors.push('example.version must be 1');
+      if (!isNonEmptyString(data.example.sampleId) || !data.example.sampleId.trim()) errors.push('example.sampleId must be a non-empty string');
+    }
+  }
   if (data.planningGoals !== undefined) errors.push(...validatePlanningGoals(data.planningGoals, 'planningGoals'));
   // Preserve the legacy snapshot shape while guarding newly understood
   // planning intent before the baseline can be opened as another layout.

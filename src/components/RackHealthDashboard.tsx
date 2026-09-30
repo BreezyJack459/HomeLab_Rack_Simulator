@@ -1,5 +1,7 @@
 import { useRackStore } from '../store/rackStore';
 import type { RackLayout } from '../types/rack';
+import { summarizeFindings } from '../utils/findingSummary';
+import { FindingSummaryBadges } from './FindingSummaryBadges';
 import { getRackTotals, validateRackLayout } from '../utils/validation';
 
 interface RackHealthDashboardProps {
@@ -33,8 +35,10 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
   const workspace = useRackStore(state => state.workspace);
   const totals = getRackTotals(layout, workspace);
   const issues = validateRackLayout(layout, workspace);
-  const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
-  const warningIssues = issues.filter((i) => i.severity === 'warning').length;
+  const summary = summarizeFindings(issues, layout);
+  const unresolved = summary.groups.filter(group => group.status === 'fail' || (group.status === 'unknown' && group.applicability === 'active'));
+  const criticalIssues = unresolved.filter(group => group.status === 'fail' && group.severity === 'critical').length;
+  const reviewIssues = unresolved.length;
 
   const spacePct = layout.heightU > 0 ? (totals.occupiedU / layout.heightU) * 100 : 0;
   const powerPct = layout.powerBudgetW > 0 ? (totals.powerW / layout.powerBudgetW) * 100 : 0;
@@ -57,7 +61,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
       max: layout.powerBudgetW,
       unit: 'W',
       percent: Math.round(powerPct),
-      status: powerPct >= 100 || issues.some(i => i.id.startsWith('power-poe-') && i.severity === 'critical') ? 'critical' : totals.powerInputUnverified ? 'warning' : statusForPercent(powerPct),
+      status: powerPct >= 100 || unresolved.some(group => group.status === 'fail' && group.severity === 'critical' && group.issues.some(issue => issue.id.startsWith('power-poe-'))) ? 'critical' : totals.powerInputUnverified ? 'warning' : statusForPercent(powerPct),
     },
     {
       label: 'Weight',
@@ -80,7 +84,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
   const overallStatus: HealthStatus =
     criticalIssues > 0 || metrics.some((m) => m.status === 'critical')
       ? 'critical'
-      : warningIssues > 0 || metrics.some((m) => m.status === 'warning')
+      : reviewIssues > 0 || metrics.some((m) => m.status === 'warning')
         ? 'warning'
         : 'good';
 
@@ -99,7 +103,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
           Rack Health
         </div>
         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${overall.bg} ${overall.text}`}>
-          {overallStatus === 'good' ? 'Healthy' : overallStatus === 'warning' ? 'Attention' : 'Critical'}
+          {overallStatus === 'good' ? 'No applicable issues detected' : overallStatus === 'warning' ? 'Attention' : 'Critical'}
         </span>
       </div>
 
@@ -127,16 +131,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
         })}
       </div>
 
-      {(criticalIssues > 0 || warningIssues > 0) && (
-        <div className="mt-3 flex gap-2 text-xs">
-          {criticalIssues > 0 && (
-            <span className="rounded bg-red-500/15 px-2 py-1 text-red-100">{criticalIssues} critical</span>
-          )}
-          {warningIssues > 0 && (
-            <span className="rounded bg-amber-500/15 px-2 py-1 text-amber-100">{warningIssues} warning</span>
-          )}
-        </div>
-      )}
+      <div className="mt-3"><FindingSummaryBadges counts={summary.counts} /></div>
     </section>
   );
 }
