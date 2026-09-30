@@ -1,7 +1,9 @@
 import { projectPoeInputLoads } from './poeLoad';
 import { checkConnectorCompatibility } from './connectorCompatibility';
-import type { CableRoute, PlacedDevice, RackLayout, Workspace } from '../types/rack';
+import type { CableRoute, PlacedDevice, RackLayout, ValidationIssue, Workspace } from '../types/rack';
 import { powerOutletIndex, hasPowerOutletConflict } from './powerOutlet';
+import { resolvePortFace } from './portLayout';
+import { requiresIndependentPower } from './planningGoals';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
 
 export interface PowerChainNode {
@@ -30,6 +32,8 @@ export function getDeviceCapacityW(device: PlacedDevice): number | undefined {
     ? rating : undefined;
 }
 
+export type PowerTopologyFinding = ValidationIssue & { targetId?: string };
+
 type PowerEdge = { sourceId: string; targetId: string; cable: CableRoute };
 
 /** Source/consumer direction is independent of the order in which users picked sockets. */
@@ -38,25 +42,44 @@ export function buildPowerTopology(layout: RackLayout) {
   const edges: PowerEdge[] = [];
   const incomingSupplyIds = new Set<string>();
   const warnings: string[] = [];
+  const warningFindings: PowerTopologyFinding[] = [];
+  const warn = (code: string, message: string, cable?: CableRoute, targetId?: string, deviceIds?: string[]) => {
+    const detail = cable ? `Cable ${cable.label ?? cable.id}: ${message}` : message;
+    warnings.push(detail);
+    warningFindings.push({ id: `power-topology-${code}-${cable?.id ?? 'layout'}`, ruleId: `power-topology-${code}`,
+      status: code === 'assumed-direction' ? 'unknown' : 'fail', applicability: 'active',
+      evidence: code === 'assumed-direction' ? 'unverified' : undefined, severity: 'warning',
+      title: code === 'assumed-direction' ? 'Power supply direction needs review' : 'Power topology conflict', detail,
+      rootCauseKey: cable ? `power-connection:${cable.id}` : 'power-topology:cycle',
+      targetId, cableIds: cable ? [cable.id] : undefined, deviceIds: deviceIds ?? (cable ? [cable.fromDeviceId, cable.toDeviceId] : undefined),
+      cause: { code, from: cable?.fromDeviceId, to: cable?.toDeviceId, supply: cable?.powerSourceDeviceId, fromPort: cable?.fromPort, toPort: cable?.toPort, message },
+    });
+  };
   for (const cable of layout.cables.filter(c => c.type === 'power')) {
     const from = devices.get(cable.fromDeviceId);
     const to = devices.get(cable.toDeviceId);
     if (!from || !to || from.id === to.id) {
-      warnings.push(`Cable ${cable.label ?? cable.id}: invalid power endpoints.`);
+      warn('invalid-endpoints', 'Invalid power endpoints.', cable, cable.toDeviceId);
       continue;
     }
     const connectorCheck = checkConnectorCompatibility(layout, cable);
     const declaredSupply = connectorCheck.supplyDeviceId ??
       ([from.id, to.id].includes(cable.powerSourceDeviceId ?? '') ? cable.powerSourceDeviceId! : isPowerSource(from) ? from.id : to.id);
-    incomingSupplyIds.add(declaredSupply === from.id ? to.id : from.id);
+    // A blocked but directionally identified inlet is still a downstream supply,
+    // never a new live root. Invalid consumer-as-source declarations must not
+    // remove an otherwise valid upstream root from an unrelated supply path.
+    const declaredSource = devices.get(declaredSupply);
+    if (declaredSource && isPowerSource(declaredSource)) {
+      incomingSupplyIds.add(declaredSupply === from.id ? to.id : from.id);
+    }
     if (connectorCheck.status === 'conflict') {
-      warnings.push(`Cable ${cable.label ?? cable.id}: ${connectorCheck.conflicts.join(' ')}`);
+      warn('connector-conflict', connectorCheck.conflicts.join(' '), cable, declaredSupply === from.id ? to.id : from.id);
       continue;
     }
     const fromSource = isPowerSource(from);
     const toSource = isPowerSource(to);
     if (!fromSource && !toSource) {
-      warnings.push(`Cable ${cable.label ?? cable.id}: neither endpoint is a power source.`);
+      warn('missing-source', 'Neither endpoint is a power source.', cable, to.id);
       continue;
     }
     let sourceId = fromSource ? from.id : to.id;
@@ -65,29 +88,33 @@ export function buildPowerTopology(layout: RackLayout) {
     } else if (cable.powerSourceDeviceId !== undefined) {
       const source = devices.get(cable.powerSourceDeviceId);
       if (!source || !isPowerSource(source) || (source.id !== from.id && source.id !== to.id)) {
-        warnings.push(`Cable ${cable.label ?? cable.id}: invalid supply direction.`);
+        warn('invalid-direction', 'Invalid supply direction.', cable, fromSource ? to.id : from.id);
         continue;
       }
       sourceId = source.id;
     } else if (fromSource && toSource) {
-      warnings.push(`Cable ${cable.label ?? cable.id}: supply direction is assumed from the first endpoint. Confirm it in cable details.`);
+      warn('assumed-direction', 'Supply direction is assumed from the first endpoint. Confirm it in cable details.', cable, to.id);
     }
-    edges.push({ sourceId, targetId: sourceId === from.id ? to.id : from.id, cable });
+    const targetId = sourceId === from.id ? to.id : from.id;
+    incomingSupplyIds.add(targetId);
+    edges.push({ sourceId, targetId, cable });
   }
   const roots = layout.devices.filter(d => isPowerSource(d) && !incomingSupplyIds.has(d.id));
-  const visiting = new Set<string>();
+  const visiting: string[] = [];
   const done = new Set<string>();
-  const hasCycle = (id: string): boolean => {
-    if (visiting.has(id)) return true;
-    if (done.has(id)) return false;
-    visiting.add(id);
-    const cycle = edges.some(e => e.sourceId === id && hasCycle(e.targetId));
-    visiting.delete(id);
+  const cycleIds = new Set<string>();
+  const visit = (id: string): void => {
+    const back = visiting.indexOf(id);
+    if (back >= 0) { visiting.slice(back).forEach(node => cycleIds.add(node)); return; }
+    if (done.has(id)) return;
+    visiting.push(id);
+    edges.filter(edge => edge.sourceId === id).forEach(edge => visit(edge.targetId));
+    visiting.pop();
     done.add(id);
-    return cycle;
   };
-  if (layout.devices.some(d => hasCycle(d.id))) warnings.push('Power wiring contains a cycle. Review supply directions before relying on this simulation.');
-  return { devices, edges, roots, warnings };
+  layout.devices.forEach(device => visit(device.id));
+  if (cycleIds.size) warn('cycle', 'Power wiring contains a cycle. Review supply directions before relying on this simulation.', undefined, undefined, [...cycleIds].sort());
+  return { devices, edges, roots, warnings, warningFindings };
 }
 
 const reachablePowerDevices = (edges: PowerEdge[], roots: string[], excluded = new Set<string>()): Set<string> => {
@@ -323,7 +350,7 @@ export function validatePduOutletAssignments(layout: RackLayout): OutletValidati
       if (outletIndex === undefined) continue;
       const peerId = cable.fromDeviceId === pduId ? cable.toDeviceId : cable.fromDeviceId;
       const peer = deviceMap.get(peerId);
-      if (!peer || (peer.ports?.power ?? 0) < 2) continue; // Only dual-PSU devices
+      if (!peer || (peer.ports?.power ?? 0) < 2 || !requiresIndependentPower(layout, peer)) continue; // Explicit redundancy intent only
       const list = deviceOutlets.get(peerId) ?? [];
       list.push({ circuit: pdu.circuit, outletIndex, cableId: cable.id });
       deviceOutlets.set(peerId, list);
@@ -371,7 +398,7 @@ export function simulateOutletFailure(layout: RackLayout, pduId: string, outletI
   layout = projection.layout;
   const pdu = layout.devices.find(d => d.id === pduId && isPowerSource(d));
   if (!pdu) return null;
-  const { devices, edges, roots, warnings } = buildPowerTopology(layout);
+  const { devices, edges, roots, warnings, warningFindings } = buildPowerTopology(layout);
   const failedEdges = edges.filter(e => e.sourceId === pduId && powerOutletIndex(e.cable, pduId) === outletIndex);
   const rootIds = roots.map(d => d.id);
   const before = reachablePowerDevices(edges, rootIds);
@@ -386,8 +413,10 @@ export function simulateOutletFailure(layout: RackLayout, pduId: string, outletI
     const loadW = [...downstream].reduce((sum, id) => sum + devices.get(id)!.powerW, 0);
     const capacityW = getDeviceCapacityW(source);
     const unverifiedLoad = [...downstream].some(id => projection.warnings.has(id));
+    const affectedPath = new Set([source.id, ...downstream]);
+    const topologyUnverified = warningFindings.some(warning => warning.deviceIds?.some(id => affectedPath.has(id)));
     const status = capacityW !== undefined && loadW > capacityW ? 'overload' as const
-      : capacityW === undefined || unverifiedLoad || warnings.length > 0 ? 'unknown' as const : 'within-rating' as const;
+      : capacityW === undefined || unverifiedLoad || topologyUnverified ? 'unknown' as const : 'within-rating' as const;
     return { id: source.id, name: source.name, loadW, capacityW, status };
   });
   const directIds = new Set(failedEdges.map(e => e.targetId));
@@ -418,25 +447,63 @@ export interface RedundancyCheckResult {
   powerCables: CableRoute[];
   circuits: ('A' | 'B')[];
   isRedundant: boolean;
+  status: 'pass' | 'fail' | 'unknown';
+  detail: string;
+  cause: Record<string, unknown>;
 }
 
 export function checkPowerRedundancy(layout: RackLayout): RedundancyCheckResult[] {
-  const { edges, roots, warnings } = buildPowerTopology(layout);
+  const { edges, roots, warningFindings } = buildPowerTopology(layout);
   const results: RedundancyCheckResult[] = [];
   for (const device of layout.devices.filter(d => !isPowerSource(d))) {
-    const feeds = edges.filter(e => e.targetId === device.id);
-    if (feeds.length < 2) continue;
+    const feeds = edges.filter(edge => edge.targetId === device.id);
+    const required = requiresIndependentPower(layout, device);
+    if (feeds.length < 2 && !(required && ((device.ports?.power ?? 0) > 0 || device.powerW > 0))) continue;
+    const upstream = new Set([device.id]);
+    const queue = [device.id];
+    while (queue.length) {
+      const id = queue.pop()!;
+      for (const edge of edges.filter(edge => edge.targetId === id)) {
+        if (!upstream.has(edge.sourceId)) { upstream.add(edge.sourceId); queue.push(edge.sourceId); }
+      }
+    }
+    // An invalid unrelated outgoing cable from a good source is not on this supply path.
+    const scopedWarnings = warningFindings.filter(warning => warning.targetId
+      ? upstream.has(warning.targetId) : warning.deviceIds?.some(id => upstream.has(id)));
     const supplyingRoots = roots.filter(root => reachablePowerDevices(edges, [root.id]).has(device.id));
     const circuits = [...new Set(supplyingRoots.map(root => root.circuit).filter((c): c is 'A' | 'B' => c === 'A' || c === 'B'))];
     const ports = feeds.map(({ cable }) => cable.fromDeviceId === device.id ? cable.fromPort : cable.toPort);
     const validInlets = ports.every(port => port?.type === 'power' && Number.isInteger(port.index) && port.index >= 0 && port.index < (device.ports?.power ?? 0));
-    const separateInlets = validInlets && new Set(ports.map(port => `${port!.side ?? 'default'}:${port!.index}`)).size === feeds.length;
-    const survivesSingleSourceLoss = layout.devices.filter(isPowerSource).every(source => {
+    const separateInlets = validInlets && new Set(ports.map(port => `${resolvePortFace(device, port!)}:${port!.index}`)).size === feeds.length;
+    const invalidRecordedInlet = ports.some(port => port && (port.type !== 'power' || !Number.isInteger(port.index) || port.index < 0 || (device.ports?.power !== undefined && port.index >= device.ports.power)));
+    const relevantSources = layout.devices.filter(source => isPowerSource(source) && upstream.has(source.id));
+    const sharedSources = relevantSources.filter(source => {
       const remainingRoots = roots.filter(root => root.id !== source.id).map(root => root.id);
-      return reachablePowerDevices(edges.filter(edge => edge.sourceId !== source.id && edge.targetId !== source.id), remainingRoots).has(device.id);
+      return !reachablePowerDevices(edges.filter(edge => edge.sourceId !== source.id && edge.targetId !== source.id), remainingRoots).has(device.id);
     });
-    results.push({ device, powerCables: feeds.map(e => e.cable), circuits,
-      isRedundant: warnings.length === 0 && circuits.length === 2 && separateInlets && survivesSingleSourceLoss });
+    let status: RedundancyCheckResult['status'];
+    let detail: string;
+    if (scopedWarnings.length) {
+      status = scopedWarnings.some(warning => warning.status === 'fail') ? 'fail' : 'unknown';
+      detail = 'Supply-path conflicts or assumed directions prevent confirmation. Review the affected power cables.';
+    } else if (feeds.length < 2) {
+      status = 'fail'; detail = `Only ${feeds.length} modeled power feed(s); independent A/B requires two distinct wired supply paths.`;
+    } else if (invalidRecordedInlet) {
+      status = 'fail'; detail = 'A recorded PSU inlet is invalid or outside the configured socket inventory. Correct the cable endpoint.';
+    } else if (!validInlets) {
+      status = 'unknown'; detail = 'Record two distinct valid PSU inlet sockets before confirming A/B supply paths.';
+    } else if (!separateInlets) {
+      status = 'fail'; detail = 'Power feeds use the same PSU inlet; use two distinct inlet sockets.';
+    } else if (supplyingRoots.some(root => root.circuit !== 'A' && root.circuit !== 'B')) {
+      status = 'unknown'; detail = 'Upstream circuit labels are missing; document independent A/B circuits.';
+    } else if (circuits.length < 2 || sharedSources.length > 0) {
+      status = 'fail'; detail = 'The recorded feeds share a circuit or upstream supply. Separate A/B paths must survive loss of each supplying device.';
+    } else {
+      status = 'pass'; detail = 'The recorded wiring has distinct A/B roots and PSU inlets and survives each modeled source loss. Ratings, wall circuits and UPS battery operation still need verification.';
+    }
+    results.push({ device, powerCables: feeds.map(edge => edge.cable), circuits, isRedundant: status === 'pass', status, detail,
+      cause: { goal: required ? 'independent-ab' : 'inspect', feeds: feeds.map(edge => ({ id: edge.cable.id, source: edge.sourceId, inlet: edge.cable.fromDeviceId === device.id ? edge.cable.fromPort : edge.cable.toPort })), roots: supplyingRoots.map(root => ({ id: root.id, circuit: root.circuit })), inletCount: device.ports?.power, sharedSources: sharedSources.map(source => source.id), warnings: scopedWarnings.map(warning => warning.cause) },
+    });
   }
   return results;
 }

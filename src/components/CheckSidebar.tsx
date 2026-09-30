@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { issueGroupTitle } from "../utils/checkWorkflow";
-import { isThermalIssue } from "../utils/issueCategories";
-import type { ValidationIssue } from "../types/rack";
+import { issueMatchesCategory, summarizeFindings, type FindingSection } from "../utils/findingSummary";
+import type { RackLayout, ValidationIssue } from "../types/rack";
 import type { AuditLens } from "../types/appShell";
 
 export function CheckSidebar({
   issues,
+  layout,
   selectedId,
   onSelect,
   lens,
@@ -18,6 +19,7 @@ export function CheckSidebar({
   onStrictCabling,
 }: {
   issues: ValidationIssue[];
+  layout?: Pick<RackLayout, 'findingExceptions'>;
   selectedId: string | null;
   onSelect: (issue: ValidationIssue) => void;
   lens: AuditLens;
@@ -31,43 +33,29 @@ export function CheckSidebar({
 }) {
   const selectedButton = useRef<HTMLButtonElement>(null);
   useEffect(() => { selectedButton.current?.scrollIntoView?.({ block: 'nearest' }); }, [selectedId]);
-  const groups = new Map<string, ValidationIssue[]>();
-  const categoryIssues = issues.filter((issue) => {
-    if (category === 'cable') return !!issue.cableIds?.length || /^(cable-|patch-|structured-|duplicate-port-|invalid-port-|stale-endpoint-|outlet-|endpoint-switch-)/.test(issue.id);
-    if (category === 'thermal') return isThermalIssue(issue);
-    if (category === 'power') return /^(power-|circuit-|redundancy-|dual-psu-|pdu-|outlet-)/.test(issue.id);
-    if (category === 'weight') return /^(weight-|heavy-|center-of-gravity)/.test(issue.id);
-    if (category === 'capacity') return /^(installation-|bounds-|overlap-|width-|depth-|reservation-|physical-height-|tray-height-|zone-)/.test(issue.id);
-    return true;
-  });
-  const visibleIssues = categoryIssues.filter((issue) => severity === 'all' ||
-    (severity === 'attention' ? issue.severity !== 'info' : issue.severity === severity));
-  const sorted = [...visibleIssues].sort(
-    (a, b) =>
-      ["critical", "warning", "info"].indexOf(a.severity) -
-      ["critical", "warning", "info"].indexOf(b.severity),
-  );
-  for (const issue of sorted) {
-    const key = `${issue.evidence ?? "issue"}:${issue.severity}:${issueGroupTitle(issue)}`;
-    groups.set(key, [...(groups.get(key) ?? []), issue]);
-  }
+  const summary = summarizeFindings(issues, layout);
+  const visibleGroups = summary.groups.filter(group => group.issues.some(issue => issueMatchesCategory(issue, category)))
+    .filter(group => severity === 'all' || (severity === 'attention'
+      ? group.section === 'confirmed' || group.section === 'verification'
+      : group.severity === severity));
+  const sectionTitles: Record<FindingSection, string> = { confirmed: 'Issues to address', verification: 'Needs verification', information: 'Information & optional checks', accepted: 'Accepted exceptions' };
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="space-y-3 border-b border-edge p-3">
         <h2 className="text-sm font-semibold">
-          Check · {visibleIssues.length} of {issues.length} issues
+          Check · {visibleGroups.length} of {summary.counts.roots} root causes
         </h2>
         <p className="text-xs text-content-secondary">
-          {issues.filter((issue) => issue.severity === 'critical').length} critical · {issues.filter((issue) => issue.severity === 'warning').length} warnings · {issues.filter((issue) => issue.severity === 'info').length} suggestions
+          {summary.counts.confirmed} confirmed conflicts · {summary.counts.verification} needs verification · {summary.counts.information} information · {summary.counts.accepted} accepted
         </p>
         <label className="block text-xs text-content-muted">
           Show
           <select aria-label="Issue severity" value={severity} onChange={(event) => onSeverity(event.target.value as typeof severity)} className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs">
-            <option value="attention">Critical & warnings</option>
+            <option value="attention">Action & verification</option>
             <option value="critical">Critical only</option>
             <option value="warning">Warnings only</option>
-            <option value="info">Suggestions only</option>
-            <option value="all">All issues & suggestions</option>
+            <option value="info">Info severity only</option>
+            <option value="all">All checks & accepted exceptions</option>
           </select>
         </label>
         <label className="block text-xs text-content-muted">
@@ -121,56 +109,41 @@ export function CheckSidebar({
         )}
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
-        {(['issues', 'unverified'] as const).map((section) => {
-          const sectionGroups = [...groups].filter(([, group]) => (group[0].evidence === 'unverified') === (section === 'unverified'));
-          const count = sectionGroups.reduce((sum, [, group]) => sum + group.length, 0);
-          if (!count) return null;
-          return <section key={section} aria-label={section === 'unverified' ? 'Needs verification' : 'Issues to address'} className="space-y-2">
-            <h3 className="px-1 pt-2 text-xs font-semibold">{section === 'unverified' ? 'Needs verification' : 'Issues to address'} · {count}</h3>
-            {section === 'unverified' && <p className="px-1 text-xs leading-5 text-content-muted">Missing or unreviewed information. These checks remain unverified; warning levels are unchanged.</p>}
-            {sectionGroups.map(([key, group]) => (
-          <details
-            key={key}
-            open={group.some((i) => i.id === selectedId) || group.length === 1}
-            className="rounded-lg border border-edge p-2"
-          >
-            <summary className="cursor-pointer text-xs font-semibold">
-              <span
-                className={
-                  group[0].severity === "critical"
-                    ? "text-red-500"
-                    : group[0].severity === "warning"
-                      ? "text-amber-500"
-                      : "text-content-muted"
-                }
-              >
-                {group[0].severity}
-              </span>{" "}
-              · {issueGroupTitle(group[0])}{" "}
-              <span className="text-content-muted">({group.length})</span>
-            </summary>
-            <div className="mt-2 space-y-1">
-              {group.map((issue) => (
-                <button
-                  key={issue.id}
-                  ref={issue.id === selectedId ? selectedButton : undefined}
-                  type="button"
-                  aria-pressed={issue.id === selectedId}
-                  onClick={() => onSelect(issue)}
-                  className={`w-full rounded p-2 text-left text-xs leading-5 ${issue.id === selectedId ? "bg-accent-subtle text-accent-fg" : "hover:bg-fill text-content-secondary"}`}
-                >
-                  {group.length > 1 && issue.title !== issueGroupTitle(issue) && <span className="mb-1 block font-semibold">{issue.title}{' '}</span>}
-                  {issue.id.startsWith('cable-strain-') && issue.cableIds?.length && <span className="mb-1 block text-content-muted">Cable: {issue.cableIds.join(', ')}{' '}</span>}
-                  {issue.detail}
-                </button>
-              ))}
-            </div>
-          </details>
-        ))}</section>;
+        {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => {
+          const sectionGroups = visibleGroups.filter(group => group.section === section);
+          if (!sectionGroups.length) return null;
+          return <section key={section} aria-label={sectionTitles[section]} className="space-y-2">
+            <h3 className="px-1 pt-2 text-xs font-semibold">{sectionTitles[section]} · {sectionGroups.length}</h3>
+            {section === 'verification' && <p className="px-1 text-xs leading-5 text-content-muted">Missing or unreviewed evidence. Unknown checks do not confirm either a conflict or a pass.</p>}
+            {section === 'accepted' && <p className="px-1 text-xs leading-5 text-content-muted">Recorded exceptions remain inspectable. Acceptance does not verify the installation or resolve a conflict.</p>}
+            {sectionGroups.map(group => <details key={group.key}
+              open={group.issues.some(issue => issue.id === selectedId) || group.issues.length === 1}
+              className="rounded-lg border border-edge p-2">
+              <summary className="cursor-pointer text-xs font-semibold">
+                <span className={group.severity === 'critical' ? 'text-red-500' : group.status === 'unknown' ? 'text-content-secondary' : group.severity === 'warning' ? 'text-amber-500' : 'text-content-muted'}>{group.status === 'unknown' ? 'unverified' : group.severity}</span>
+                {' · '}{issueGroupTitle(group.representative)}{' '}
+                <span className="text-content-muted">({group.issues.length} {group.issues.length === 1 ? 'check' : 'checks'})</span>
+                {group.acceptance === 'reopened' && <span className="ml-1 text-amber-500">Reopened</span>}
+              </summary>
+              {group.exception && <p className="mt-2 text-xs text-content-muted">{group.acceptance === 'reopened' ? 'Previous exception' : 'Exception'}: {group.exception.reason}</p>}
+              <p className="mt-2 text-xs text-content-muted">Affected: {group.deviceIds.length} devices · {group.cableIds.length} cables</p>
+              <div className="mt-2 space-y-1">{group.issues.map(issue => <button key={issue.id}
+                ref={issue.id === selectedId ? selectedButton : undefined}
+                type="button" aria-pressed={issue.id === selectedId}
+                onClick={() => onSelect(issue)}
+                className={`w-full rounded p-2 text-left text-xs leading-5 ${issue.id === selectedId ? 'bg-accent-subtle text-accent-fg' : 'hover:bg-fill text-content-secondary'}`}>
+                <span className="mb-1 block font-semibold">{issue.title}</span>
+                {!!issue.cableIds?.length && <span className="mb-1 block text-content-muted">Cable: {issue.cableIds.join(', ')}</span>}
+                {!!issue.deviceIds?.length && <span className="mb-1 block text-content-muted">Device: {issue.deviceIds.join(', ')}</span>}
+                <span className="mb-1 block text-content-muted">Result: {issue.status ?? 'unknown'} · {issue.severity}</span>
+                {issue.detail}
+              </button>)}</div>
+            </details>)}
+          </section>;
         })}
-        {visibleIssues.length === 0 && (
+        {visibleGroups.length === 0 && (
           <p className="p-3 text-xs text-content-muted">
-            {issues.length === 0 ? "No issues found." : "No issues match these filters. Choose All issues & suggestions or another topic to see more."}
+            {issues.length === 0 ? "No reported checks. This does not verify the physical installation." : "No issues match these filters. Choose All checks & accepted exceptions or another topic to inspect more."}
           </p>
         )}
       </div>

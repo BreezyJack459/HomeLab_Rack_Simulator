@@ -502,6 +502,7 @@ describe('dual-psu-circuit-split', () => {
         {
           id: 'c1',
           fromDeviceId: 'srv1',
+          fromPort: { type: 'power', index: 0 },
           toDeviceId: 'pdu-a',
           type: 'power',
           color: '#000',
@@ -509,6 +510,7 @@ describe('dual-psu-circuit-split', () => {
         {
           id: 'c2',
           fromDeviceId: 'srv1',
+          fromPort: { type: 'power', index: 1 },
           toDeviceId: 'pdu-b',
           type: 'power',
           color: '#000',
@@ -584,7 +586,8 @@ describe('dual-psu-circuit-split', () => {
     });
     const issues = evaluatePolicies(layout);
     expect(issues).toHaveLength(1);
-    expect(issues[0].title).toContain('Dual PSU');
+    expect(issues[0].status).toBe('unknown');
+    expect(issues[0].title).toContain('need verification');
     expect(issues[0].deviceIds).toContain('srv1');
   });
 });

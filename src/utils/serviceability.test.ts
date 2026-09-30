@@ -11,6 +11,7 @@ import {
 } from './serviceability';
 
 const baseLayout: RackLayout = {
+  planningGoals: { version: 1, power: 'unspecified', remoteRecovery: 'optional', serviceMotion: 'live-with-cables' },
   id: 'test',
   name: 'Test',
   rackType: '19in',

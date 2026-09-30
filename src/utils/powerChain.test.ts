@@ -616,6 +616,7 @@ describe('validatePduOutletAssignments', () => {
   it('flags dual-PSU on same circuit', () => {
     const layout: RackLayout = {
       ...baseLayout,
+      planningGoals: { version: 1, power: 'independent-ab', remoteRecovery: 'optional', serviceMotion: 'unspecified' },
       devices: [
         makeDevice('pduA', 'pdu', 0, { circuit: 'A', ports: { power: 8 } }),
         makeDevice('srv1', 'server', 200, { ports: { power: 2 } }),

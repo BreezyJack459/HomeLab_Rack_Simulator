@@ -16,11 +16,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (
-            id.indexOf('node_modules/react') !== -1 ||
-            id.indexOf('node_modules/react-dom') !== -1 ||
-            id.indexOf('node_modules/zustand') !== -1
-          ) {
+          // Match package boundaries: react-reconciler and other viewer-only
+          // React helpers must stay with the lazy 3D chunks, not startup.
+          if (/\/node_modules\/(react|react-dom|zustand)\//.test(id)) {
             return 'vendor-core';
           }
         }

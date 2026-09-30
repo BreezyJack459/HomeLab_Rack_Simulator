@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import type { PlacedDevice, RackLayout, Workspace } from '../types/rack';
+import { summarizeFindings, issueMatchesCategory } from './findingSummary';
 import { assessPoeBudgets, getPoeIssues } from './poeBudget';
 import { validateImportedLayout } from './layoutValidation';
 
@@ -55,12 +56,15 @@ it('surfaces cross-rack budget failures with an explicit source-rack edit target
   const ws = fixture();
   const sourceIssues = getPoeIssues(ws, 'a');
   const receiverIssues = getPoeIssues(ws, 'b');
-  expect(sourceIssues.find(i => i.title === 'PoE source budget exceeded')).toMatchObject({ severity: 'critical', deviceIds: ['source'], editTarget: { rackId: 'a', deviceId: 'source' } });
-  expect(receiverIssues.find(i => i.title === 'PoE source budget exceeded')).toMatchObject({ severity: 'critical', deviceIds: [], editTarget: { rackId: 'a', deviceId: 'source' } });
+  expect(sourceIssues.find(i => i.title === 'PoE source budget exceeded')).toMatchObject({ status: 'fail', applicability: 'active', ruleId: 'power-poe-budget', severity: 'critical', deviceIds: ['source'], editTarget: { rackId: 'a', deviceId: 'source' } });
+  expect(receiverIssues.find(i => i.title === 'PoE source budget exceeded')).toMatchObject({ status: 'fail', applicability: 'active', ruleId: 'power-poe-budget', severity: 'critical', deviceIds: [], editTarget: { rackId: 'a', deviceId: 'source' } });
   expect(receiverIssues[0].detail).toContain('10.00 W');
+  const powerGroups = summarizeFindings(receiverIssues).groups.filter(group => group.issues.some(issue => issueMatchesCategory(issue, 'power')));
+  expect(powerGroups.some(group => group.status === 'fail' && group.severity === 'critical' && group.section === 'confirmed')).toBe(true);
   ws.racks[1].devices[0].portConnectionSpecs!['ethernet:front:0'].poeRequiredW = undefined;
   const missing = getPoeIssues(ws, 'b');
-  expect(missing.find(i => i.title === 'PoE link power is unverified')?.editTarget).toEqual({ rackId: 'b', deviceId: 'receiver' });
+  expect(missing.find(i => i.title === 'PoE link power is unverified')).toMatchObject({ status: 'unknown', evidence: 'unverified', editTarget: { rackId: 'b', deviceId: 'receiver' } });
+  expect(missing.find(i => i.title === 'PoE source budget is unverified')?.status).toBe('unknown');
 });
 
 it('traces cross-rack PoE failure paths without inventing live sources or merging same-id receivers', async () => {
@@ -329,4 +333,15 @@ it('retains unresolved wired input beside PoE and withholds capacity, energy and
   receiver.portConnectionSpecs!['power:rear:0'].nominalVoltageV = 230;
   expect(getRackPowerSummary(rack, ws)).toMatchObject({ powerW: 45, powerInputUnverified: false });
   expect(calculateUpsRuntimes(rack, ws)[0].runtimeLabel).not.toBe('Not estimated');
+});
+
+
+it('keeps known PoE link conflicts separate from missing evidence and fingerprints relevant recorded profiles', () => {
+  const ws = fixture();
+  ws.racks[1].devices[0].portConnectionSpecs!['ethernet:front:0'].poeProfile = 'Passive A';
+  const conflict = getPoeIssues(ws, 'b').find(issue => issue.ruleId === 'power-poe-link')!;
+  expect(conflict).toMatchObject({ status: 'fail', applicability: 'active', editTarget: { rackId: 'a', deviceId: 'source' } });
+  expect(conflict.cause).toMatchObject({ endpoints: [{ rackId: 'a', deviceId: 'source' }, { rackId: 'b', deviceId: 'receiver', profile: 'Passive A' }] });
+  ws.racks[1].devices[0].portConnectionSpecs!['ethernet:front:0'].poeProfile = 'Passive B';
+  expect(getPoeIssues(ws, 'b').find(issue => issue.ruleId === 'power-poe-link')?.cause).not.toEqual(conflict.cause);
 });

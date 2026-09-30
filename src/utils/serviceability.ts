@@ -1,3 +1,5 @@
+import { getPlanningGoals } from './planningGoals';
+import { annotateFinding } from './findingMetadata';
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import { getDeviceMountSide, getDeviceSpatialZone, isZeroU, rangesOverlap } from './rackMath';
 import { getCableLengthRequirements } from './cableLengthRequirements';
@@ -12,6 +14,7 @@ export interface CableStrainRisk {
   requiredLengthMm: number | null;
   status: 'short' | 'unverified';
   detail: string;
+  cause: Record<string, unknown>;
 }
 
 export interface FrontRearCollision {
@@ -44,26 +47,32 @@ export interface DeviceMaintenanceChecklistItem {
 
 export function getCableStrainRisks(layout: RackLayout): CableStrainRisk[] {
   const risks: CableStrainRisk[] = [];
+  const requirements = getCableLengthRequirements(layout);
 
   for (const cable of layout.cables) {
-    const requirement = getCableLengthRequirements(layout).get(cable.id);
+    const requirement = requirements.get(cable.id);
     const lengthMm = cable.lengthMm && cable.lengthMm > 0 ? cable.lengthMm : null;
     const devices = layout.devices.filter(device => device.id === cable.fromDeviceId || device.id === cable.toDeviceId);
     // Conservative one-device travel allowance, not a moving cable-arm simulation.
     for (const device of devices) {
+      const motion = getPlanningGoals(layout, device).serviceMotion;
+      if (motion === 'detach-first') continue;
       const allowanceMm = Math.max(SERVICE_SLACK_MM, requirement?.slackMm ?? 0);
       const requiredLengthMm = requirement?.centrelineMm != null && device.depthMm > 0
         ? Math.ceil(requirement.centrelineMm + device.depthMm + allowanceMm) : null;
-      if (lengthMm === null || requiredLengthMm === null || lengthMm < requiredLengthMm) {
-        const unverified = lengthMm === null || requiredLengthMm === null;
+      if (motion === 'unspecified' || lengthMm === null || requiredLengthMm === null || lengthMm < requiredLengthMm) {
+        const unverified = motion === 'unspecified' || lengthMm === null || requiredLengthMm === null;
         const detail = [
+          motion === 'unspecified' ? 'Service motion is unspecified. Choose disconnect-before-moving or live-with-cables before treating this estimate as a requirement.' : 'Live-with-cables service motion is required by this plan.',
           lengthMm === null ? 'Actual cable length is not recorded.' : `Recorded cable: ${lengthMm}mm.`,
           requiredLengthMm === null ? 'Route or device depth is unresolved; maintenance length is not estimated.'
             : `Assumed maintenance requirement: ${requiredLengthMm}mm (3D centreline ${Math.ceil(requirement!.centrelineMm!)}mm + chassis-depth travel ${device.depthMm}mm + ${allowanceMm}mm allowance).`,
           'Assumes one device moves by its chassis depth; cable arms, release points and moving clearances are not verified.',
         ].join(' ');
         risks.push({ cableId: cable.id, deviceId: device.id, deviceName: device.name,
-          cableLengthMm: lengthMm, requiredLengthMm, status: unverified ? 'unverified' : 'short', detail });
+          cableLengthMm: lengthMm, requiredLengthMm, status: unverified ? 'unverified' : 'short', detail,
+          cause: { goal: motion, lengthMm, requiredLengthMm, deviceId: device.id, device: { positionU: device.positionU, xMm: device.xMm, depthMm: device.depthMm, sizeU: device.sizeU, mountSide: device.mountSide }, route: { fromDeviceId: cable.fromDeviceId, toDeviceId: cable.toDeviceId, fromPort: cable.fromPort, toPort: cable.toPort, manualPath: cable.manualPath }, centrelineMm: requirement?.centrelineMm, allowanceMm },
+        });
       }
     }
   }
@@ -146,6 +155,10 @@ export function getServiceabilityIssues(layout: RackLayout): ValidationIssue[] {
   for (const risk of strainRisks) {
     issues.push({
       id: `cable-strain-${risk.cableId}-${risk.deviceId}`,
+      ruleId: 'service-cable-motion', status: risk.status === 'unverified' ? 'unknown' : 'fail',
+      applicability: getPlanningGoals(layout, layout.devices.find(device => device.id === risk.deviceId)).serviceMotion === 'unspecified' ? 'optional' : 'active',
+      rootCauseKey: `service-motion:${risk.cableId}`,
+      cause: risk.cause,
       evidence: risk.status === 'unverified' ? 'unverified' : undefined,
       severity: 'warning',
       title: risk.status === 'unverified' ? `${risk.deviceName} service cable needs review` : `${risk.deviceName} cable may be too short for service`,
@@ -177,7 +190,7 @@ export function getServiceabilityIssues(layout: RackLayout): ValidationIssue[] {
     });
   }
 
-  return issues;
+  return issues.map(annotateFinding);
 }
 
 export interface PullOutBlocker {
@@ -312,9 +325,9 @@ export function getDeviceMaintenanceChecklist(layout: RackLayout, deviceId: stri
   if (strainRisks.length === 0) {
     items.push({
       id: `${deviceId}-strain-clear`,
-      severity: 'ok',
-      title: 'Service slack',
-      detail: layout.cables.some(cable => cable.fromDeviceId === deviceId || cable.toDeviceId === deviceId)
+      severity: getPlanningGoals(layout, device).serviceMotion === 'detach-first' ? 'info' : 'ok',
+      title: getPlanningGoals(layout, device).serviceMotion === 'detach-first' ? 'Disconnect before service motion' : 'Service slack',
+      detail: getPlanningGoals(layout, device).serviceMotion === 'detach-first' ? 'Disconnect attached cables before moving this device. Live cable travel is not a requirement for this plan.' : layout.cables.some(cable => cable.fromDeviceId === deviceId || cable.toDeviceId === deviceId)
         ? 'Recorded lengths cover the 3D route plus assumed chassis-depth travel and allowance. Cable arms, release points and moving clearances remain unverified.'
         : 'No attached cables to assess.',
     });

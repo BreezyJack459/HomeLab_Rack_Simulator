@@ -28,6 +28,8 @@ import { deviceOverlapsReservations, normalizeReservation } from '../utils/reser
 import { pruneInvalidInterRackCables, routeUsesInterRackPort, validateInterRackCable } from '../utils/interRackCables';
 
 import { validateImportedLayout } from '../utils/layoutValidation';
+import type { FindingIdentity } from '../utils/findingExceptions';
+import { normalizePlanningGoals } from '../utils/planningGoals';
 
 const MAX_SAVED_JSON_LENGTH = 10 * 1024 * 1024;
 const STORAGE_KEY = 'homelab-rack-simulator-workspace';
@@ -120,6 +122,8 @@ function normalizeLayout(layout: RackLayout): RackLayout {
     changeEvents: visibleLayout.changeEvents ?? [],
     policies: visibleLayout.policies ?? [],
     debtItems: visibleLayout.debtItems ?? [],
+    // Missing legacy goals remain absent; reading them supplies neutral defaults.
+    ...(visibleLayout.planningGoals ? { planningGoals: { ...visibleLayout.planningGoals, ...normalizePlanningGoals(visibleLayout.planningGoals) } } : {}),
     updatedAt: layout.updatedAt ?? new Date().toISOString()
   };
   const normalized = {
@@ -219,6 +223,9 @@ interface RackState {
   updateReservation: (reservationId: string, patch: Partial<RackReservation>) => void;
   removeReservation: (reservationId: string) => void;
   updateRack: (patch: Partial<RackLayout>) => void;
+  acceptFindingException: (identity: FindingIdentity, reason: string) => boolean;
+  removeFindingException: (exceptionId: string) => void;
+  reopenFindingException: (exceptionId: string) => void;
   addPolicy: (policy: Omit<RackPolicy, 'id'>) => void;
   updatePolicy: (policyId: string, patch: Partial<RackPolicy>) => void;
   removePolicy: (policyId: string) => void;
@@ -740,6 +747,37 @@ export const useRackStore = create<RackState>((set, get) => ({
     });
   },
 
+  acceptFindingException: (identity, reason) => {
+    if (!reason.trim() || ![identity.ruleId, identity.targetKey, identity.fingerprint].every(value => typeof value === 'string' && value.trim())) return false;
+    const layout = get().layout;
+    const exception = { ...identity, id: newId('exception'), reason: reason.trim(), acceptedAt: new Date().toISOString() };
+    set({
+      layout: {
+        ...layout,
+        findingReviewVersion: 1,
+        findingExceptions: [...(layout.findingExceptions ?? []).filter(record =>
+          record.ruleId !== identity.ruleId || record.targetKey !== identity.targetKey), exception],
+        updatedAt: new Date().toISOString(),
+      },
+      statusMessage: 'Exception accepted with a reason. It will reopen if the cause changes.',
+    });
+    return true;
+  },
+
+  removeFindingException: (exceptionId) => {
+    const layout = get().layout;
+    if (!(layout.findingExceptions ?? []).some(record => record.id === exceptionId)) return;
+    set({
+      layout: { ...layout, findingExceptions: layout.findingExceptions!.filter(record => record.id !== exceptionId), updatedAt: new Date().toISOString() },
+      statusMessage: 'Accepted exception removed.',
+    });
+  },
+
+  reopenFindingException: (exceptionId) => {
+    get().removeFindingException(exceptionId);
+    set({ statusMessage: 'Finding reopened for review.' });
+  },
+
   addPolicy: (policy) => {
     const layout = get().layout;
     const newPolicy: RackPolicy = { ...(policy as RackPolicy), id: `policy-${Date.now()}` };
@@ -1098,6 +1136,9 @@ export const useRackStore = create<RackState>((set, get) => ({
       debtItems: clonedDebtItems,
       domainAssignments: clonedDomainAssignments,
       sensorReadings: clonedSensorReadings,
+      // New target IDs need a new review; never transfer accepted evidence
+      // from the original rack onto its newly created devices and cables.
+      findingExceptions: [],
     };
     const newRack: RackLayout = {
       ...withCableNodes(newRackBase),

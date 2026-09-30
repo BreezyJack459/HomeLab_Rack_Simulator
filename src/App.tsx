@@ -18,6 +18,8 @@ import {
   Upload,
 } from "lucide-react";
 import { propertyTargetForIssue, type IssuePropertyTarget } from "./utils/checkWorkflow";
+import { summarizeFindings } from './utils/findingSummary';
+import type { CheckEditTarget } from './components/CheckIssueDetails';
 import { getShellWorkflow, TOOL_WORKSPACES } from "./utils/shellWorkflow";
 import { useCableWorkspaceStore } from "./store/cableWorkspaceStore";
 import type { HealthCheckCategory } from "./components/RackHealthStrip";
@@ -76,12 +78,6 @@ import type { SearchItem } from "./components/CommandPalette";
 import type { DiagramFormat } from "./utils/diagramExport";
 
 const LayoutRecovery = lazy(() => import('./components/LayoutRecovery').then(m => ({ default: m.LayoutRecovery })));
-
-const issueSeverityRank: Record<ValidationIssue["severity"], number> = {
-  critical: 0,
-  warning: 1,
-  info: 2,
-};
 
 const APP_VERSION = "1.0.0";
 
@@ -423,6 +419,7 @@ function App() {
     "overview") as AuditLens;
 
   const issues = useMemo(() => validateRackLayout(layout, workspace), [layout, workspace]);
+  const findingSummary = useMemo(() => summarizeFindings(issues, layout), [issues, layout.findingExceptions]);
   const totals = useMemo(() => getRackTotals(layout, workspace), [layout, workspace]);
   const documentationIssues = useMemo(
     () => getDocumentationIssues(layout),
@@ -540,17 +537,12 @@ function App() {
     workspace.id === currentWorkspace && pendingPluginIds.includes(workspace.pluginId),
   );
   const selectedIssue = useMemo(
-    () => issues.find((issue) => issue.id === selectedIssueId) ?? null,
-    [issues, selectedIssueId],
+    () => findingSummary.groups.find(group => group.issues.some(issue => issue.id === selectedIssueId))?.representative ?? null,
+    [findingSummary, selectedIssueId],
   );
   const topIssue = useMemo(
-    () =>
-      [...issues].sort(
-        (a, b) =>
-          issueSeverityRank[a.severity] - issueSeverityRank[b.severity] ||
-          a.title.localeCompare(b.title),
-      )[0] ?? null,
-    [issues],
+    () => findingSummary.groups.find(group => group.acceptance !== 'accepted' && group.section !== 'information')?.representative ?? null,
+    [findingSummary],
   );
 
   useEffect(() => {
@@ -628,6 +620,27 @@ function App() {
     }
   }
 
+  function handleCheckEdit(target?: CheckEditTarget) {
+    if (!selectedIssue) return;
+    const source = issues.find(issue => issue.id === selectedIssueId) ?? selectedIssue;
+    const issue = target ? { ...source,
+      deviceIds: target.deviceId ? [target.deviceId] : undefined,
+      cableIds: target.cableId ? [target.cableId] : undefined,
+      editTarget: target.deviceId === source.editTarget?.deviceId ? source.editTarget : undefined,
+    } : source;
+    setCheckEditContext({ issue, rackId: layout.id,
+      targetRackId: issue.editTarget?.rackId ?? layout.id,
+      deviceId: issue.editTarget?.deviceId ?? (issue.cableIds?.length ? undefined : issue.deviceIds?.[0]),
+      target: issue.editTarget || !issue.cableIds?.length ? propertyTargetForIssue(issue) : undefined });
+    if (issue.editTarget) {
+      useRackStore.getState().switchRack(issue.editTarget.rackId);
+      useRackStore.getState().selectDevice(issue.editTarget.deviceId);
+    } else if (issue.cableIds?.length) selectCable(issue.cableIds[0]);
+    else if (issue.deviceIds?.length) selectDevice(issue.deviceIds[0]);
+    handleSelectWorkflow(issue.cableIds?.length ? 'cable' : 'build');
+    setInspectorOpen(true);
+  }
+
   async function handleImport(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
@@ -687,13 +700,7 @@ function App() {
   }
 
   function handleDuplicate() {
-    const duplicated: typeof layout = {
-      ...layout,
-      id: `layout-${Math.random().toString(36).slice(2, 10)}`,
-      name: `${layout.name} (copy)`,
-      updatedAt: new Date().toISOString(),
-    };
-    loadLayout(duplicated);
+    useRackStore.getState().duplicateRack(layout.id, `${layout.name} (copy)`);
   }
 
   async function handleExportLayoutJson() {
@@ -957,24 +964,8 @@ function App() {
             issue={selectedIssue}
             reviewedTitle={reviewedIssue?.id === selectedIssueId && reviewedIssue.rackId === layout.id ? reviewedIssue.title : undefined}
             onEditRack={handleOpenRackSettingsTask}
-            onEdit={() => {
-              if (!selectedIssue) return;
-              setCheckEditContext({ issue: selectedIssue, rackId: layout.id,
-                targetRackId: selectedIssue.editTarget?.rackId ?? layout.id,
-                deviceId: selectedIssue.editTarget?.deviceId ?? (selectedIssue.cableIds?.length ? undefined : selectedIssue.deviceIds?.[0]),
-                target: selectedIssue.editTarget || !selectedIssue.cableIds?.length ? propertyTargetForIssue(selectedIssue) : undefined });
-              if (selectedIssue?.editTarget) {
-                useRackStore.getState().switchRack(selectedIssue.editTarget.rackId);
-                useRackStore.getState().selectDevice(selectedIssue.editTarget.deviceId);
-                handleSelectWorkflow("build");
-                setInspectorOpen(true);
-                return;
-              }
-              if (selectedIssue?.cableIds?.length) selectCable(selectedIssue.cableIds[0]);
-              else if (selectedIssue?.deviceIds?.length) selectDevice(selectedIssue.deviceIds[0]);
-              handleSelectWorkflow(selectedIssue?.cableIds?.length ? "cable" : "build");
-              setInspectorOpen(true);
-            }}
+            onEdit={() => handleCheckEdit()}
+            onEditTarget={handleCheckEdit}
           />
         </Suspense>
       );
@@ -1450,6 +1441,7 @@ function App() {
             sidebar={
               <CheckSidebar
                 issues={issues}
+                layout={layout}
                 severity={checkSeverity}
                 onSeverity={setCheckSeverity}
                 category={checkCategory}
@@ -1561,7 +1553,7 @@ function App() {
   const shellMenuProps: ActionMenusProps = {
     canUndo: canUndo(),
     canRedo: canRedo(),
-    issueCount: issues.length,
+    issueCount: findingSummary.counts.attention,
     onAddDevice: handleAddDeviceTask,
     onAddCable: cablePluginEnabled ? handleAddCableTask : null,
     onFixAlerts: handleFixAlertsTask,

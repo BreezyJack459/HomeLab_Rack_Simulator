@@ -7,6 +7,7 @@ export type PoeLinkAssessment = {
   conflicts: string[]; unknowns: string[];
   endpoints: { rackId: string; deviceId?: string }[];
   editTarget?: { rackId: string; deviceId: string };
+  cause: Record<string, unknown>;
 };
 
 /** An explicit power allocation audit; ordinary data links never imply PoE. */
@@ -19,7 +20,12 @@ export function assessPoeBudgets(workspace: Workspace) {
     }
   }
   const review = (id: string, label: string, a: Endpoint, b: Endpoint, ethernet: boolean) => {
-    const row: PoeLinkAssessment = { id, label, conflicts: [], unknowns: [], endpoints: [a, b].map(e => ({ rackId: e.rackId, deviceId: e.device?.id })), editTarget: a.device ? { rackId: a.rackId, deviceId: a.device.id } : undefined };
+    const row: PoeLinkAssessment = { id, label, conflicts: [], unknowns: [], endpoints: [a, b].map(e => ({ rackId: e.rackId, deviceId: e.device?.id })), editTarget: a.device ? { rackId: a.rackId, deviceId: a.device.id } : undefined,
+      cause: { ethernet, endpoints: [a, b].map(endpoint => {
+        const spec = endpoint.device && endpoint.port ? getPortConnectionSpec(endpoint.device, endpoint.port) : undefined;
+        return { rackId: endpoint.rackId, deviceId: endpoint.device?.id, port: endpoint.port, socketCount: endpoint.device?.ports?.ethernet, poeRole: spec?.poeRole, profile: spec?.poeProfile, requiredW: spec?.poeRequiredW, drawW: spec?.poeDrawW, limitW: spec?.poeLimitW };
+      }) },
+    };
     const markUnallocated = () => { for (const e of [a, b]) { const source = sources.get(JSON.stringify([e.rackId, e.device?.id])); if (source) source.unknownAllocations++; } };
     links.push(row);
     if (!ethernet) { markUnallocated(); row.conflicts.push('PoE intent is only supported on Ethernet links.'); return; }
@@ -79,7 +85,10 @@ export function getPoeIssues(workspace: Workspace, currentRackId: string): Valid
     if (!related.length || source.status === 'within-budget' || !related.some(link => link.endpoints.some(e => e.rackId === currentRackId))) continue;
     issues.push({
       evidence: source.status === 'unverified' ? 'unverified' : undefined,
-      id: `power-poe-budget-${source.id}`, severity: source.status === 'overload' ? 'critical' : 'warning',
+      id: `power-poe-budget-${source.id}`, ruleId: 'power-poe-budget', status: source.status === 'overload' ? 'fail' : 'unknown', applicability: 'active',
+      rootCauseKey: `poe-source-budget:${source.id}`,
+      cause: { sourceKey: source.id, budgetW: source.budgetW, allocatedW: source.allocatedW, unknownAllocations: source.unknownAllocations, allocations: related.map(link => ({ id: link.id, sourceKey: link.sourceKey, receiverKey: link.receiverKey, allocationW: link.allocationW })).sort((a, b) => a.id.localeCompare(b.id)) },
+      severity: source.status === 'overload' ? 'critical' : 'warning',
       title: source.status === 'overload' ? 'PoE source budget exceeded' : 'PoE source budget is unverified',
       detail: `${source.name}: ${source.allocatedW.toFixed(2)} W known allocation${source.budgetW === undefined ? '; total budget is unknown.' : ` / ${source.budgetW.toFixed(2)} W recorded budget.`} ${source.status === 'overload' ? `Excess: ${(source.allocatedW - source.budgetW!).toFixed(2)} W. Reduce assigned demand or use a supply with a verified adequate budget.` : 'Record the source budget and every intended receiver allocation before relying on this total.'}`,
       deviceIds: source.rackId === currentRackId ? [source.deviceId] : [],
@@ -88,7 +97,9 @@ export function getPoeIssues(workspace: Workspace, currentRackId: string): Valid
   }
   for (const link of audit.links) {
     if (!link.endpoints.some(e => e.rackId === currentRackId) || (!link.conflicts.length && !link.unknowns.length)) continue;
-    issues.push({ id: `power-poe-link-${link.id}`, severity: 'warning', evidence: !link.conflicts.length ? 'unverified' : undefined,
+    issues.push({ id: `power-poe-link-${link.id}`, ruleId: 'power-poe-link', status: link.conflicts.length ? 'fail' : 'unknown', applicability: 'active',
+      rootCauseKey: `poe-link:${link.id}`, cause: link.cause,
+      severity: 'warning', evidence: !link.conflicts.length ? 'unverified' : undefined,
       title: link.conflicts.length ? 'PoE link constraints conflict' : 'PoE link power is unverified',
       detail: `${link.label}: ${[...link.conflicts, ...link.unknowns].join(' ')}`,
       deviceIds: link.endpoints.filter(e => e.rackId === currentRackId && e.deviceId).map(e => e.deviceId!), editTarget: link.editTarget,

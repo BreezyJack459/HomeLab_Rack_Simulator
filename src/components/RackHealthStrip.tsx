@@ -1,9 +1,9 @@
-import { isThermalIssue } from '../utils/issueCategories';
+import { issueMatchesCategory, summarizeFindings, type FindingGroup, type FindingTopic } from '../utils/findingSummary';
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import type { getRackTotals } from '../utils/validation';
 
 type RackTotals = ReturnType<typeof getRackTotals>;
-type StripLayout = Pick<RackLayout, 'heightU' | 'powerBudgetW' | 'weightLimitKg'>;
+type StripLayout = Pick<RackLayout, 'heightU' | 'powerBudgetW' | 'weightLimitKg' | 'findingExceptions'>;
 
 export type HealthCheckCategory = 'overview' | 'thermal' | 'power' | 'capacity' | 'weight' | 'cable';
 
@@ -25,7 +25,7 @@ const percentOf = (value: number, denominator: number) =>
   denominator > 0 ? (value / denominator) * 100 : 0;
 
 export const countHeatIssues = (issues: ValidationIssue[]) =>
-  issues.filter(isThermalIssue).length;
+  summarizeFindings(issues).groups.filter(group => group.issues.some(issue => issueMatchesCategory(issue, 'thermal')) && (group.status === 'fail' || group.applicability === 'active') && group.status !== 'pass').length;
 
 interface RackHealthStripProps {
   totals: RackTotals;
@@ -85,7 +85,17 @@ export function RackHealthStrip({
   const capacityPct = percentOf(totals.occupiedU, layout.heightU);
   const powerPct = percentOf(totals.powerW, layout.powerBudgetW);
   const weightPct = percentOf(totals.weightKg, layout.weightLimitKg);
-  const heatCount = countHeatIssues(issues);
+  const groups = summarizeFindings(issues, layout).groups;
+  // Exceptions remove queue actions, not unresolved facts from planning health.
+  const topicGroups = (topic: FindingTopic) => groups.filter(group => (group.status === 'fail' || group.applicability === 'active') && group.status !== 'pass' && group.issues.some(issue => issueMatchesCategory(issue, topic)));
+  const statusWithFindings = (base: HealthChipStatus, matching: FindingGroup[]): HealthChipStatus =>
+    base === 'critical' || matching.some(group => group.status === 'fail' && group.severity === 'critical') ? 'critical'
+      : matching.length ? 'warn' : base;
+  const thermalGroups = topicGroups('thermal');
+  const heatCount = thermalGroups.length;
+  const thermalUnknown = thermalGroups.filter(group => group.status === 'unknown').length;
+  const powerGroups = topicGroups('power');
+  const powerReview = totals.powerInputUnverified || powerGroups.some(group => group.status === 'unknown');
 
   return (
     <div
@@ -97,15 +107,15 @@ export function RackHealthStrip({
         label="Capacity"
         valueText={`${totals.occupiedU} / ${layout.heightU} U`}
         percent={capacityPct}
-        status={statusForPercent(capacityPct, 85)}
+        status={statusWithFindings(statusForPercent(capacityPct, 85), topicGroups('capacity'))}
         testId="health-chip-capacity"
         onClick={onOpenCheck ? () => onOpenCheck('capacity') : undefined}
       />
       <HealthChip
         label="Power"
-        valueText={layout.powerBudgetW > 0 ? `${Number(totals.powerW.toFixed(1))} / ${Number(layout.powerBudgetW.toFixed(1))} W${totals.powerInputUnverified ? ' · Review' : ''}` : 'Not configured'}
+        valueText={layout.powerBudgetW > 0 ? `${Number(totals.powerW.toFixed(1))} / ${Number(layout.powerBudgetW.toFixed(1))} W${powerReview ? ' · Review' : ''}` : 'Not configured'}
         percent={powerPct}
-        status={(layout.powerBudgetW > 0 && powerPct >= 100) || issues.some(issue => issue.id.startsWith('power-poe-') && issue.severity === 'critical') ? 'critical' : totals.powerInputUnverified || issues.some(issue => issue.id.startsWith('power-poe-')) ? 'warn' : layout.powerBudgetW > 0 ? (powerPct < 80 && issues.some(issue => issue.id.startsWith('power-assumption-') || issue.id.startsWith('power-capacity-unknown-')) ? 'warn' : statusForPercent(powerPct, 80)) : 'unconfigured'}
+        status={statusWithFindings(layout.powerBudgetW > 0 ? (powerPct >= 100 ? 'critical' : powerReview ? 'warn' : statusForPercent(powerPct, 80)) : 'unconfigured', powerGroups)}
         testId="health-chip-power"
         onClick={onOpenCheck ? () => onOpenCheck('power') : undefined}
       />
@@ -113,14 +123,14 @@ export function RackHealthStrip({
         label="Weight"
         valueText={layout.weightLimitKg > 0 ? `${totals.weightKg.toFixed(2)} / ${layout.weightLimitKg.toFixed(2)} kg` : 'Not configured'}
         percent={weightPct}
-        status={layout.weightLimitKg > 0 ? statusForPercent(weightPct, 80) : 'unconfigured'}
+        status={statusWithFindings(layout.weightLimitKg > 0 ? statusForPercent(weightPct, 80) : 'unconfigured', topicGroups('weight'))}
         testId="health-chip-weight"
         onClick={onOpenCheck ? () => onOpenCheck('weight') : undefined}
       />
       <HealthChip
         label="Thermal"
-        valueText={heatCount ? `${heatCount} ${heatCount === 1 ? 'issue' : 'issues'}` : 'No issues'}
-        status={heatCount > 0 ? 'warn' : 'good'}
+        valueText={heatCount ? `${heatCount} root ${heatCount === 1 ? 'cause' : 'causes'}${thermalUnknown ? ' · Review' : ''}` : 'No reported issues'}
+        status={statusWithFindings('good', thermalGroups)}
         testId="health-chip-heat"
         onClick={onOpenCheck ? () => onOpenCheck('thermal') : undefined}
       />

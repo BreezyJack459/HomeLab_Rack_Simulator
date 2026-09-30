@@ -1,9 +1,11 @@
+import { getPlanningGoals, requiresIndependentPower } from './planningGoals';
+import { annotateFinding } from './findingMetadata';
 import { getRackPowerSummary } from './rackPower';
 import { batterySupplyLayout } from './upsOutletBackup';
 import { getPoeIssues } from './poeBudget';
 import { getConnectorIssues } from './connectorCompatibility';
 import { getInstallationIssues, getSupportingShelf } from './installationChecks';
-import { needsPowerReview, planningPowerBasis, POWER_BASIS_LABELS } from './powerAssumptions';
+import { isPassivePower, needsPowerReview, planningPowerBasis, POWER_BASIS_LABELS } from './powerAssumptions';
 import { shouldHideDevice } from './featureFlags';
 import type { PlacedDevice, RackLayout, ValidationIssue, CableRoute, Workspace } from '../types/rack';
 import { getPatchPanelJacks } from './patchPanel';
@@ -79,6 +81,9 @@ function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationI
   if (requirement.status !== 'estimated' || short) {
     return {
       id: `${short ? 'cable-short' : 'cable-length-review'}-${cable.id}`,
+      ruleId: 'cable-installation-length', status: short ? 'fail' : 'unknown', applicability: 'active',
+      rootCauseKey: `cable-installation-length:${cable.id}`,
+      cause: { model: 'clean-realistic-3d-estimate', declaredLengthMm: cable.lengthMm, requiredMm: requirement.requiredMm, centrelineMm: requirement.centrelineMm, slackMm: requirement.slackMm, routeStatus: requirement.status, fromDeviceId: cable.fromDeviceId, toDeviceId: cable.toDeviceId, fromPort: cable.fromPort, toPort: cable.toPort, manualPath: cable.manualPath },
       evidence: short ? undefined : 'unverified',
       severity: 'warning',
       title: short ? `Cable ${cable.id} may be too short` : `Cable ${cable.id} length needs review`,
@@ -295,9 +300,7 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     });
   }
 
-  for (const [index, warning] of buildPowerTopology(layout).warnings.entries()) {
-    issues.push({ id: `power-topology-${index}`, severity: 'warning', title: 'Power topology needs review', detail: warning });
-  }
+  issues.push(...buildPowerTopology(layout).warningFindings);
 
   for (const device of layout.devices.filter(needsPowerReview)) {
     issues.push({
@@ -369,7 +372,9 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
       id: 'missing-cable-device',
       severity: 'critical',
       title: 'Cable route references a missing device',
-      detail: 'Remove the stale cable route or reconnect it to an existing component.'
+      detail: 'Remove the stale cable route or reconnect it to an existing component.',
+      deviceIds: [missingCableDevice.fromDeviceId, missingCableDevice.toDeviceId],
+      cableIds: [missingCableDevice.id]
     });
   }
 
@@ -417,7 +422,9 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
         const [deviceId, portType, portIndex] = key.split(':');
         const device = layout.devices.find((d) => d.id === deviceId);
         issues.push({
-          id: `duplicate-port-${key}`,
+          id: `duplicate-port-${key}`, ruleId: 'socket-single-claim', status: 'fail', applicability: 'active',
+          rootCauseKey: portType === 'power' && device && isPowerSource(device) ? `power-outlet:${deviceId}:${portIndex}` : `socket-single-claim:${key}`,
+          cause: { deviceId, portType, portIndex: Number(portIndex), cables: [existingCableId, cable.id].sort() },
           severity: 'warning',
           title: `Port ${portType} ${Number(portIndex) + 1} on ${device?.name ?? 'device'} is used by multiple cables`,
           detail: 'A single port should only have one cable route assigned to it.',
@@ -544,7 +551,9 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     // 1. Endpoint → switch direct connection guidance
     if ((fromIsEndpoint && toIsSwitch) || (fromIsSwitch && toIsEndpoint)) {
       issues.push({
-        id: `endpoint-switch-direct-${cable.id}`,
+        id: `endpoint-switch-direct-${cable.id}`, ruleId: 'endpoint-switch-direct',
+        status: directLinkPolicy ? 'fail' : 'unknown', applicability: directLinkPolicy ? 'active' : 'optional',
+        rootCauseKey: `direct-network-link:${cable.id}`,
         severity: directLinkPolicy?.severity ?? 'info',
         title: 'Endpoint connected directly to switch',
         detail: directLinkPolicy
@@ -728,47 +737,27 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     }
   });
 
-  // Dual PSU servers should use PDU A + B split
-  const servers = layout.devices.filter((d) => d.category === 'server' && (d.ports?.power ?? 0) >= 2);
-  servers.forEach((server) => {
-    const powerCables = layout.cables.filter(
-      (cable) => cable.type === 'power' && (cable.fromDeviceId === server.id || cable.toDeviceId === server.id)
-    );
-    if (powerCables.length === 0) return;
-    const pduZones = powerCables
-      .map((cable) => {
-        const pdu = layout.devices.find((d) => isPdu(d) && (d.id === cable.fromDeviceId || d.id === cable.toDeviceId));
-        return pdu ? getDeviceSpatialZone(pdu) : null;
-      })
-      .filter(Boolean) as string[];
-    const uniqueZones = Array.from(new Set(pduZones));
-    const hasLeft = uniqueZones.includes('side-left');
-    const hasRight = uniqueZones.includes('side-right');
-    if (!hasLeft || !hasRight) {
-      issues.push({
-        id: `dual-psu-split-${server.id}`,
-        severity: 'warning',
-        title: 'Dual PSU server should split across PDU A and B',
-        detail: `${server.name} has ${powerCables.length} power cable(s) but they all route to the same PDU side. Connect one PSU to a left-side PDU (Feed A) and the other to a right-side PDU (Feed B).`,
-        deviceIds: [server.id]
-      });
-    }
-  });
-
-  // Circuit-level redundancy check for dual-PSU servers
-  const redundancyResults = checkPowerRedundancy(layout);
-  for (const result of redundancyResults) {
-    if (!result.isRedundant) {
-      issues.push({
-        id: `redundancy-${result.device.id}`,
-        severity: 'warning',
-        title: 'Independent power feeds are unverified',
-        detail: `${result.device.name}: independent A/B supply paths are not confirmed. Check circuit labels, distinct PSU sockets, supply directions and shared upstream equipment. Remaining-feed capacity and UPS battery operation still require verification.`,
-        deviceIds: [result.device.id],
-        cableIds: result.powerCables.map((c) => c.id),
-      });
-    }
+  // Rack side is a placement choice, not evidence of electrical independence.
+  for (const result of checkPowerRedundancy(layout)) {
+    if (!requiresIndependentPower(layout, result.device) || result.status === 'pass') continue;
+    issues.push({
+      id: `redundancy-${result.device.id}`, ruleId: 'power-independent-ab', status: result.status,
+      applicability: 'active', rootCauseKey: `power-redundancy:${result.device.id}`,
+      evidence: result.status === 'unknown' ? 'unverified' : undefined, severity: 'warning',
+      title: result.status === 'unknown' ? 'Independent power feeds need verification' : 'Independent A/B power goal is not met',
+      detail: `${result.device.name}: ${result.detail} Physical PDU side does not establish feed independence.`,
+      deviceIds: [result.device.id], cableIds: result.powerCables.map(cable => cable.id), cause: result.cause,
+    });
   }
+  const recoveryTargets = layout.devices.filter(device => getPlanningGoals(layout, device).remoteRecovery === 'required' &&
+    (!isPassivePower(device) || device.planningGoals?.remoteRecovery === 'required'));
+  if (recoveryTargets.length || (layout.devices.length === 0 && getPlanningGoals(layout).remoteRecovery === 'required')) issues.push({
+    id: 'remote-recovery-goal', ruleId: 'remote-recovery-capability', status: 'unknown', evidence: 'unverified',
+    applicability: 'active', rootCauseKey: 'remote-recovery:layout', severity: 'warning',
+    title: 'Required remote recovery needs verification',
+    detail: 'This plan requires remote recovery. Management connectivity, VLAN reachability and recovery behavior are not modeled. Document your chosen recovery method and a relevant test in Evidence or scenarios. An ordinary Ethernet connection cannot confirm recovery capability; an IP-KVM is not automatically required.',
+    deviceIds: recoveryTargets.map(device => device.id), cause: { goal: 'required', modelCoverage: 'unmodeled' },
+  });
 
   // PDU outlet-level validation
   const outletIssues = validatePduOutletAssignments(layout);
@@ -785,6 +774,12 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     };
     issues.push({
       id: `outlet-${oi.type}-${oi.pduId}-${oi.outletIndex}`,
+      ruleId: `power-outlet-${oi.type}`,
+      status: ['duplicate-assignment', 'conflicting-assignment', 'outlet-overload', 'ab-mismatch'].includes(oi.type) ? 'fail' : 'unknown',
+      evidence: ['unknown-count', 'unassigned-cable'].includes(oi.type) ? 'unverified' : undefined,
+      applicability: 'active',
+      rootCauseKey: oi.type === 'ab-mismatch' ? `power-redundancy:${oi.deviceIds[0]}` : oi.cableIds.length === 1 ? `power-connection:${oi.cableIds[0]}` : `power-outlet:${oi.pduId}:${oi.outletIndex}`,
+      cause: { type: oi.type, pduId: oi.pduId, outletIndex: oi.outletIndex, detail: oi.detail },
       severity,
       title: titleMap[oi.type] ?? 'PDU outlet issue',
       detail: oi.detail,
@@ -796,7 +791,7 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
   // Serviceability checks
   issues.push(...getServiceabilityIssues(layout));
 
-  return issues;
+  return issues.map(annotateFinding);
 }
 
 export function getRackTotals(layout: RackLayout, workspace?: Workspace) {

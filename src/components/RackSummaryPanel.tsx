@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, ChevronDown, Rows3, Settings2 } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Rows3, Settings2 } from 'lucide-react';
+import { summarizeFindings } from '../utils/findingSummary';
 import type { LifecycleViewFilter, RackLayout, RackType, ValidationIssue } from '../types/rack';
 
 type RackTotals = {
@@ -84,11 +85,7 @@ export function RackSummaryPanel({
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const rootRef = useRef<HTMLElement>(null);
-  const issueTone = issues.some((issue) => issue.severity === 'critical')
-    ? 'danger'
-    : issues.length > 0
-      ? 'warn'
-      : 'default';
+  const findingSummary = summarizeFindings(issues, layout);
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
@@ -210,14 +207,16 @@ export function RackSummaryPanel({
               setAlertsOpen((value) => !value);
             }}
             aria-expanded={alertsOpen}
+            aria-label={`Open checks: ${findingSummary.counts.attention} root causes need attention, ${findingSummary.counts.accepted} accepted exceptions`}
+            title={`${findingSummary.counts.confirmed} confirmed · ${findingSummary.counts.verification} needs verification · ${findingSummary.counts.information} information · ${findingSummary.counts.accepted} accepted`}
             className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition ${
-              issues.length
+              findingSummary.counts.attention
                 ? 'border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                : 'border-edge bg-surface/70 text-content-secondary'
             }`}
           >
-            {issues.length ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-            {issues.length ? `${issues.length}` : '0'}
+            {findingSummary.groups.some(group => (group.status === 'fail' || group.applicability === 'active') && group.status !== 'pass') ? <AlertTriangle size={14} /> : <Rows3 size={14} />}
+            {findingSummary.counts.attention}{findingSummary.groups.some(group => group.applicability === 'active' && group.status === 'unknown') ? ' · Review' : ''}{findingSummary.counts.accepted ? ` · ${findingSummary.counts.accepted} accepted` : ''}
           </button>
           <div className="relative">
             <button
@@ -262,6 +261,7 @@ export function RackSummaryPanel({
       {alertsOpen && (
         <Suspense fallback={null}>
           <RackSummaryAlertsPopover
+            layout={layout}
             issues={issues}
             selectedIssueId={selectedIssueId}
             onIssueSelect={(issue) => {

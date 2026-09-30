@@ -1,63 +1,47 @@
-import type { ValidationIssue } from '../types/rack';
+import type { RackLayout, ValidationIssue } from '../types/rack';
 import { recommendationForIssue } from '../utils/validationRecommendations';
+import { summarizeFindings, type FindingSection } from '../utils/findingSummary';
+import { issueGroupTitle } from '../utils/checkWorkflow';
 
 interface RackSummaryAlertsPopoverProps {
   issues: ValidationIssue[];
+  layout?: Pick<RackLayout, 'findingExceptions'>;
   selectedIssueId: string | null;
   onIssueSelect: (issue: ValidationIssue) => void;
 }
 
-export function RackSummaryAlertsPopover({
-  issues,
-  selectedIssueId,
-  onIssueSelect,
-}: RackSummaryAlertsPopoverProps) {
-  const criticalCount = issues.filter((issue) => issue.severity === 'critical').length;
-  const warningCount = issues.filter((issue) => issue.severity === 'warning').length;
-  const infoCount = issues.filter((issue) => issue.severity === 'info').length;
-
+export function RackSummaryAlertsPopover({ issues, layout, selectedIssueId, onIssueSelect }: RackSummaryAlertsPopoverProps) {
+  const summary = summarizeFindings(issues, layout);
+  const titles: Record<FindingSection, string> = { confirmed: 'Issues to address', verification: 'Needs verification', information: 'Information & optional checks', accepted: 'Accepted exceptions' };
   return (
-    <div className="absolute right-3 top-full z-40 mt-2 w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-3 shadow-xl dark:border-edge dark:bg-surface">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
-          Alerts
-        </span>
-        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300">
-          {criticalCount} critical
-        </span>
-        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-          {warningCount} warning
-        </span>
-        <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300">
-          {infoCount} info
-        </span>
+    <div className="absolute right-3 top-full z-40 mt-2 w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-edge bg-surface p-3 shadow-xl">
+      <div className="mb-3 text-xs text-content-secondary" aria-label="Finding summary">
+        {summary.counts.confirmed} confirmed · {summary.counts.verification} needs verification · {summary.counts.information} information · {summary.counts.accepted} accepted
       </div>
-
-      {issues.length === 0 ? (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-4 text-sm text-emerald-700 dark:text-emerald-300">
-          No active layout alerts. The current rack looks clear.
-        </div>
-      ) : (
-        <div className="grid max-h-64 gap-2 overflow-y-auto pr-1 thin-scrollbar md:grid-cols-2">
-          {issues.map((issue) => (
-            <button
-              key={issue.id}
-              type="button"
-              onClick={() => onIssueSelect(issue)}
-              className={`rounded-xl border p-3 text-left text-xs transition ${
-                selectedIssueId === issue.id
-                  ? 'border-accent bg-accent-solid/10'
-                  : issue.severity === 'critical'
-                    ? 'border-red-500/25 bg-red-500/8'
-                    : issue.severity === 'warning'
-                      ? 'border-amber-500/25 bg-amber-500/8'
-                      : 'border-sky-500/20 bg-sky-500/8'
-              }`}
-            >
-              <div className="font-semibold text-content">{issue.title}</div>
-              <div className="mt-1 text-content-muted">{recommendationForIssue(issue)}</div>
-            </button>
-          ))}
+      {summary.groups.length === 0 ? <p className="rounded-xl border border-edge px-3 py-4 text-sm text-content-secondary">No reported layout checks. This does not verify the physical installation.</p> : (
+        <div className="max-h-72 space-y-3 overflow-y-auto pr-1 thin-scrollbar">
+          {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => {
+            const groups = summary.groups.filter(group => group.section === section);
+            if (!groups.length) return null;
+            return <section key={section} aria-label={titles[section]}>
+              <h3 className="mb-2 text-xs font-semibold">{titles[section]} · {groups.length}</h3>
+              <div className="space-y-2">{groups.map(group => <details key={group.key}
+                open={group.issues.some(issue => issue.id === selectedIssueId)} className="rounded-xl border border-edge p-3 text-xs">
+                <summary className="cursor-pointer font-semibold text-content">{issueGroupTitle(group.representative)} · {group.issues.length} {group.issues.length === 1 ? 'check' : 'checks'}{group.acceptance === 'reopened' ? ' · Reopened' : ''}</summary>
+                <p className="mt-2 text-content-muted">{group.status === 'unknown' ? 'Unverified' : group.status} · {group.severity} · {group.deviceIds.length} devices · {group.cableIds.length} cables</p>
+                {group.exception && <p className="mt-1 text-content-muted">{group.acceptance === 'reopened' ? 'Previous exception' : 'Exception'}: {group.exception.reason}</p>}
+                <p className="mt-1 text-content-muted">{recommendationForIssue(group.representative)}</p>
+                {group.issues.map(issue => <button key={issue.id} type="button" aria-pressed={selectedIssueId === issue.id}
+                  onClick={() => onIssueSelect(issue)} className="mt-2 w-full rounded border border-edge p-2 text-left hover:bg-fill">
+                  <span className="block font-semibold">{issue.title}</span>
+                  <span className="block text-content-muted">Result: {issue.status ?? 'unknown'} · {issue.severity}</span>
+                  <span className="block text-content-muted">{issue.detail}</span>
+                  <span className="mt-1 block text-accent-fg">Inspect check & actions</span>
+                </button>)}
+              </details>)}</div>
+            </section>;
+          })}
+          <p className="text-xs text-content-muted">Accepted exceptions retain their evidence. Raw checks and assumptions remain available in each root cause.</p>
         </div>
       )}
     </div>

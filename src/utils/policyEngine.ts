@@ -1,6 +1,7 @@
 import type { PlacedDevice, RackLayout, RackPolicy, RackPolicyType, ValidationIssue } from '../types/rack';
+import { checkPowerRedundancy } from './powerChain';
+import { annotateFinding } from './findingMetadata';
 import { getPortMetadata } from './portLayout';
-import { isPdu } from './routing';
 import { getDeviceMountSide, isZeroU, occupiedUnits } from './rackMath';
 
 export const DEFAULT_POLICY_PARAMS: Record<
@@ -36,12 +37,13 @@ function makeIssue(
   cableIds?: string[]
 ): ValidationIssue {
   return {
-    id: `policy-${policy.type}-${policy.id}`,
+    id: `policy-${policy.type}-${policy.id}`, ruleId: `policy-${policy.type}`, status: 'fail', applicability: 'active',
     severity: policy.severity,
     title,
     detail,
     deviceIds,
     cableIds,
+    rootCauseKey: policy.type === 'no-endpoint-switch-direct' && cableIds?.length === 1 ? `direct-network-link:${cableIds[0]}` : undefined,
   };
 }
 
@@ -113,39 +115,20 @@ function evaluateSwitchPortFreePercent(layout: RackLayout, policy: RackPolicy): 
   const switches = layout.devices.filter((d) => d.category === 'switch');
   if (switches.length === 0) return [];
 
-  let totalPorts = 0;
-  for (const sw of switches) {
-    const ports = sw.ports;
-    if (ports) {
-      totalPorts +=
-        (ports.ethernet ?? 0) +
-        (ports.fiber ?? 0) +
-        (ports.usb ?? 0) +
-        (ports.hdmi ?? 0) +
-        (ports.power ?? 0) +
-        (ports.atx ?? 0) +
-        (ports.coax ?? 0);
-    }
-  }
+  const networkFamilies = new Set(['ethernet', 'fiber']);
+  const switchMap = new Map(switches.map(device => [device.id, device]));
+  const totalPorts = switches.reduce((sum, device) => sum + (device.ports?.ethernet ?? 0) + (device.ports?.fiber ?? 0), 0);
   if (totalPorts === 0) return [];
-
-  // Count claimed ports via cables
   const claimedPorts = new Set<string>();
   for (const cable of layout.cables) {
-    if (cable.fromPort) {
-      claimedPorts.add(`${cable.fromDeviceId}:${cable.fromPort.type}:${cable.fromPort.index}`);
-    }
-    if (cable.toPort) {
-      claimedPorts.add(`${cable.toDeviceId}:${cable.toPort.type}:${cable.toPort.index}`);
+    if (!['ethernet', 'fiber', 'patch', 'structured'].includes(cable.type)) continue;
+    for (const [deviceId, port] of [[cable.fromDeviceId, cable.fromPort], [cable.toDeviceId, cable.toPort]] as const) {
+      const device = switchMap.get(deviceId);
+      if (!device || !port || !networkFamilies.has(port.type) || !Number.isInteger(port.index) || port.index < 0 || port.index >= (device.ports?.[port.type] ?? 0)) continue;
+      claimedPorts.add(JSON.stringify([deviceId, port.type, port.index]));
     }
   }
-
-  const usedPorts = Array.from(claimedPorts).filter((key) => {
-    const [deviceId, portType] = key.split(':');
-    const device = layout.devices.find((d) => d.id === deviceId);
-    return device?.category === 'switch' && portType !== 'power';
-  }).length;
-
+  const usedPorts = claimedPorts.size;
   const freePercent = ((totalPorts - usedPorts) / totalPorts) * 100;
   if (freePercent < minPercent) {
     return [
@@ -160,42 +143,15 @@ function evaluateSwitchPortFreePercent(layout: RackLayout, policy: RackPolicy): 
 }
 
 function evaluateDualPsuCircuitSplit(layout: RackLayout, policy: RackPolicy): ValidationIssue[] {
-  const servers = layout.devices.filter(
-    (d) => d.category === 'server' && (d.ports?.power ?? 0) >= 2
-  );
-  const violations: ValidationIssue[] = [];
-
-  for (const server of servers) {
-    const powerCables = layout.cables.filter(
-      (cable) =>
-        cable.type === 'power' &&
-        (cable.fromDeviceId === server.id || cable.toDeviceId === server.id)
-    );
-    if (powerCables.length < 2) continue;
-
-    const circuits = new Set<string>();
-    for (const cable of powerCables) {
-      const pdu = layout.devices.find(
-        (d) => isPdu(d) && (d.id === cable.fromDeviceId || d.id === cable.toDeviceId)
-      );
-      if (pdu?.circuit) {
-        circuits.add(pdu.circuit);
-      }
-    }
-
-    if (circuits.size <= 1) {
-      violations.push(
-        makeIssue(
-          policy,
-          'Dual PSU server is not split across circuits',
-          `${server.name} has ${powerCables.length} power cable(s) but they all route to the same circuit. For true redundancy, connect each PSU to a different circuit (A and B).`,
-          [server.id],
-          powerCables.map((c) => c.id)
-        )
-      );
-    }
-  }
-  return violations;
+  return checkPowerRedundancy(layout).filter(result =>
+    result.device.category === 'server' && (result.device.ports?.power ?? 0) >= 2 && result.status !== 'pass',
+  ).map(result => ({
+    ...makeIssue(policy, result.status === 'unknown' ? 'Independent power feeds need verification' : 'Independent A/B power goal is not met',
+      `${result.device.name}: ${result.detail}`, [result.device.id], result.powerCables.map(cable => cable.id)),
+    id: `policy-${policy.type}-${policy.id}-${result.device.id}`, ruleId: 'power-independent-ab',
+    status: result.status, evidence: result.status === 'unknown' ? 'unverified' as const : undefined,
+    rootCauseKey: `power-redundancy:${result.device.id}`, cause: result.cause,
+  }));
 }
 
 function evaluateHeatSeparation(layout: RackLayout, policy: RackPolicy): ValidationIssue[] {
@@ -299,7 +255,7 @@ export function evaluatePolicies(layout: RackLayout): ValidationIssue[] {
     issues.push(...evaluator(layout, policy));
   }
 
-  return issues;
+  return issues.map(annotateFinding);
 }
 
 export type PolicyPresetName = 'home-lab-minimal' | 'soho-best-practice' | 'datacenter-standard';

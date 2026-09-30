@@ -36,6 +36,8 @@ export function GoldenBaselinePanel() {
       procurementItems: [],
       readinessChecks: [],
       commissioningChecks: [],
+      // Opening a new rack from the baseline requires a fresh scoped review.
+      findingExceptions: [],
       goldenBaseline: baseline,
       changeEvents: [],
       updatedAt: new Date().toISOString()

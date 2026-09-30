@@ -55,6 +55,7 @@ export function createLayoutSnapshot(layout: RackLayout): RackLayoutSnapshot {
     viewSide: layout.viewSide,
     devices: layout.devices,
     cables: layout.cables,
+    planningGoals: layout.planningGoals,
     reservations: layout.reservations ?? [],
     rearClearanceMm: layout.rearClearanceMm,
     frontDoorClearanceMm: layout.frontDoorClearanceMm,

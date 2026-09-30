@@ -25,6 +25,14 @@ The active key is `homelab-rack-simulator-workspace`; `homelab-rack-simulator-la
 
 Save failures set a visible persistence error. Unreadable stored data blocks autosave to protect the original and exposes a raw download. `LayoutRecovery` also shows retained out-of-bounds records. Reducing rack height when records are affected requires a review dialog; accepting retains devices, cables, reservations and dependent records rather than silently deleting them. Inter-rack links are synchronized and invalid links can be pruned with a status message.
 
+## Finding results and planning intent
+
+`planningGoals.ts` resolves optional version-1 rack goals and partial device overrides at read time; a legacy layout remains unchanged. Single power, independent A/B, remote recovery and service motion are requirements, not inferred monitoring duties. Enabled legacy policies remain explicit requirements. Power independence uses the accepted topology and only warnings on the relevant ancestors; physically separate rack sides do not establish separate circuits.
+
+Rules add stable `ruleId`, `status` (pass/fail/unknown), `applicability`, `rootCauseKey` and scoped `cause` metadata. `findingMetadata.ts` conservatively adapts older rules; severity and missing evidence cannot imply a verified result. `findingSummary.ts` is the shared adapter for Check, summary popovers and health. It counts root actions while retaining raw child checks, targets and assumptions. Confirmed failures remain actionable regardless of optional applicability. Accepted exceptions leave unresolved facts in health indicators.
+
+`findingExceptions.ts` fingerprints the canonical scoped facts and sorted targets. Group representatives include every child identity so one accepted cause cannot silently cover new evidence or equipment. Store actions require a reason and persist immutable changes through the existing history/autosave flow. Relevant changes reopen the decision; returning to identical facts restores the prior acceptance. Duplicated racks reset exceptions. Rack/workspace JSON and baseline goals preserve the additive records; import/restore guards reject malformed and unsupported versions before replacing data.
+
 ## Placement and mounting
 
 `devicePlacement.ts`, `rackMath.ts`, `rackResize.ts` and validation utilities provide shared placement/fit logic. Preview and commit must agree, including reservations and devices hidden by view filters.
@@ -67,4 +75,4 @@ Local package metadata does not grant arbitrary JavaScript loading. `localPackag
 
 ## Loading and recovery
 
-Three.js/R3F viewers, new-shell chrome and optional packs use lazy loading. Keep Three.js imports out of the eager root. The build guard allows 500 KB for entry plus modulepreload JS, pre-gzip. `CanvasWithRecovery` remounts the Canvas after WebGL context restoration to rebuild GPU resources.
+Three.js/R3F viewers, new-shell chrome and optional packs use lazy loading. Keep Three.js imports out of the eager root. The build guard allows 500 KB for entry plus modulepreload JS, pre-gzip. Manual chunks match exact React/react-dom/Zustand package boundaries; viewer-only react-reconciler and helpers stay with lazy viewer imports. `CanvasWithRecovery` remounts the Canvas after WebGL context restoration to rebuild GPU resources.

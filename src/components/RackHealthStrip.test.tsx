@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import type { ValidationIssue } from '../types/rack';
 import type { getRackTotals } from '../utils/validation';
+import { findingIdentity } from '../utils/findingExceptions';
+import { summarizeFindings } from '../utils/findingSummary';
 import { countHeatIssues, RackHealthStrip } from './RackHealthStrip';
 
 const makeTotals = (overrides: Partial<ReturnType<typeof getRackTotals>> = {}) =>
@@ -85,7 +87,7 @@ describe('RackHealthStrip', () => {
       <RackHealthStrip totals={makeTotals()} layout={layout} issues={[]} />,
     );
     expect(chipStatus('health-chip-heat')).toBe('good');
-    expect(screen.getByTestId('health-chip-heat')).toHaveTextContent('No issues');
+    expect(screen.getByTestId('health-chip-heat')).toHaveTextContent('No reported issues');
 
     rerender(
       <RackHealthStrip
@@ -145,8 +147,25 @@ it('surfaces PoE failures without downgrading an overloaded rack to a warning', 
   const warning = makeIssue('power-poe-link-one', 'PoE power unverified');
   const { rerender } = render(<RackHealthStrip totals={makeTotals({ powerW: 10 })} layout={layout} issues={[warning]} />);
   expect(chipStatus('health-chip-power')).toBe('warn');
-  rerender(<RackHealthStrip totals={makeTotals({ powerW: 10 })} layout={layout} issues={[{ ...warning, severity: 'critical' }]} />);
+  rerender(<RackHealthStrip totals={makeTotals({ powerW: 10 })} layout={layout} issues={[{ ...warning, severity: 'critical', status: 'fail' }]} />);
   expect(chipStatus('health-chip-power')).toBe('critical');
   rerender(<RackHealthStrip totals={makeTotals({ powerW: 3100 })} layout={layout} issues={[warning]} />);
   expect(chipStatus('health-chip-power')).toBe('critical');
+});
+
+it('counts a thermal root once and retains unknown health after acceptance', () => {
+  const issues: ValidationIssue[] = ['one', 'two'].map(id => ({ ...makeIssue(`airflow-${id}`, 'Airflow dimensions need review'), status: 'unknown', rootCauseKey: 'airflow:server', deviceIds: ['server'], cause: { field: id } }));
+  const group = summarizeFindings(issues).groups[0];
+  const acceptedLayout = { ...layout, findingExceptions: [{ id: 'accepted', ...findingIdentity(group.representative), reason: 'Await cabinet measurement', acceptedAt: '2026-09-30T00:00:00.000Z' }] };
+  render(<RackHealthStrip totals={makeTotals()} layout={acceptedLayout} issues={issues} />);
+  expect(countHeatIssues(issues)).toBe(1);
+  expect(screen.getByTestId('health-chip-heat')).toHaveTextContent('1 root cause · Review');
+  expect(chipStatus('health-chip-heat')).toBe('warn');
+});
+
+it('does not hide an accepted known physical conflict from capacity health', () => {
+  const conflict: ValidationIssue = { ...makeIssue('width-server', 'Server too wide'), status: 'fail', severity: 'critical', deviceIds: ['server'] };
+  const acceptedLayout = { ...layout, findingExceptions: [{ id: 'accepted', ...findingIdentity(conflict), reason: 'Replace before purchase', acceptedAt: '2026-09-30T00:00:00.000Z' }] };
+  render(<RackHealthStrip totals={makeTotals()} layout={acceptedLayout} issues={[conflict]} />);
+  expect(chipStatus('health-chip-capacity')).toBe('critical');
 });

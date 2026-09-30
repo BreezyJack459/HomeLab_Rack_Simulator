@@ -26,7 +26,10 @@ describe('shared purchasing length', () => {
     expect(bomLengthLabel(buildBom(layout)[0])).toBe(cablePurchaseLengthLabel(requirement));
     expect(getProcurementChecklist(layout).find(item => item.sourceKind === 'cable')?.unit).toBe(cablePurchaseLengthLabel(requirement));
     expect(layout.cables[0].lengthMm).toBe(1);
-    expect(validateRackLayout(layout).find(issue => issue.id === 'cable-short-c')?.detail).toContain(`Purchase length: ${cablePurchaseLengthLabel(requirement)}`);
+    const lengthIssue = validateRackLayout(layout).find(issue => issue.id === 'cable-short-c')!;
+    expect(lengthIssue).toMatchObject({ ruleId: 'cable-installation-length', status: 'fail', applicability: 'active', cause: { model: 'clean-realistic-3d-estimate', declaredLengthMm: 1, requiredMm: requirement.requiredMm } });
+    expect(lengthIssue.detail).toContain(`Purchase length: ${cablePurchaseLengthLabel(requirement)}`);
+    expect(lengthIssue.detail).toContain('Installation estimate; verify connectors and actual routing.');
     const moved = { ...layout, devices: layout.devices.map(device => device.id === 'b' ? { ...device, positionU: 1 } : device) };
     expect(getCableLengthRequirements(moved).get('c')!.requiredMm).not.toBe(requirement.requiredMm);
   });
@@ -41,7 +44,7 @@ describe('shared purchasing length', () => {
       expect(requirement.requiredMm).toBeNull();
       expect(buildBom(layout)[0].lengthMm).toBeNull();
       expect(buildBom(layout)[0].count).toBe(1);
-      expect(validateRackLayout(layout).some(issue => issue.id === 'cable-length-review-c')).toBe(true);
+      expect(validateRackLayout(layout).find(issue => issue.id === 'cable-length-review-c')).toMatchObject({ status: 'unknown', applicability: 'active', evidence: 'unverified', cause: { requiredMm: null, routeStatus: 'blocked' } });
       expect(getProcurementChecklist(layout).find(item => item.sourceKind === 'cable')?.unit).toContain('Not estimated');
     }
   });

@@ -25,9 +25,26 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }
 
-function validateDevice(device: unknown, index: number): string[] {
+function validatePlanningGoals(value: unknown, prefix: string): string[] {
+  if (!isPlainObject(value)) return [`${prefix} must be an object`];
   const errors: string[] = [];
-  const prefix = `devices[${index}]`;
+  if (value.version !== 1) errors.push(`${prefix}.version must be 1`);
+  const options: Record<string, string[]> = {
+    power: ['single', 'independent-ab', 'unspecified'],
+    remoteRecovery: ['required', 'optional'],
+    serviceMotion: ['detach-first', 'live-with-cables', 'unspecified'],
+  };
+  for (const [key, allowed] of Object.entries(options)) {
+    if (value[key] !== undefined && (typeof value[key] !== 'string' || !allowed.includes(value[key] as string))) {
+      errors.push(`${prefix}.${key} must be ${allowed.join(', ')}`);
+    }
+  }
+  return errors;
+}
+
+function validateDevice(device: unknown, index: number, collection = 'devices'): string[] {
+  const errors: string[] = [];
+  const prefix = `${collection}[${index}]`;
 
   if (!isPlainObject(device)) {
     errors.push(`${prefix}: not an object`);
@@ -37,6 +54,7 @@ function validateDevice(device: unknown, index: number): string[] {
   if (!isNonEmptyString(device.id)) errors.push(`${prefix}.id missing or invalid`);
   if (!isNonEmptyString(device.category)) errors.push(`${prefix}.category missing or invalid`);
   if (!isNonEmptyString(device.name)) errors.push(`${prefix}.name missing or invalid`);
+  if (device.planningGoals !== undefined) errors.push(...validatePlanningGoals(device.planningGoals, `${prefix}.planningGoals`));
   if (typeof device.positionU !== 'number' || !Number.isFinite(device.positionU)) {
     errors.push(`${prefix}.positionU must be a number`);
   }
@@ -180,6 +198,36 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
 
   if (!isNonEmptyString(data.id)) errors.push('id must be a non-empty string');
   if (typeof data.name !== 'string') errors.push('name must be a string');
+  if (data.planningGoals !== undefined) errors.push(...validatePlanningGoals(data.planningGoals, 'planningGoals'));
+  // Preserve the legacy snapshot shape while guarding newly understood
+  // planning intent before the baseline can be opened as another layout.
+  const snapshot = isPlainObject(data.goldenBaseline) && isPlainObject(data.goldenBaseline.snapshot)
+    ? data.goldenBaseline.snapshot : undefined;
+  if (snapshot) {
+    if (snapshot.planningGoals !== undefined) errors.push(...validatePlanningGoals(snapshot.planningGoals, 'goldenBaseline.snapshot.planningGoals'));
+    for (const collection of ['devices', 'unplacedDevices']) {
+      const records = snapshot[collection];
+      if (Array.isArray(records)) records.forEach((device, index) => {
+        if (isPlainObject(device) && device.planningGoals !== undefined) {
+          errors.push(...validatePlanningGoals(device.planningGoals, `goldenBaseline.snapshot.${collection}[${index}].planningGoals`));
+        }
+      });
+    }
+  }
+  if (data.findingReviewVersion !== undefined && data.findingReviewVersion !== 1) errors.push('findingReviewVersion must be 1');
+  if (data.findingExceptions !== undefined) {
+    if (!Array.isArray(data.findingExceptions)) errors.push('findingExceptions must be an array');
+    else data.findingExceptions.forEach((record, index) => {
+      const prefix = `findingExceptions[${index}]`;
+      if (!isPlainObject(record)) { errors.push(`${prefix} must be an object`); return; }
+      for (const key of ['id', 'ruleId', 'targetKey', 'fingerprint', 'reason']) {
+        if (!isNonEmptyString(record[key]) || !(record[key] as string).trim()) errors.push(`${prefix}.${key} must be a non-empty string`);
+      }
+      if (typeof record.acceptedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(record.acceptedAt) || !Number.isFinite(Date.parse(record.acceptedAt))) {
+        errors.push(`${prefix}.acceptedAt must be an ISO date-time`);
+      }
+    });
+  }
   if (typeof data.rackType !== 'string' || !RACK_TYPES.has(data.rackType)) {
     errors.push('rackType must be "10in" or "19in"');
   }
@@ -241,7 +289,7 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
   if (Array.isArray(data.reservations)) data.reservations.forEach((r, index) => {
     if (!isPlainObject(r) || !isNonEmptyString(r.id) || typeof r.name !== 'string' || !isPositiveNumber(r.positionU) || !isPositiveNumber(r.sizeU)) errors.push(`reservations[${index}] is invalid`);
   });
-  if (Array.isArray(data.unplacedDevices)) data.unplacedDevices.forEach((device, index) => errors.push(...validateDevice(device, index)));
+  if (Array.isArray(data.unplacedDevices)) data.unplacedDevices.forEach((device, index) => errors.push(...validateDevice(device, index, 'unplacedDevices')));
 
   if (errors.length > 0) {
     return { valid: false, errors };

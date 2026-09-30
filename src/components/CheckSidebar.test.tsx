@@ -6,15 +6,15 @@ import type { ValidationIssue } from '../types/rack';
 
 afterEach(cleanup);
 const issues: ValidationIssue[] = [
-  { id: 'power-limit', severity: 'critical', title: 'Power exceeded', detail: 'Reduce load' },
-  { id: 'depth-device', severity: 'warning', title: 'Too deep', detail: 'Adjust depth', deviceIds: ['device'] },
+  { id: 'power-limit', severity: 'critical', status: 'fail', title: 'Power exceeded', detail: 'Reduce load' },
+  { id: 'depth-device', severity: 'warning', status: 'fail', title: 'Too deep', detail: 'Adjust depth', deviceIds: ['device'] },
   { id: 'color-cable', severity: 'info', title: 'Cable color', detail: 'Optional color' },
 ];
 const props = { issues, selectedId: null, onSelect: vi.fn(), lens: 'issues' as const, onLens: vi.fn(), severity: 'attention' as const, onSeverity: vi.fn(), category: 'overview' as const, onCategory: vi.fn(), strictCabling: false, onStrictCabling: vi.fn() };
 it('prioritizes critical and warnings while allowing suggestions explicitly', () => {
   const { rerender } = render(<CheckSidebar {...props} />);
   expect(screen.queryByText('Optional color')).not.toBeInTheDocument();
-  expect(screen.getByText(/1 critical · 1 warnings · 1 suggestions/)).toBeInTheDocument();
+  expect(screen.getByText(/2 confirmed conflicts · 0 needs verification · 1 information/)).toBeInTheDocument();
   rerender(<CheckSidebar {...props} severity="info" />);
   expect(screen.getByText('Optional color')).toBeInTheDocument();
   expect(screen.queryByText('Reduce load')).not.toBeInTheDocument();
@@ -60,12 +60,12 @@ it('filters cables by affected routes and resets topic and severity together', (
 
 it('groups missing installation evidence without merging failed checks or lowering severity', () => {
   const pending: ValidationIssue[] = ['Server A', 'Server B'].map((name, index) => ({ id: `installation-requirements-${index}`, title: `${name}: installation unverified`, detail: 'Requirements are not recorded', severity: 'warning', evidence: 'unverified' }));
-  const failed: ValidationIssue = { id: 'installation-rails-failed', title: 'Server C: installation requirement not met', detail: 'Rail spacing too short', severity: 'warning' };
+  const failed: ValidationIssue = { id: 'installation-rails-failed', title: 'Server C: installation requirement not met', detail: 'Rail spacing too short', severity: 'warning', status: 'fail' };
   const onSelect = vi.fn();
   render(<CheckSidebar {...props} issues={[...pending, failed]} selectedId={pending[1].id} onSelect={onSelect} />);
   const verification = screen.getByRole('region', { name: 'Needs verification' });
-  expect(within(verification).getAllByText(/Installation requirements not recorded/)).toHaveLength(1);
-  expect(within(verification).getByText('warning')).toBeInTheDocument();
+  expect(within(verification).getAllByText(/Installation requirements not recorded/)).toHaveLength(2);
+  expect(within(verification).getAllByText('unverified')[0]).toBeInTheDocument();
   expect(within(verification).getByRole('button', { name: /Server B/ })).toHaveAttribute('aria-pressed', 'true');
   fireEvent.click(within(verification).getByRole('button', { name: /Server A/ }));
   expect(onSelect).toHaveBeenCalledWith(pending[0]);
@@ -73,8 +73,8 @@ it('groups missing installation evidence without merging failed checks or loweri
   expect(within(verification).queryByText('Rail spacing too short')).not.toBeInTheDocument();
 });
 
-it('does not classify untagged conflicts by missing or unknown words in a title', () => {
-  render(<CheckSidebar {...props} issues={[{ id: 'missing-cable-device', title: 'Missing device', detail: 'Stale cable endpoint', severity: 'critical' }]} />);
+it('uses explicit failure status even when a title mentions missing evidence', () => {
+  render(<CheckSidebar {...props} issues={[{ id: 'missing-cable-device', title: 'Missing device', detail: 'Stale cable endpoint', severity: 'critical', status: 'fail' }]} />);
   expect(screen.queryByRole('region', { name: 'Needs verification' })).not.toBeInTheDocument();
   expect(within(screen.getByRole('region', { name: 'Issues to address' })).getByText('Stale cable endpoint')).toBeInTheDocument();
 });
@@ -91,8 +91,31 @@ it('groups unverified service lengths while keeping each device and cable identi
   const onSelect = vi.fn();
   render(<CheckSidebar {...props} issues={pending} selectedId={pending[0].id} onSelect={onSelect} />);
   const region = screen.getByRole('region', { name: 'Needs verification' });
-  expect(within(region).getAllByText(/Service cable length needs review/)).toHaveLength(1);
+  expect(within(region).getAllByText(/Service cable length needs review/)).toHaveLength(2);
   const cableB = within(region).getByRole('button', { name: /Server service cable needs review.*Cable: cable-b/ });
   fireEvent.click(cableB);
   expect(onSelect).toHaveBeenCalledWith(pending[1]);
+});
+
+it('counts one root cause for two endpoint checks and leaves their actions accessible', () => {
+  const grouped: ValidationIssue[] = ['a', 'b'].map(id => ({ id: `cable-strain-${id}`, title: `Endpoint ${id}`, detail: `Cable length unknown for ${id}`, severity: 'warning', status: 'unknown', rootCauseKey: 'service-motion:cable', cableIds: ['cable'], deviceIds: [id] }));
+  render(<CheckSidebar {...props} issues={grouped} selectedId={grouped[0].id} />);
+  expect(screen.getByRole('heading', { name: 'Check · 1 of 1 root causes' })).toBeInTheDocument();
+  expect(screen.getByText(/0 confirmed conflicts · 1 needs verification/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Endpoint a/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Endpoint b/ })).toBeInTheDocument();
+});
+
+it('does not promote an untagged legacy warning based on severity or reassuring wording', () => {
+  render(<CheckSidebar {...props} issues={[{ id: 'custom', severity: 'critical', title: 'Recorded conflict', detail: 'No evidence metadata supplied' }]} />);
+  expect(screen.queryByRole('region', { name: 'Issues to address' })).not.toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Needs verification' })).toBeInTheDocument();
+});
+
+it('keeps explicit optional and nonapplicable conflicts in the default attention queue', () => {
+  const conflicts: ValidationIssue[] = ['optional', 'not-applicable'].map((applicability, index) => ({ id: `physical-${index}`, severity: 'info', status: 'fail', applicability: applicability as 'optional' | 'not-applicable', title: `Known conflict ${index}`, detail: `Resolve conflict ${index}` }));
+  render(<CheckSidebar {...props} issues={conflicts} />);
+  expect(screen.getByText(/2 confirmed conflicts/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Resolve conflict 0/ })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Resolve conflict 1/ })).toBeInTheDocument();
 });

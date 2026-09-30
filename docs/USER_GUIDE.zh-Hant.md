@@ -94,7 +94,15 @@ Cable 工作區把 Cable list 放在左邊，中央可切換：
 
 ## 5. Check：驗證與修正
 
-Check 把問題按嚴重程度整理。它涵蓋機架容量、重量、功率、散熱、深度、UPS、空氣流動及可維護性。揀選問題後，中央和右邊面板會顯示受影響設備與建議修正方式；完成調整後會自動重新計算。
+Check、摘要 popover 同健康指標共用同一個原因分組。**Issues to address** 係已記錄衝突；**Needs verification** 係適用但缺乏證據嘅檢查。**All checks & accepted exceptions** 保留可選資訊、原始結果、假設同已接受例外。一個原因可能有幾項檢查，展開可睇全部受影響設備／線材。嚴重程度代表影響，unknown 代表資料未足以確認 pass 或 fail；真實衝突唔會因可選模式而隱藏。
+
+喺 Check inspector 打開 **Planning goals** 設定機架要求，選取設備亦可 override。舊計劃保留中立預設，唔會自動開啟新要求。**Single supply is sufficient** 唔要求第二條 PSU 線；**Independent A/B supplies required** 按上游路徑、獨立 PSU 插口同電路判斷，唔按 PDU 左右位置。缺少電路／插口資料需要核實；已啟用嘅 Dual PSU Circuit Split policy 仍然適用。閒置可選網絡／管理插口唔會產生接線警告。**Recovery access required** 要記錄並測試復原方法，普通 Ethernet 連線或單有 IP-KVM 都唔能夠證明遠端復原能力。
+
+**Disconnect cables before removal** 唔要求連線狀態下嘅維修行程；**Move equipment with cables attached** 先檢查保守行程預留。**Not specified** 把假設保留為可選資訊。機身深度只係行程估算，實際 rail travel、線長、cable arm 同清空空間仍要確認。
+
+揀選檢查後，可用 **Edit device／Edit cable／Adjust rack settings** 跳去相關設定；分組亦列出全部受影響目標。**Return to check** 返回原問題及篩選。問題消失只代表唔再符合目前記錄，唔代表實物已獲確認。
+
+**Record an accepted exception** 必須填原因，決定只適用於當時嘅 rule、目標同 facts。例外移出預設 action queue，但原始衝突／unknown 仍可查閱，健康指標亦唔會把適用 unknown 或衝突變綠。相關資料改變會重新開啟並保留舊原因；undo／恢復完全相同 facts 會恢復原 acceptance。**Reopen this exception** 可移除決定，複製機架要重新 review。完整機架／workspace JSON 備份保留 goals 同 exceptions；新欄位格式／版本無效時，匯入會先指出具體欄位，保護現有計劃。
 
 ## 6. 儲存、匯出與 LAN 開發
 
@@ -118,7 +126,7 @@ http://YOUR_MAC_LAN_IP:5173/HomeLab_Rack_Simulator/
 
 **Tools → Operations／Planning／Fleet** 未啟用時會顯示 **Enable & open**。**Tools → Settings** 有 **Rack settings**、**Manage plugins** 同外觀設定。Cable 依賴預設啟用嘅 Cable Management；如果唔見咗 Cable，可以先檢查插件設定。
 
-可選功能按需下載；載入失敗可停用再啟用重試。新安裝預設關閉 Operations、Planning、Fleet 同 Port Labels；舊使用者已有嘅插件設定會經遷移補回 workspace packs，所以重新載入後可能再見到之前關閉嘅功能包。
+可選功能按需下載；載入失敗可停用再啟用重試。新安裝預設關閉 Operations、Planning、Fleet 同 Port Labels；舊使用者已有嘅插件清單會保留並記錄一次性遷移版本，重新載入唔會自動重開已關閉嘅功能包。
 
 啟用 **Port Labels** 後，喺 Tools／Settings 打開佢嘅 view，揀交換器、編輯 physical label，再按 **Save labels**；**CSV** 匯出插口文件。未儲存嘅標籤修改會另外提示。
 

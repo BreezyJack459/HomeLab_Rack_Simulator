@@ -17,6 +17,8 @@ export const propertyTargetForIssue = (issue: ValidationIssue): IssuePropertyTar
 };
 
 export const issueGroupTitle = (issue: ValidationIssue): string => {
+  if (issue.rootCauseKey?.startsWith('installation-review:') && issue.status === 'unknown') return 'Installation needs verification';
+  if (issue.rootCauseKey?.startsWith('service-motion:') && issue.status === 'unknown') return 'Service cable length needs review';
   if (issue.evidence !== 'unverified') return issue.title;
   if (issue.id.startsWith('cable-strain-')) return 'Service cable length needs review';
   if (issue.id.startsWith('cable-length-review-')) return 'Cable length needs review';

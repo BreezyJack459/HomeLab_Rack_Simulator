@@ -6,7 +6,7 @@ for (const width of [1440, 390]) test(`service cable review counts the routed le
   await page.goto('/');
   await page.evaluate(() => {
     const store = (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState();
-    store.loadLayout({ ...store.layout, heightU: 18, rackDepthMm: 800, devices: [10, 6].map((positionU, index) => ({
+    store.loadLayout({ ...store.layout, heightU: 18, rackDepthMm: 800, planningGoals: { version: 1, power: 'unspecified', remoteRecovery: 'optional', serviceMotion: 'live-with-cables' }, devices: [10, 6].map((positionU, index) => ({
       id: index ? 'b' : 'a', name: `Server ${index}`, category: 'server', sizeU: 1, positionU,
       widthType: '19in', depthMm: 400, powerW: 10, weightKg: 1, heatLevel: 1, color: '#333', ports: { ethernet: 2 },
     })), cables: [{ id: 'c', type: 'ethernet', fromDeviceId: 'a', toDeviceId: 'b', fromPort: { type: 'ethernet', index: 0 }, toPort: { type: 'ethernet', index: 0 }, lengthMm: 700, color: '#333' }] });
@@ -17,9 +17,11 @@ for (const width of [1440, 390]) test(`service cable review counts the routed le
   if (width < 1024) await page.getByRole('dialog', { name: 'Check issues', exact: true }).getByRole('button', { name: 'Close device library', exact: true }).click();
   const openInspector = page.getByRole('button', { name: 'Open inspector', exact: true });
   if (await openInspector.isVisible()) await openInspector.click();
-  await expect(page.getByText(/Server 0: Recorded cable: 700mm/)).toContainText('chassis-depth travel 400mm');
+  const strain = page.getByRole('button', { name: /^Cable strain Server 0:/ });
+  await expect(strain).toContainText('Recorded cable: 700mm');
+  await expect(strain).toContainText('chassis-depth travel 400mm');
   await page.evaluate(() => (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState().updateCable('c', { lengthMm: undefined }));
-  await expect(page.getByText(/Server 0: Actual cable length is not recorded/)).toBeVisible();
+  await expect(strain).toContainText('Actual cable length is not recorded');
   await page.evaluate(() => (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState().updateCable('c', { lengthMm: 5000 }));
   await expect(page.getByText(/No modeled serviceability concerns detected/)).toBeVisible();
   await expect(page.getByText(/Confirm actual access, release points and moving clearances/)).toBeVisible();

@@ -175,7 +175,26 @@ export interface NetworkInterface {
   dns?: string;
 }
 
+export type PlanningGoals = {
+  version: 1;
+  power: 'single' | 'independent-ab' | 'unspecified';
+  remoteRecovery: 'required' | 'optional';
+  serviceMotion: 'detach-first' | 'live-with-cables' | 'unspecified';
+};
+
+export type DevicePlanningGoals = { version: 1 } & Partial<Omit<PlanningGoals, 'version'>>;
+
+export interface FindingException {
+  id: string;
+  ruleId: string;
+  targetKey: string;
+  fingerprint: string;
+  reason: string;
+  acceptedAt: string;
+}
+
 export interface PlacedDevice {
+  planningGoals?: DevicePlanningGoals;
   /** Legacy shelves reserve a solid U; trays share their mounting U with equipment. */
   shelfStyle?: 'solid' | 'tray';
   shelfThicknessMm?: number;
@@ -472,6 +491,7 @@ export interface RackLayoutSnapshot {
   viewSide: ViewSide;
   devices: PlacedDevice[];
   cables: CableRoute[];
+  planningGoals?: PlanningGoals;
   reservations?: RackReservation[];
   rearClearanceMm?: number;
   frontDoorClearanceMm?: number;
@@ -662,6 +682,9 @@ export interface Workspace {
 }
 
 export interface RackLayout {
+  findingReviewVersion?: 1;
+  planningGoals?: PlanningGoals;
+  findingExceptions?: FindingException[];
   id: string;
   name: string;
   rackType: RackType;
@@ -814,6 +837,12 @@ export interface PortReservation {
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
 
 export interface ValidationIssue {
+  ruleId?: string;
+  status?: 'pass' | 'fail' | 'unknown';
+  applicability?: 'active' | 'optional' | 'not-applicable';
+  rootCauseKey?: string;
+  /** Relevant recorded inputs only, for scoped accepted-exception fingerprints. */
+  cause?: Record<string, unknown>;
   /** Explicitly identified missing evidence; absence does not imply verification. */
   evidence?: 'unverified';
   editTarget?: { rackId: string; deviceId: string };
