@@ -39,7 +39,9 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: npm test
+        # Dense-layout tests include a wall-clock performance budget. Avoid
+        # competing test files consuming the runner CPU during that measurement.
+        run: npm test -- --no-file-parallelism
 
       - name: Run plugin tests
         run: npm run test:plugins
