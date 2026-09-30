@@ -34,36 +34,19 @@ export function DepthCompatibilityPanel() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded border p-2" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)' }}>
-            <div style={{ color: 'var(--theme-text-muted)' }}>Rail min</div>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                className="w-14 rounded border px-1 py-0.5 text-sm outline-none"
-                style={{ backgroundColor: 'var(--theme-bg-input)', borderColor: 'var(--theme-border)', color: 'var(--theme-text-primary)' }}
-                value={layout.railMinDepthMm ?? 0}
-                onChange={(e) => updateRack({ railMinDepthMm: Math.max(0, Number(e.target.value)) })}
-                min={0}
-              />
-              <span style={{ color: 'var(--theme-text-secondary)' }}>mm</span>
-            </div>
-          </div>
-          <div className="rounded border p-2" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)' }}>
-            <div style={{ color: 'var(--theme-text-muted)' }}>Rail max</div>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                className="w-14 rounded border px-1 py-0.5 text-sm outline-none"
-                style={{ backgroundColor: 'var(--theme-bg-input)', borderColor: 'var(--theme-border)', color: 'var(--theme-text-primary)' }}
-                value={layout.railMaxDepthMm ?? layout.rackDepthMm}
-                onChange={(e) => updateRack({ railMaxDepthMm: Math.max(0, Number(e.target.value)) })}
-                min={0}
-              />
-              <span style={{ color: 'var(--theme-text-secondary)' }}>mm</span>
-            </div>
-          </div>
-        </div>
+        <label className="grid gap-1 text-xs text-content-muted">
+          Measured mounting-post spacing (mm)
+          <input type="number" min="1" step="any" value={layout.mountingPostSpacingMm ?? ''}
+            placeholder="Unknown — measure front to rear posts"
+            className="h-9 rounded-lg border border-edge-strong bg-surface px-2 text-content"
+            onChange={event => {
+              const value = event.target.value;
+              if (value === '') updateRack({ mountingPostSpacingMm: undefined });
+              else if (Number.isFinite(Number(value)) && Number(value) > 0) updateRack({ mountingPostSpacingMm: Number(value) });
+            }} />
+          <span>Cabinet depth and chassis depth are not mounting-post spacing. Rail checks require the device's own rail range.</span>
+        </label>
+        {(layout.railMinDepthMm !== undefined || layout.railMaxDepthMm !== undefined) && <p className="text-xs text-content-muted">Legacy rail min/max values are preserved in the file but are not used as measured post spacing.</p>}
 
         <div className="rounded border p-2 text-xs" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)' }}>
           <div className="flex items-center justify-between" style={{ color: 'var(--theme-text-muted)' }}>
@@ -149,8 +132,8 @@ export function DepthCompatibilityPanel() {
                       ? `${device.depthMm}+${device.mountEnvelopeMm ?? 0}=${device.depthMm + (device.mountEnvelopeMm ?? 0)}mm`
                       : `${device.depthMm}mm`}
                     {reasons.includes('too-deep') && ` > usable ${summary.usableDepthMm}mm`}
-                    {reasons.includes('rail-min') && ` < rail min ${layout.railMinDepthMm ?? 0}mm`}
-                    {reasons.includes('rail-max') && ` > rail max ${layout.railMaxDepthMm ?? layout.rackDepthMm}mm`}
+                    {reasons.includes('rail-min') && ` / post spacing ${layout.mountingPostSpacingMm}mm below kit minimum ${device.installationRequirements?.railMinMm}mm`}
+                    {reasons.includes('rail-max') && ` / post spacing ${layout.mountingPostSpacingMm}mm above kit maximum ${device.installationRequirements?.railMaxMm}mm`}
                     {reasons.includes('rear-bend') && ` / needs ${requiredRearBendMm}mm bend`}
                   </div>
                 </div>
@@ -159,7 +142,7 @@ export function DepthCompatibilityPanel() {
           </div>
         ) : (
           <div className="rounded border p-2 text-center text-xs" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)', color: 'var(--theme-text-secondary)' }}>
-            All devices fit within depth and rail constraints.
+            No recorded chassis-depth conflicts. Installation requirements may still be unverified.
           </div>
         )}
       </div>

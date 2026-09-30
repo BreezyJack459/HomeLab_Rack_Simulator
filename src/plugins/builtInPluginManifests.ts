@@ -60,3 +60,10 @@ export const portDocumentationManifest: RackPluginManifest = {
     'layout-read',
   ],
 };
+
+export const cableLabelsManifest: RackPluginManifest = {
+  id: 'cable-labels', name: 'Cable Labels', version: '1.0.0',
+  description: 'Preview and copy cable endpoint labels for a label printer',
+  requiresAppVersion: '1.0.0', defaultEnabled: false, origin: 'built-in', trustLevel: 'trusted',
+  capabilities: ['view-modes', 'commands', 'layout-read'],
+};

@@ -1,8 +1,12 @@
+import { needsPowerReview } from '../utils/powerAssumptions';
+import { simulateWorkspaceOutletFailure } from '../utils/poeFailure';
+import { projectPoeInputLoads } from '../utils/poeLoad';
 import { AlertTriangle, BatteryCharging, Cable, ChevronDown, ChevronRight, Plug, ShieldAlert, ShieldCheck, X, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useRackStore } from '../store/rackStore';
 import {
   buildPowerChains,
+  buildPowerTopology,
   checkPowerRedundancy,
   formatWatts,
   getDeviceCapacityW,
@@ -10,32 +14,38 @@ import {
   getPduOutletMap,
   getPduOutletUsage,
   isPowerSource,
-  simulateOutletFailure,
   validatePduOutletAssignments,
 } from '../utils/powerChain';
-import type { OutletFailureResult, PowerChainNode } from '../utils/powerChain';
+import type { PowerChainNode } from '../utils/powerChain';
 import type { PlacedDevice } from '../types/rack';
 
-function CapacityBar({ used, capacity }: { used: number; capacity: number }) {
-  const pct = Math.min(100, Math.max(0, (used / capacity) * 100));
+const EnergySummary = lazy(() => import('./EnergySummary').then(m => ({ default: m.EnergySummary })));
+const UpsRuntimePanel = lazy(() => import('./UpsRuntimePanel').then(m => ({ default: m.UpsRuntimePanel })));
+const PoeBudgetPanel = lazy(() => import('./PoeBudgetPanel').then(m => ({ default: m.PoeBudgetPanel })));
+
+function CapacityBar({ used, capacity, unverified, name }: { used: number; capacity: number; unverified: boolean; name: string }) {
+  const pct = Math.max(0, (used / capacity) * 100);
+  const status = used > capacity ? 'critical' : unverified ? 'unverified' : 'recorded';
   const color =
-    pct > 90 ? 'bg-red-500' : pct > 75 ? 'bg-amber-500' : pct > 50 ? 'bg-yellow-400' : 'bg-emerald-500';
+    unverified && used <= capacity ? 'bg-amber-500' : pct > 90 ? 'bg-red-500' : pct > 75 ? 'bg-amber-500' : pct > 50 ? 'bg-yellow-400' : 'bg-emerald-500';
   return (
-    <div className="mt-1">
+    <div className="mt-1" role="group" aria-label={`${name} output capacity`} data-status={status}>
+      {unverified && <p className="text-xs text-amber-400">Load or wiring needs review; available capacity is not verified.</p>}
       <div className="flex items-center justify-between text-[10px] text-content-faint">
-        <span>{Math.round(pct)}%</span>
+        <span>{Math.round(pct)}% recorded load</span>
         <span>
           {formatWatts(used)} / {formatWatts(capacity)}
         </span>
       </div>
       <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-fill-strong dark:bg-fill">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
     </div>
   );
 }
 
-function OutletBar({ used, total }: { used: number; total: number }) {
+function OutletBar({ used, total }: { used: number; total: number | null }) {
+  if (total === null) return <p className="mt-1 text-xs text-amber-400">Outlet count unknown — free sockets unverified. {used} recorded socket assignments.</p>;
   const pct = total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0;
   const color = pct > 90 ? 'bg-red-500' : pct > 75 ? 'bg-amber-500' : 'bg-accent-solid';
   return (
@@ -73,7 +83,7 @@ function RedundancyBadge({ isRedundant }: { isRedundant: boolean }) {
   return (
     <span className="shrink-0 flex items-center gap-1 text-[10px]" style={{ color: isRedundant ? '#34d399' : '#fbbf24' }}>
       {isRedundant ? <ShieldCheck size={11} /> : <ShieldAlert size={11} />}
-      {isRedundant ? 'Redundant' : 'Single feed'}
+      {isRedundant ? 'A/B paths modeled' : 'A/B paths unverified'}
     </span>
   );
 }
@@ -81,12 +91,14 @@ function RedundancyBadge({ isRedundant }: { isRedundant: boolean }) {
 function OutletGrid({ pduId, circuit }: { pduId: string; circuit?: 'A' | 'B' }) {
   const layout = useRackStore((state) => state.layout);
   const selectDevice = useRackStore((state) => state.selectDevice);
-  const outlets = useMemo(() => getPduOutletMap(layout, pduId), [layout, pduId]);
+  const workspace = useRackStore(state => state.workspace);
+  const projection = useMemo(() => projectPoeInputLoads(layout, workspace), [layout, workspace]);
+  const outlets = useMemo(() => getPduOutletMap(projection.layout, pduId), [projection, pduId]);
   const [simOutlet, setSimOutlet] = useState<number | null>(null);
-  const simResult = useMemo<OutletFailureResult | null>(() => {
+  const simResult = useMemo<ReturnType<typeof simulateWorkspaceOutletFailure>>(() => {
     if (simOutlet === null) return null;
-    return simulateOutletFailure(layout, pduId, simOutlet);
-  }, [layout, pduId, simOutlet]);
+    return simulateWorkspaceOutletFailure(layout, pduId, simOutlet, workspace);
+  }, [layout, workspace, pduId, simOutlet]);
   const issues = useMemo(() => validatePduOutletAssignments(layout).filter((i) => i.pduId === pduId), [layout, pduId]);
 
   const cols = outlets.length <= 8 ? 4 : outlets.length <= 12 ? 4 : 6;
@@ -139,10 +151,34 @@ function OutletGrid({ pduId, circuit }: { pduId: string; circuit?: 'A' | 'B' }) 
           </button>
           <div className="flex items-center gap-1.5 text-xs font-medium text-red-400">
             <AlertTriangle size={12} />
-            Simulated failure: Outlet {simResult.outletIndex + 1}
+            Wired supply failure: Outlet {simResult.outletIndex + 1}
           </div>
+          {simResult.warnings.map((warning, index) => <p key={index} className="mt-1 text-xs text-amber-400">{warning}</p>)}
+          {simResult.survivingDevices.length > 0 && <p className="mt-1 text-xs text-content-muted">Still reachable through another supply path: {simResult.survivingDevices.map(d => d.name).join(', ')}</p>}
+          <div className="mt-2 space-y-1 border-t border-edge pt-2" aria-label="Remaining supply capacity">
+            <p className="text-xs font-medium text-content">Remaining supply output checks</p>
+            {simResult.remainingSupplies.map(supply => (
+              <p key={supply.id} className={`text-xs ${supply.status === 'overload' ? 'text-red-400' : supply.status === 'unknown' ? 'text-amber-400' : 'text-content-muted'}`}>
+                {supply.name}: {formatWatts(supply.loadW)} output load — {supply.capacityW === undefined
+                  ? 'rating unknown; capacity not verified'
+                  : supply.status === 'overload'
+                    ? `exceeds ${formatWatts(supply.capacityW)} rating by ${formatWatts(supply.loadW - supply.capacityW)}`
+                    : supply.status === 'unknown'
+                      ? `Load or wiring unverified; cannot confirm fit within ${formatWatts(supply.capacityW)} rating`
+                      : `within recorded ${formatWatts(supply.capacityW)} rating`}
+              </p>
+            ))}
+            {simResult.remainingSupplies.length === 0 && <p className="text-xs text-content-muted">No live supply outputs available to check.</p>}
+          </div>
+          {(simResult.poe.lost.length > 0 || simResult.poe.retained.length > 0 || simResult.poe.untraced.length > 0) && <section aria-label="PoE receivers affected by outlet failure" className="mt-2 space-y-1 border-t border-edge pt-2 text-xs">
+            <p className="font-medium text-content">Downstream PoE receiver paths across racks</p>
+            <p className="text-red-400">Lose recorded supply path: {simResult.poe.lost.map(d => d.name).join(', ') || 'None'}</p>
+            <p className="text-content-muted">Retain another recorded path: {simResult.poe.retained.map(d => d.name).join(', ') || 'None'}</p>
+            <p className="text-amber-400">No upstream path before failure: {simResult.poe.untraced.map(d => d.name).join(', ') || 'None'}</p>
+            <p className="text-content-muted">Path presence is conditional on the warnings above. Receiver watts are already represented at the PoE source; do not add them to the wired load again.</p>
+          </section>}
           {simResult.affectedDevices.length === 0 && simResult.downstreamDevices.length === 0 ? (
-            <div className="mt-1 text-[10px] text-content-faint">No devices affected.</div>
+            <div className="mt-1 text-[10px] text-content-faint">{simResult.totalLostW > 0 ? 'Devices retain another recorded supply path; the failed wired feed is still unavailable.' : 'No additional devices lose their modeled wired supply.'}</div>
           ) : (
             <div className="mt-1.5 space-y-1">
               {simResult.affectedDevices.map((d) => (
@@ -175,7 +211,7 @@ function OutletGrid({ pduId, circuit }: { pduId: string; circuit?: 'A' | 'B' }) 
                 </div>
               )}
               <div className="flex items-center justify-between border-t border-edge pt-1 text-[10px] font-medium dark:border-edge">
-                <span className="text-content-muted">Total lost</span>
+                <span className="text-content-muted">Load losing wired supply</span>
                 <span className="text-red-400">{formatWatts(simResult.totalLostW)}</span>
               </div>
             </div>
@@ -190,10 +226,14 @@ function NodeRow({
   node,
   depth,
   redundancyMap,
+  unverifiedIds,
+  wiringUnverified,
 }: {
   node: PowerChainNode;
   depth: number;
   redundancyMap: Map<string, boolean>;
+  unverifiedIds: Set<string>;
+  wiringUnverified: boolean;
 }) {
   const selectDevice = useRackStore((state) => state.selectDevice);
   const selectCable = useRackStore((state) => state.selectCable);
@@ -201,7 +241,9 @@ function NodeRow({
 
   const hasChildren = node.children.length > 0;
   const capacity = getDeviceCapacityW(node.device);
-  const isOverCapacity = capacity !== undefined && node.totalW > capacity;
+  const hasUnverifiedLoad = (current: PowerChainNode): boolean => unverifiedIds.has(current.device.id) || needsPowerReview(current.device) || current.children.some(hasUnverifiedLoad);
+  const unverified = wiringUnverified || hasUnverifiedLoad(node);
+  const isOverCapacity = capacity !== undefined && node.downstreamW > capacity;
   const isSource = isPowerSource(node.device);
   const outletUsage = isSource ? getPduOutletUsage(useRackStore.getState().layout, node.device.id) : null;
 
@@ -264,7 +306,8 @@ function NodeRow({
             <span>·</span>
             <span className="font-semibold text-content-secondary">total {formatWatts(node.totalW)}</span>
           </div>
-          {capacity !== undefined && <CapacityBar used={node.totalW} capacity={capacity} />}
+          {capacity !== undefined && <CapacityBar used={node.downstreamW} capacity={capacity} unverified={unverified} name={node.device.name} />}
+          {isSource && capacity === undefined && <p className="mt-1 text-xs text-amber-400">Output capacity unverified — enter the equipment rating in device properties.</p>}
           {outletUsage && <OutletBar used={outletUsage.usedOutlets} total={outletUsage.totalOutlets} />}
         </div>
 
@@ -291,7 +334,7 @@ function NodeRow({
       {expanded && hasChildren && (
         <div className="mt-1 space-y-1">
           {node.children.map((child) => (
-            <NodeRow key={child.device.id} node={child} depth={depth + 1} redundancyMap={redundancyMap} />
+            <NodeRow key={child.device.id} node={child} depth={depth + 1} redundancyMap={redundancyMap} unverifiedIds={unverifiedIds} wiringUnverified={wiringUnverified} />
           ))}
         </div>
       )}
@@ -301,8 +344,12 @@ function NodeRow({
 
 export function PowerChainPanel() {
   const layout = useRackStore((state) => state.layout);
-  const chains = useMemo(() => buildPowerChains(layout), [layout]);
-  const circuitLoads = useMemo(() => getCircuitLoads(layout), [layout]);
+  const workspace = useRackStore(state => state.workspace);
+  const projection = useMemo(() => projectPoeInputLoads(layout, workspace), [layout, workspace]);
+  const topologyWarnings = useMemo(() => buildPowerTopology(layout).warnings, [layout]);
+  const unverifiedIds = useMemo(() => new Set(projection.warnings.keys()), [projection]);
+  const chains = useMemo(() => buildPowerChains(projection.layout), [projection]);
+  const circuitLoads = useMemo(() => getCircuitLoads(projection.layout), [projection]);
   const redundancyResults = useMemo(() => checkPowerRedundancy(layout), [layout]);
 
   const redundancyMap = useMemo(() => {
@@ -319,17 +366,13 @@ export function PowerChainPanel() {
     for (const d of layout.devices) map.set(d.id, d);
     return map;
   }, [layout.devices]);
-  const totalPowerCableW = layout.cables
-    .filter((c) => c.type === 'power')
-    .reduce((sum, c) => {
-      const from = deviceById.get(c.fromDeviceId);
-      const to = deviceById.get(c.toDeviceId);
-      const consumer = from && !isPowerSource(from) ? from : to && !isPowerSource(to) ? to : null;
-      return sum + (consumer?.powerW ?? 0);
-    }, 0);
+  const connectedConsumers = new Set(layout.cables.filter(c => c.type === 'power').flatMap(c => [c.fromDeviceId, c.toDeviceId]));
+  const totalPowerCableW = [...connectedConsumers].reduce((sum, id) => {
+    const device = deviceById.get(id);
+    return sum + (device && !isPowerSource(device) ? device.powerW : 0);
+  }, 0);
 
   const [isOpen, setIsOpen] = useState(true);
-  const safeBreakerPct = 80;
 
   return (
     <section className="rounded-lg border border-edge bg-fill/78 p-4 dark:border-edge dark:bg-surface-raised/78">
@@ -365,20 +408,20 @@ export function PowerChainPanel() {
             </div>
           </div>
 
+          {topologyWarnings.map((warning, i) => <p key={i} className="mb-2 text-xs text-amber-400">{warning}</p>)}
+          {!!projection.warnings.size && <div className="mb-3 text-xs text-amber-400"><p>PoE input totals are incomplete or unverified. Resolve these before relying on supply capacity:</p>{[...projection.warnings.values()].flat().map((w, i) => <p key={i}>{w}</p>)}</div>}
+          <p className="mb-3 text-xs text-content-muted">Supply chains and circuit loads include declared PoE input assumptions. Device totals above are the raw planning values; they are not a wall-input measurement.</p>
           {circuitLoads.some((c) => c.sources.length > 0) && (
             <div className="mb-3 space-y-2">
               {circuitLoads.map((cl) => {
                 if (cl.sources.length === 0) return null;
-                const totalCapacity = cl.sources.reduce((sum, s) => sum + (getDeviceCapacityW(s) ?? 0), 0);
-                const pct = totalCapacity > 0 ? (cl.totalW / totalCapacity) * 100 : 0;
-                const overSafe = pct > safeBreakerPct;
                 return (
                   <div
                     key={cl.circuit}
                     className="rounded-md border p-2"
                     style={{
                       backgroundColor: 'var(--theme-bg-input)',
-                      borderColor: overSafe ? 'rgba(239,68,68,0.4)' : 'var(--theme-border)',
+                      borderColor: 'var(--theme-border)',
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -387,20 +430,10 @@ export function PowerChainPanel() {
                         <span className="text-xs text-content-faint">{cl.sources.length} source(s)</span>
                       </div>
                       <span className="text-xs font-semibold text-content">
-                        {formatWatts(cl.totalW)} / {formatWatts(totalCapacity)}
+                        {formatWatts(cl.totalW)} estimated load
                       </span>
                     </div>
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-fill-strong dark:bg-fill">
-                      <div
-                        className={`h-full rounded-full ${overSafe ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                        style={{ width: `${Math.min(100, pct)}%` }}
-                      />
-                    </div>
-                    {overSafe && (
-                      <div className="mt-1 text-[10px] text-red-400">
-                        Exceeds {safeBreakerPct}% safe breaker utilization
-                      </div>
-                    )}
+                    <p className="mt-1 text-xs text-content-muted">Full reachable consumer load per circuit; A/B totals may include the same dual-fed device. Load sharing and breaker capacity are unverified.</p>
                   </div>
                 );
               })}
@@ -415,13 +448,16 @@ export function PowerChainPanel() {
             <div className="space-y-3">
               {chains.map((chain, idx) => (
                 <div key={`${chain.root.device.id}-${idx}`}>
-                  <NodeRow node={chain.root} depth={0} redundancyMap={redundancyMap} />
+                  <NodeRow node={chain.root} depth={0} redundancyMap={redundancyMap} unverifiedIds={unverifiedIds} wiringUnverified={topologyWarnings.length > 0} />
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+      {layout.devices.some(d => d.category === 'ups') && <Suspense fallback={null}><UpsRuntimePanel /></Suspense>}
+      <Suspense fallback={null}><PoeBudgetPanel /></Suspense>
+      <Suspense fallback={null}><EnergySummary layout={layout} onRateChange={rate => useRackStore.getState().updateRack({ electricityRatePerKwh: rate })} /></Suspense>
     </section>
   );
 }

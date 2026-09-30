@@ -14,7 +14,7 @@ function listNames(names: string[]) {
 }
 
 export function getReadinessChecklist(layout: RackLayout): ChecklistSection[] {
-  const procurement = getProcurementChecklist(layout);
+  const procurement = getProcurementChecklist(layout).filter(item => !item.reviewReason);
   const migration = getMigrationSummary(layout);
   const documentationIssues = getDocumentationIssues(layout);
   const upsRuntimes = calculateUpsRuntimes(layout);

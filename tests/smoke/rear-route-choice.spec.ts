@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import type { RackLayout } from '../../src/types/rack';
 import type { useRackStore } from '../../src/store/rackStore';
 
@@ -30,6 +31,7 @@ const fixture: RackLayout = {
     {
       id: 'link',
       type: 'ethernet',
+      lengthMm: 1,
       color: '#38bdf8',
       fromDeviceId: 'a',
       toDeviceId: 'b',
@@ -65,6 +67,7 @@ for (const blocked of [false, true])
     await page.getByRole('button', { name: '3D routing', exact: true }).click();
     const viewer = page.getByTestId('cable-viewer-3d');
     await expect(viewer.locator('canvas')).toBeVisible();
+    let purchaseText = '';
     for (const style of ['clean', 'realistic']) {
       await viewer.locator('summary').click();
       await viewer.getByRole('button', { name: style, exact: true }).click();
@@ -72,12 +75,30 @@ for (const blocked of [false, true])
       if (blocked) {
         await viewer.getByRole('button', { name: /Review route: Upper device/ }).click();
         await expect(viewer.getByText(/3D route: No clear rear route/)).toBeVisible();
+        await expect(viewer.getByLabel('3D route length')).toContainText('Not estimated — route blocked');
+        await expect(viewer.getByText(/Recorded cable is/)).toHaveCount(0);
       } else {
         await expect(
           viewer.getByText('3D route: Natural drop · no added support', { exact: true })
         ).toBeVisible();
         await expect(viewer.getByRole('button', { name: /Review route:/ })).toHaveCount(0);
+        await expect(viewer.getByLabel('3D route length')).toContainText(/3D centreline: \d+\.\d{2} m/);
+        await expect(viewer.getByText(/Recorded cable is/)).toBeVisible();
       }
       await expect(page.locator('#runtime-error-overlay')).toHaveCount(0);
+      const currentPurchase = await viewer.getByLabel('Cable purchase length').innerText();
+      if (purchaseText) expect(currentPurchase).toBe(purchaseText);
+      purchaseText = currentPurchase;
+    }
+    const purchaseLength = purchaseText.split('Purchase length: ')[1].split('. Uses')[0];
+    const exportSection = page.locator('details').filter({ has: page.locator('summary').filter({ hasText: 'Export cable BOM' }) });
+    if (!(await exportSection.evaluate(element => (element as HTMLDetailsElement).open))) await exportSection.locator('summary').click();
+    for (const format of ['CSV', 'Text']) {
+      const download = page.waitForEvent('download');
+      await page.getByRole('button', { name: `BOM ${format}`, exact: true }).click();
+      const file = await download;
+      const text = await readFile((await file.path())!, 'utf8');
+      expect(text).toContain(purchaseLength);
+      expect(text).toContain(blocked ? 'Blocked or missing route' : 'Longer Clean/Realistic 3D centreline');
     }
   });

@@ -1,6 +1,6 @@
 import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { Box, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { useRackStore } from '../store/rackStore';
 import type { CablePlan, CableRoute, CableType, PlacedDevice, PortLayout, RackLayout } from '../types/rack';
@@ -11,6 +11,7 @@ import { manualRoutePoints } from '../utils/manualCableRoute';
 import { getRackWorldDimensions } from '../utils/rackGeometry';
 import { calculateCablePlan } from '../utils/routing';
 import { getDeviceSpatialZone, getDeviceXRange, isZeroU, RACK_SPECS } from '../utils/rackMath';
+import { VisualCableConnector } from './VisualCableConnector';
 import { CableTable } from './CableTable';
 const CableViewer3D = lazy(() => import('./CableViewer3D').then((m) => ({ default: m.CableViewer3D })));
 
@@ -255,6 +256,9 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
   const selectedCableId = useRackStore((state) => state.selectedCableId);
   const selectCable = useRackStore((state) => state.selectCable);
   const selectDevice = useRackStore((state) => state.selectDevice);
+  const previewCable = useRackStore(s => s.previewCable);
+  const previewPlan = previewCable ? calculateCablePlan(previewCable, layout) : null;
+  const connecting = useCableWorkspaceStore(s => s.connectionRequested);
   const mapView = useCableWorkspaceStore((state) => state.subview);
   const setMapView = useCableWorkspaceStore((state) => state.setSubview);
   const query = useCableWorkspaceStore((state) => state.query);
@@ -265,6 +269,8 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
   const focusMode = useCableWorkspaceStore((state) => state.focusMode);
   const setFocusMode = useCableWorkspaceStore((state) => state.setFocusMode);
   const [showEmptyTypes, setShowEmptyTypes] = useState(false);
+  const [showConnectionCableView, setShowConnectionCableView] = useState(false);
+  useEffect(() => { if (!connecting) setShowConnectionCableView(false); }, [connecting]);
 
   const rackWidth = RACK_SPECS[layout.rackType].visualWidthPx;
   const rackHeight = layout.heightU * UNIT_HEIGHT;
@@ -328,8 +334,12 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
   );
 
   return (
-    <div className={`h-full overflow-auto bg-fill/55 thin-scrollbar dark:bg-surface/55 ${embedded || mapView === '3d' ? 'flex min-h-0 flex-col p-2' : 'p-8'}`}>
-      {!embedded && <>
+    <div className={`h-full overflow-auto bg-fill/55 thin-scrollbar dark:bg-surface/55 ${connecting ? 'lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden' : ''} ${embedded || mapView === '3d' ? 'flex min-h-0 flex-col p-2' : 'p-8'}`}>
+      {connecting && <VisualCableConnector showCableView={showConnectionCableView} onToggleCableView={() => {
+        if (!showConnectionCableView && mapView === 'table') setMapView('3d');
+        setShowConnectionCableView(value => !value);
+      }} />}
+      {!embedded && <div className={connecting && !showConnectionCableView ? "lg:hidden" : "shrink-0"}>
       <div className={`flex shrink-0 flex-wrap items-center justify-between gap-3 ${mapView === '3d' ? 'mb-3' : 'mb-5'}`}>
         <div>
           <div className="flex items-center gap-2 text-base font-semibold text-content">
@@ -472,7 +482,8 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
         </div>
       </div>
 
-      </>}
+      </div>}
+      <div className={connecting ? `min-h-[400px] shrink-0 h-[500px] ${showConnectionCableView ? 'lg:flex lg:h-auto lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-auto' : 'lg:hidden'}` : "flex min-h-0 flex-1 flex-col"}>
       {mapView === 'table' ? (
         <CableTable
           embedded={embedded}
@@ -483,7 +494,7 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
         />
       ) : mapView === '3d' ? (
         <Suspense fallback={<div className="flex h-96 items-center justify-center text-content-muted">Loading 3D cable routing…</div>}>
-          <CableViewer3D />
+          <CableViewer3D fitAvailableHeight={connecting && showConnectionCableView} />
         </Suspense>
       ) : (
       <div className={embedded ? "relative min-h-0 flex-1" : "relative min-w-max rounded-xl border border-edge bg-surface/88 p-5 shadow-panel dark:border-edge dark:bg-surface/88"}>
@@ -770,9 +781,11 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
               </g>
             );
           })}
+          {previewCable && previewPlan && <path data-testid="connection-preview-path" d={buildNodePath(previewPlan, layout, rackWidth, previewCable)} fill="none" stroke={previewCable.color} strokeWidth={4} strokeDasharray="8 5" pointerEvents="none" />}
         </svg>
       </div>
       )}
+      </div>
     </div>
   );
 }

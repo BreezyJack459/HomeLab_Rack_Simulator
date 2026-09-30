@@ -63,22 +63,23 @@ const readinessConfig: Record<
   'good' | 'warning' | 'critical',
   { bgClass: string; colorClass: string; label: string }
 > = {
-  good: { bgClass: 'bg-emerald-500/10', colorClass: 'text-emerald-600 dark:text-emerald-400', label: 'Resilient' },
-  warning: { bgClass: 'bg-amber-500/10', colorClass: 'text-amber-600 dark:text-amber-400', label: 'Gaps' },
-  critical: { bgClass: 'bg-red-500/10', colorClass: 'text-red-600 dark:text-red-400', label: 'Fragile' },
+  good: { bgClass: 'bg-emerald-500/10', colorClass: 'text-emerald-600 dark:text-emerald-400', label: 'Checks met' },
+  warning: { bgClass: 'bg-amber-500/10', colorClass: 'text-amber-600 dark:text-amber-400', label: 'Needs review' },
+  critical: { bgClass: 'bg-red-500/10', colorClass: 'text-red-600 dark:text-red-400', label: 'Checks failed' },
 };
 
 export function ScenarioPlannerPanel() {
   const layout = useRackStore((state) => state.layout);
+  const workspace = useRackStore(state => state.workspace);
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<ScenarioPreset>('power-outage');
 
-  const result = useMemo(() => runScenario(layout, selected), [layout, selected]);
-  const overall = useMemo(() => getOverallReadinessScore(runAllScenarios(layout)), [layout]);
+  const result = useMemo(() => runScenario(layout, selected, workspace), [layout, selected, workspace]);
+  const overall = useMemo(() => getOverallReadinessScore(runAllScenarios(layout, workspace)), [layout, workspace]);
   const overallStyle = readinessConfig[overall.status];
 
   function handleExport() {
-    const all = runAllScenarios(layout);
+    const all = runAllScenarios(layout, workspace);
     exportScenarioReportText(layout, all, overall);
   }
 
@@ -112,6 +113,9 @@ export function ScenarioPlannerPanel() {
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden space-y-3">
+          <p className="text-xs text-content-muted" role="status" aria-label="Scenario check coverage">
+            Modeled checks met: {overall.passedAssumptionCount}/{overall.totalAssumptionCount} ({overall.score}%). {overall.failedAssumptionCount} failed; {overall.unknownAssumptionCount} unknown. Unknowns earn no pass credit. This is check coverage, not a probability of surviving an outage.
+          </p>
           {/* Scenario tabs */}
           <div className="grid grid-cols-2 gap-1.5">
             {SCENARIO_PRESETS.map((preset) => {
@@ -178,8 +182,8 @@ export function ScenarioPlannerPanel() {
                 borderColor: 'var(--theme-border-light)',
               }}
             >
-              <div style={{ color: 'var(--theme-text-muted)' }}>Survivors</div>
-              <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+              <div style={{ color: 'var(--theme-text-muted)' }}>Not flagged by model</div>
+              <div className="text-sm font-bold text-content-secondary">
                 {result.metrics.survivorCount} / {result.metrics.totalDevices}
               </div>
             </div>
@@ -194,8 +198,8 @@ export function ScenarioPlannerPanel() {
                 <div style={{ color: 'var(--theme-text-muted)' }}>Estimated runtime</div>
                 <div className="text-sm font-bold" style={{ color: 'var(--theme-text-primary)' }}>
                   {isFinite(result.metrics.estimatedRuntimeMinutes)
-                    ? `${Math.round(result.metrics.estimatedRuntimeMinutes)} min`
-                    : '∞'}
+                    ? `${Math.floor(result.metrics.estimatedRuntimeMinutes)} min`
+                    : 'Not estimated'}
                 </div>
               </div>
             )}
@@ -278,7 +282,7 @@ export function ScenarioPlannerPanel() {
                 className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.14em]"
                 style={{ color: 'var(--theme-text-muted)' }}
               >
-                Survivors ({result.survivingDevices.length})
+                Not flagged by this model ({result.survivingDevices.length})
               </summary>
               <div className="space-y-1">
                 {result.survivingDevices.map((d) => (

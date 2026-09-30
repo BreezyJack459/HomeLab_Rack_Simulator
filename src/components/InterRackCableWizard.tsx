@@ -3,7 +3,7 @@ import { X, Cable, ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import type { RackLayout, PortRef, InterRackCableType, Workspace } from '../types/rack';
 import { useRackStore } from '../store/rackStore';
 import { getTabbableElements } from '../utils/tabbable';
-import { interRackEndpointError, interRackPortOptions, interRackPortType, validateInterRackCable } from '../utils/interRackCables';
+import { checkInterRackConnectors, interRackEndpointError, interRackPortOptions, interRackPortType, validateInterRackCable } from '../utils/interRackCables';
 
 interface InterRackCableWizardProps {
   open: boolean;
@@ -214,6 +214,8 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
   const [label, setLabel] = useState('');
   const [color, setColor] = useState('');
   const [notes, setNotes] = useState('');
+  const [poe, setPoe] = useState(false);
+  const [socketFit, setSocketFit] = useState({ from: '', to: '' });
 
   const sourceRack = racks.find((r) => r.id === sourceRackId);
   const sourceDevice = sourceRack?.devices.find((d) => d.id === sourceDeviceId);
@@ -224,7 +226,11 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
   const isStep2Valid = Boolean(destPort && destRackId !== sourceRackId && !interRackEndpointError(workspace, destRackId, destDeviceId, destPort, cableType));
   const cableError = sourcePort && destPort ? validateInterRackCable(workspace, {
     fromRackId: sourceRackId, fromDeviceId: sourceDeviceId, fromPort: sourcePort,
-    toRackId: destRackId, toDeviceId: destDeviceId, toPort: destPort, type: cableType,
+    toRackId: destRackId, toDeviceId: destDeviceId, toPort: destPort, type: cableType, socketFit,
+  }) : null;
+  const connectorReview = sourcePort && destPort ? checkInterRackConnectors(workspace, {
+    fromRackId: sourceRackId, fromDeviceId: sourceDeviceId, fromPort: sourcePort,
+    toRackId: destRackId, toDeviceId: destDeviceId, toPort: destPort, type: cableType, socketFit,
   }) : null;
   const isStep3Valid = isStep1Valid && isStep2Valid && !cableError;
 
@@ -246,6 +252,8 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
     setLabel('');
     setColor('');
     setNotes('');
+    setPoe(false);
+    setSocketFit({ from: '', to: '' });
   }
 
   function handleClose() {
@@ -268,6 +276,8 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
       label: label || undefined,
       color: color || undefined,
       notes: notes || undefined,
+      poe: cableType === 'cat6a' && poe,
+      socketFit: { from: socketFit.from || undefined, to: socketFit.to || undefined },
     });
     if (created) handleClose();
     else setError(useRackStore.getState().statusMessage);
@@ -440,6 +450,15 @@ function InterRackCableWizard({ open, onClose }: InterRackCableWizardProps) {
                 />
               </label>
 
+              <div className="space-y-2 rounded border border-edge p-3">
+                {(['from', 'to'] as const).map(end => <label key={end} className="block text-xs text-content-muted">{end === 'from' ? 'Source' : 'Destination'} cable end fits socket identity
+                  <input type="text" value={socketFit[end]} onChange={e => setSocketFit(current => ({ ...current, [end]: e.target.value }))} className="mt-1 w-full rounded border border-edge bg-surface p-2" placeholder="Unknown — check cable and socket" />
+                </label>)}
+                <p className="text-xs text-content-secondary">{connectorReview?.status === 'recorded-match' ? 'Recorded connector constraints match.' : 'Connector compatibility is not verified.'}</p>
+                {[...(connectorReview?.conflicts ?? []), ...(connectorReview?.unknowns ?? [])].map(message => <p key={message} className="text-xs text-amber-400">{message}</p>)}
+                <p className="text-xs text-content-muted">Connector records do not verify Ethernet negotiation, optics, wavelength or PoE power. A data connection does not establish a powered-device supply path.</p>
+              </div>
+              {cableType === 'cat6a' && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={poe} onChange={e => setPoe(e.target.checked)} />Plan PoE power on this Ethernet link</label>}
               {/* Summary */}
               <div className="rounded-lg border border-edge bg-fill/60 p-3 text-xs dark:border-edge dark:bg-surface/40">
                 <div className="mb-1 font-semibold text-content-secondary dark:text-content-muted">Summary</div>

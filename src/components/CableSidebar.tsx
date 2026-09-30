@@ -1,3 +1,4 @@
+import { formatCableEndpoint } from '../utils/cableEndpoints';
 import { useCableWorkspaceStore } from "../store/cableWorkspaceStore";
 import { useRackStore } from "../store/rackStore";
 import { matchesCableQuery } from "../utils/cableQuery";
@@ -95,11 +96,11 @@ export function CableSidebar({ onConnect }: { onConnect: () => void }) {
             <div className="truncate text-xs font-semibold">
               {c.label || `${c.type} cable`}
             </div>
-            <div className="mt-1 truncate text-xs text-content-muted">
-              {name(c.fromDeviceId)}
+            <div className="mt-1 break-words text-xs text-content-muted">
+              {formatCableEndpoint(layout.devices.find(d => d.id === c.fromDeviceId), c.fromPort, name(c.fromDeviceId))}
             </div>
-            <div className="truncate text-xs text-content-muted">
-              → {name(c.toDeviceId)}
+            <div className="break-words text-xs text-content-muted">
+              → {formatCableEndpoint(layout.devices.find(d => d.id === c.toDeviceId), c.toPort, name(c.toDeviceId))}
             </div>
           </button>
         ))}

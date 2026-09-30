@@ -1,5 +1,8 @@
-import type { RackLayout, PlacedDevice, ShutdownPriority } from '../types/rack';
-import { buildPowerChains, getUpsCapacityW, isPowerSource, type PowerChainNode } from './powerChain';
+import { projectPoeInputLoads } from './poeLoad';
+import { batterySupplyLayout } from './upsOutletBackup';
+import { needsPowerReview } from './powerAssumptions';
+import type { RackLayout, PlacedDevice, ShutdownPriority, Workspace } from '../types/rack';
+import { buildPowerChains, buildPowerTopology, getUpsCapacityW, isPowerSource, type PowerChainNode } from './powerChain';
 
 export interface UpsShutdownStep {
   device: PlacedDevice;
@@ -20,6 +23,11 @@ export interface UpsRuntimeInfo {
   capacityW: number | undefined;
   loadPercent: number;
   batteryWh: number;
+  assumptions: { efficiencyPct: number; usableCapacityPct: number; chargePct: number };
+  hasDownstream: boolean;
+  unreviewedLoads: boolean;
+  topologyUnverified: boolean;
+  outputLoadW: number;
   runtimeMinutes: number;
   runtimeLabel: string;
   criticalRuntimeMinutes: number;
@@ -32,33 +40,47 @@ export interface UpsRuntimeInfo {
   status: 'ok' | 'warning' | 'critical';
 }
 
-const UPS_EFFICIENCY = 0.85;
-const DEPTH_OF_DISCHARGE = 0.8;
+export const getUpsBatteryAssumptions = (device: PlacedDevice) => ({
+  efficiencyPct: device.upsBatteryAssumptions?.efficiencyPct ?? 85,
+  usableCapacityPct: device.upsBatteryAssumptions?.usableCapacityPct ?? 80,
+  chargePct: device.upsBatteryAssumptions?.chargePct ?? 100,
+});
 
-function calculateRuntimeMinutes(batteryWh: number, loadW: number): number {
-  if (loadW <= 0) return Infinity;
-  const usableWh = batteryWh * UPS_EFFICIENCY * DEPTH_OF_DISCHARGE;
-  return (usableWh / loadW) * 60;
+function calculateRuntimeMinutes(device: PlacedDevice, loadW: number): number {
+  if (device.batteryWh === undefined || !Number.isFinite(device.batteryWh) || device.batteryWh < 0 || loadW <= 0) return NaN;
+  const a = getUpsBatteryAssumptions(device);
+  if (Object.values(a).some(v => !Number.isFinite(v) || v < 0 || v > 100) || a.efficiencyPct === 0) return NaN;
+  return device.batteryWh * a.efficiencyPct / 100 * a.usableCapacityPct / 100 * a.chargePct / 100 / loadW * 60;
 }
 
 function formatRuntime(minutes: number): string {
-  if (!isFinite(minutes)) return '∞';
-  if (minutes >= 60) {
-    const h = Math.floor(minutes / 60);
-    const m = Math.round(minutes % 60);
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  }
-  return `${Math.round(minutes)}m`;
+  if (!Number.isFinite(minutes)) return 'Not estimated';
+  const total = Math.floor(minutes); // Never round an estimate up across the target.
+  if (minutes > 0 && total === 0) return '<1m';
+  if (total >= 60) return `${Math.floor(total / 60)}h${total % 60 ? ` ${total % 60}m` : ''}`;
+  return `${total}m`;
 }
 
 function runtimeStatus(minutes: number): 'ok' | 'warning' | 'critical' {
-  if (!isFinite(minutes)) return 'ok';
+  if (!Number.isFinite(minutes)) return 'warning';
   if (minutes >= 30) return 'ok';
   if (minutes >= 10) return 'warning';
   return 'critical';
 }
 
-function getShutdownPriority(device: PlacedDevice): ShutdownPriority {
+export function assessUpsOutage(ups: UpsRuntimeInfo, minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return 'Enter a positive outage duration.';
+  if (ups.capacityW !== undefined && ups.outputLoadW > ups.capacityW) return `Output overloaded by ${Math.ceil(ups.outputLoadW - ups.capacityW)} W; battery operation is not supported by the recorded rating.`;
+  if (ups.topologyUnverified) return 'Not assessed: resolve power wiring warnings before relying on the battery estimate.';
+  if (!ups.hasDownstream) return 'Not assessed: connect downstream equipment first.';
+  if (!Number.isFinite(ups.runtimeMinutes)) return 'Not assessed: battery energy or load data is missing or invalid.';
+  if (ups.capacityW === undefined) return 'Not assessed: UPS output rating is unknown.';
+  if (ups.runtimeMinutes < minutes) return `Estimated energy falls short of ${minutes} minutes. Reduce load or increase verified usable battery energy.`;
+  if (ups.unreviewedLoads) return 'Energy estimate reaches the target, but planning loads still need review.';
+  return `Estimated energy covers ${minutes} minutes under the recorded assumptions; transfer behavior is not verified.`;
+}
+
+export function getShutdownPriority(device: PlacedDevice): ShutdownPriority {
   if (device.shutdownPriority) return device.shutdownPriority;
 
   switch (device.category) {
@@ -88,7 +110,7 @@ function flattenConsumers(node: PowerChainNode, items: PlacedDevice[] = []): Pla
     items.push(child.device);
     flattenConsumers(child, items);
   }
-  return items;
+  return [...new Map(items.map(device => [device.id, device])).values()];
 }
 
 function collectLoadGroups(node: PowerChainNode): UpsLoadGroups {
@@ -99,8 +121,11 @@ function collectLoadGroups(node: PowerChainNode): UpsLoadGroups {
     infrastructureW: 0,
   };
 
+  const seen = new Set([node.device.id]);
   const visit = (current: PowerChainNode) => {
     for (const child of current.children) {
+      if (seen.has(child.device.id)) continue;
+      seen.add(child.device.id);
       if (isPowerSource(child.device)) {
         groups.infrastructureW += child.loadW;
         visit(child);
@@ -143,7 +168,7 @@ function buildShutdownPlan(node: PowerChainNode): UpsShutdownStep[] {
 
 function loadPercent(loadW: number, capacityW: number | undefined): number {
   if (!capacityW || capacityW <= 0) return 0;
-  return Math.min(100, (loadW / capacityW) * 100);
+  return (loadW / capacityW) * 100;
 }
 
 function buildWarnings(
@@ -163,7 +188,7 @@ function buildWarnings(
     warnings.push('Critical load runtime is under 10 minutes even after shedding non-critical devices.');
   }
   if (criticalLoadPercent > 80) {
-    warnings.push('Critical load alone exceeds the recommended 80% safe UPS capacity target.');
+    warnings.push('Critical load alone exceeds the 80% planning headroom threshold; this is not a safety rating.');
   }
   if (groups.gracefulW <= 0 && shutdownPlan.length > 0) {
     warnings.push('No devices are marked for graceful shutdown, so outage handling is all-or-nothing after non-critical loads are shed.');
@@ -171,74 +196,63 @@ function buildWarnings(
   return warnings;
 }
 
-export function calculateUpsRuntimes(layout: RackLayout): UpsRuntimeInfo[] {
-  const chains = buildPowerChains(layout);
+export function calculateUpsRuntimes(layout: RackLayout, workspace?: Workspace): UpsRuntimeInfo[] {
+  const projection = projectPoeInputLoads(layout, workspace);
+  layout = projection.layout;
+  const chains = layout.devices.filter(d => d.category === 'ups').flatMap(d => buildPowerChains(layout, d.id));
   const results: UpsRuntimeInfo[] = [];
+  const topologyWarnings = buildPowerTopology(layout).warnings;
+  const battery = batterySupplyLayout(layout);
 
   for (const chain of chains) {
-    const root = chain.root;
+    const utilityRoot = chain.root;
+    const root = buildPowerChains(battery.layout, utilityRoot.device.id)[0].root;
     if (root.device.category !== 'ups') continue;
-    if (!root.device.batteryWh) continue;
+
 
     const capacityW = getUpsCapacityW(root.device);
     const loadW = root.totalW;
-    const runtimeMinutes = calculateRuntimeMinutes(root.device.batteryWh, loadW);
+    const descendantIds = new Set<string>();
+    const collectIds = (node: PowerChainNode) => { descendantIds.add(node.device.id); node.children.forEach(collectIds); };
+    collectIds(utilityRoot);
+    const backupWarnings = battery.unknowns.filter(w => descendantIds.has(w.sourceId)).map(w => w.detail);
+    const poeWarnings = [...descendantIds].flatMap(id => projection.warnings.get(id) ?? []);
+    const runtimeMinutes = (backupWarnings.length || poeWarnings.length || topologyWarnings.length) ? NaN : calculateRuntimeMinutes(root.device, loadW);
     const groups = collectLoadGroups(root);
     const criticalSustainW = root.device.powerW + groups.infrastructureW + groups.criticalW;
-    const criticalRuntimeMinutes = calculateRuntimeMinutes(root.device.batteryWh, criticalSustainW);
+    const criticalRuntimeMinutes = (backupWarnings.length || poeWarnings.length || topologyWarnings.length) ? NaN : calculateRuntimeMinutes(root.device, criticalSustainW);
     const shutdownPlan = buildShutdownPlan(root);
-    const criticalLoadPercent = loadPercent(criticalSustainW, capacityW);
+    const hasUnreviewedLoad = (node: PowerChainNode): boolean => needsPowerReview(node.device) || node.children.some(hasUnreviewedLoad);
+    const criticalLoadPercent = loadPercent(groups.infrastructureW + groups.criticalW, capacityW);
 
     results.push({
       device: root.device,
       loadW,
       capacityW,
-      loadPercent: loadPercent(loadW, capacityW),
-      batteryWh: root.device.batteryWh,
+      loadPercent: loadPercent(utilityRoot.downstreamW, capacityW),
+      batteryWh: root.device.batteryWh ?? 0,
+      assumptions: getUpsBatteryAssumptions(root.device),
+      hasDownstream: root.children.length > 0,
+      unreviewedLoads: hasUnreviewedLoad(root),
+      topologyUnverified: topologyWarnings.length > 0 || poeWarnings.length > 0 || backupWarnings.length > 0,
+      outputLoadW: utilityRoot.downstreamW,
       runtimeMinutes,
-      runtimeLabel: formatRuntime(runtimeMinutes),
+      runtimeLabel: root.children.length ? formatRuntime(runtimeMinutes) : 'Not estimated',
       criticalRuntimeMinutes,
-      criticalRuntimeLabel: formatRuntime(criticalRuntimeMinutes),
+      criticalRuntimeLabel: root.children.length ? formatRuntime(criticalRuntimeMinutes) : 'Not estimated',
       groups,
       shutdownPlan,
       criticalLoadPercent,
-      criticalLoadStatus: runtimeStatus(criticalRuntimeMinutes),
-      warnings: buildWarnings(groups, criticalRuntimeMinutes, criticalLoadPercent, shutdownPlan),
-      status: runtimeStatus(runtimeMinutes),
-    });
-  }
-
-  // Also include UPSes with no power cables (orphaned) — show as 0 load, full runtime
-  const upsInChains = new Set(results.map((r) => r.device.id));
-  for (const device of layout.devices) {
-    if (device.category !== 'ups') continue;
-    if (upsInChains.has(device.id)) continue;
-    if (!device.batteryWh) continue;
-
-    const capacityW = getUpsCapacityW(device);
-    const runtimeMinutes = calculateRuntimeMinutes(device.batteryWh, device.powerW);
-    const criticalRuntimeMinutes = runtimeMinutes;
-    results.push({
-      device,
-      loadW: device.powerW,
-      capacityW,
-      loadPercent: loadPercent(device.powerW, capacityW),
-      batteryWh: device.batteryWh,
-      runtimeMinutes,
-      runtimeLabel: formatRuntime(runtimeMinutes),
-      criticalRuntimeMinutes,
-      criticalRuntimeLabel: formatRuntime(criticalRuntimeMinutes),
-      groups: {
-        criticalW: 0,
-        gracefulW: 0,
-        nonCriticalW: 0,
-        infrastructureW: 0,
-      },
-      shutdownPlan: [],
-      criticalLoadPercent: loadPercent(device.powerW, capacityW),
-      criticalLoadStatus: runtimeStatus(criticalRuntimeMinutes),
-      warnings: ['This UPS has no downstream load yet. Add power cables to model outage behavior.'],
-      status: runtimeStatus(runtimeMinutes),
+      criticalLoadStatus: root.children.length ? runtimeStatus(criticalRuntimeMinutes) : 'warning',
+      warnings: [
+        ...topologyWarnings,
+        ...backupWarnings,
+        ...poeWarnings,
+        ...buildWarnings(groups, criticalRuntimeMinutes, criticalLoadPercent, shutdownPlan),
+        ...(!root.children.length ? ['No recorded battery-backed downstream equipment is connected. Self-load estimates do not model your rack outage.'] : []),
+        ...(root.device.batteryWh === undefined ? ['Battery energy is unknown. Enter battery Wh in device properties.'] : []),
+      ],
+      status: root.children.length ? runtimeStatus(runtimeMinutes) : 'warning',
     });
   }
 

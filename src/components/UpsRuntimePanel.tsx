@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Battery, BatteryCharging, BatteryWarning, Clock, ShieldAlert } from 'lucide-react';
 import { useRackStore } from '../store/rackStore';
-import { calculateUpsRuntimes } from '../utils/upsRuntime';
+import { assessUpsOutage, calculateUpsRuntimes } from '../utils/upsRuntime';
 
 const STATUS_STYLES = {
   ok: { bg: 'bg-emerald-500/15', text: 'text-emerald-100', border: 'border-emerald-500/20' },
@@ -9,15 +10,17 @@ const STATUS_STYLES = {
 };
 
 const STATUS_LABELS = {
-  ok: 'Good runtime',
-  warning: 'Short runtime',
-  critical: 'Critical runtime',
+  ok: 'Long estimate',
+  warning: 'Review estimate',
+  critical: 'Short estimate',
 };
 
 export function UpsRuntimePanel() {
+  const [outageMinutes, setOutageMinutes] = useState('30');
   const layout = useRackStore((state) => state.layout);
   const selectDevice = useRackStore((state) => state.selectDevice);
-  const upses = calculateUpsRuntimes(layout);
+  const workspace = useRackStore(state => state.workspace);
+  const upses = calculateUpsRuntimes(layout, workspace);
 
   if (upses.length === 0) {
     return (
@@ -50,6 +53,9 @@ export function UpsRuntimePanel() {
         UPS Runtime
       </div>
 
+      <label className="mb-3 block text-xs text-content-secondary">Outage duration to compare (minutes)
+        <input type="number" min="1" step="any" className="ml-2 w-24 rounded border border-edge bg-surface p-2" value={outageMinutes} onChange={e => setOutageMinutes(e.target.value)} />
+      </label>
       <div className="space-y-3">
         {upses.map((ups) => {
           const style = STATUS_STYLES[ups.status];
@@ -87,6 +93,7 @@ export function UpsRuntimePanel() {
                 </span>
               </div>
 
+              <p className="mt-2 text-xs" role="status">{assessUpsOutage(ups, Number(outageMinutes))}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <Clock size={12} style={{ color: 'var(--theme-text-muted)' }} />
@@ -97,7 +104,7 @@ export function UpsRuntimePanel() {
                 <div className="flex items-center gap-1.5">
                   <Battery size={12} style={{ color: 'var(--theme-text-muted)' }} />
                   <span className="text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
-                    {ups.batteryWh} Wh
+                    {ups.device.batteryWh === undefined ? 'Battery Wh unknown' : `${ups.batteryWh} Wh`}
                   </span>
                 </div>
               </div>
@@ -143,13 +150,16 @@ export function UpsRuntimePanel() {
 
               <div className="mt-2 space-y-1">
                 <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
-                  <span>Load</span>
+                  <span>Utility output load</span>
                   <span>
-                    {ups.loadW}W
+                    {ups.outputLoadW.toFixed(2)}W
                     {ups.capacityW ? ` / ${ups.capacityW}W` : ''}
                     {ups.capacityW ? ` (${Math.round(ups.loadPercent)}%)` : ''}
                   </span>
                 </div>
+                {!ups.capacityW && <p className="text-xs text-amber-400">Output capacity unverified. Enter the UPS watt rating in device properties.</p>}
+                <p className="text-xs text-content-muted">Recorded battery-path load: {ups.loadW.toFixed(2)} W, including {ups.device.powerW} W UPS self-load. Surge-only outlets are excluded from battery load; unknown outlet types prevent a runtime estimate. Utility output load includes all connected outputs.</p>
+                <p className="text-xs text-content-muted">Estimate uses {ups.assumptions.efficiencyPct}% efficiency, {ups.assumptions.usableCapacityPct}% usable capacity and {ups.assumptions.chargePct}% starting charge.</p>
                 {ups.capacityW && (
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--theme-border)]">
                     <div
@@ -218,7 +228,7 @@ export function UpsRuntimePanel() {
       </div>
 
       <div className="mt-3 text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
-        Estimates assume 85% inverter efficiency and 80% depth of discharge. Actual runtime varies by battery age and temperature.
+        Constant-load energy estimates use each UPS’s recorded assumptions. Explicit PoE output draw and PSE conversion efficiency are included when planning watts exclude PoE; inclusive planning watts are not increased again. PoE output follows its PSE shutdown priority, without automatic receiver shedding. Each independent wired feed carries full planning load. Transfer time, startup surge, downstream distribution ratings and battery discharge curves are not verified. Dual feeds are assessed independently at full load; battery energies are not added together.
       </div>
     </section>
   );

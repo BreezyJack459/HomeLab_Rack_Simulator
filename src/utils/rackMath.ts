@@ -328,8 +328,6 @@ export function getDepthSummary(layout: RackLayout): DepthSummary {
 
 export function getDepthCompatibilityIssues(layout: RackLayout): DepthCompatibilityIssue[] {
   const summary = getDepthSummary(layout);
-  const railMinDepthMm = layout.railMinDepthMm ?? 0;
-  const railMaxDepthMm = layout.railMaxDepthMm ?? layout.rackDepthMm;
 
   return layout.devices
     .filter((device) => !isZeroU(device))
@@ -338,8 +336,12 @@ export function getDepthCompatibilityIssues(layout: RackLayout): DepthCompatibil
       const effectiveDepth = device.depthMm + (device.mountEnvelopeMm ?? 0);
       const reasons: DepthCompatibilityReason[] = [];
       if (effectiveDepth > summary.usableDepthMm) reasons.push('too-deep');
-      if (effectiveDepth < railMinDepthMm) reasons.push('rail-min');
-      if (effectiveDepth > railMaxDepthMm) reasons.push('rail-max');
+      const rails = device.installationRequirements;
+      const spacing = layout.mountingPostSpacingMm;
+      if (rails?.support === 'rails' && spacing !== undefined) {
+        if (rails.railMinMm !== undefined && spacing < rails.railMinMm) reasons.push('rail-min');
+        if (rails.railMaxMm !== undefined && spacing > rails.railMaxMm) reasons.push('rail-max');
+      }
       if (requiredRearBendMm > summary.rearCableClearanceMm) reasons.push('rear-bend');
       return { device, reasons, requiredRearBendMm };
     })

@@ -17,8 +17,10 @@ import {
   SlidersHorizontal,
   Upload,
 } from "lucide-react";
+import { propertyTargetForIssue, type IssuePropertyTarget } from "./utils/checkWorkflow";
 import { getShellWorkflow, TOOL_WORKSPACES } from "./utils/shellWorkflow";
 import { useCableWorkspaceStore } from "./store/cableWorkspaceStore";
+import type { HealthCheckCategory } from "./components/RackHealthStrip";
 import type { ActionMenusProps } from "./components/ActionBar";
 import { DeviceLibraryToggle } from "./components/DeviceLibraryToggle";
 import { ModelInspectorTabs } from "./components/ModelInspectorTabs";
@@ -114,6 +116,7 @@ const CheckIssueDetails = lazy(() => import("./components/CheckIssueDetails").th
 const CableSidebar = lazy(() => import("./components/CableSidebar").then(m => ({ default: m.CableSidebar })));
 const CheckSidebar = lazy(() => import("./components/CheckSidebar").then(m => ({ default: m.CheckSidebar })));
 const WorkspaceDialog = lazy(() => import("./components/WorkspaceDialog").then(m => ({ default: m.WorkspaceDialog })));
+const WorkspaceBackup = lazy(() => import("./components/WorkspaceBackup").then(m => ({ default: m.WorkspaceBackup })));
 const RackSettings = lazy(() => import("./components/RackSummarySettingsPanel").then(m => ({ default: m.RackSummarySettingsPanel })));
 const RackEditor2D = lazy(() =>
   import("./components/RackEditor2D").then((m) => ({
@@ -268,6 +271,7 @@ function WorkspaceHero({
 }
 
 function App() {
+  const [workspaceBackupOpen, setWorkspaceBackupOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const layout = useRackStore((state) => state.layout);
@@ -348,6 +352,10 @@ function App() {
     }
     return window.matchMedia("(min-width: 1280px)").matches ? desktopPreference : false;
   });
+  const connectionRequested = useCableWorkspaceStore(s => s.connectionRequested);
+  useEffect(() => {
+    if (connectionRequested) setInspectorOpen(false);
+  }, [connectionRequested]);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return undefined;
     const query = window.matchMedia("(max-width: 1279px)");
@@ -365,7 +373,11 @@ function App() {
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
+  const [checkSeverity, setCheckSeverity] = useState<'attention' | ValidationIssue['severity'] | 'all'>('attention');
+  const [checkCategory, setCheckCategory] = useState<HealthCheckCategory>('overview');
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [checkEditContext, setCheckEditContext] = useState<{ issue: ValidationIssue; rackId: string; deviceId?: string; targetRackId: string; target?: IssuePropertyTarget } | null>(null);
+  const [reviewedIssue, setReviewedIssue] = useState<{ id: string; title: string; rackId: string } | null>(null);
   const [lifecycleFilter, setLifecycleFilter] =
     useState<LifecycleViewFilter>("all");
   const [serviceabilityOverlayEnabled, setServiceabilityOverlayEnabled] =
@@ -397,7 +409,8 @@ function App() {
   }
   function handleConnectFromSidebar() {
     useLayoutPrefsStore.getState().setDeviceLibraryDrawerOpen(false);
-    setInspectorOpen(true);
+    setInspectorOpen(false);
+    setViewMode('cables');
     useCableWorkspaceStore.getState().requestConnection();
   }
   const [currentLensByWorkspace, setCurrentLensByWorkspace] = useState<
@@ -409,8 +422,8 @@ function App() {
   const currentAuditLens = (currentLensByWorkspace.audit ??
     "overview") as AuditLens;
 
-  const issues = useMemo(() => validateRackLayout(layout), [layout]);
-  const totals = useMemo(() => getRackTotals(layout), [layout]);
+  const issues = useMemo(() => validateRackLayout(layout, workspace), [layout, workspace]);
+  const totals = useMemo(() => getRackTotals(layout, workspace), [layout, workspace]);
   const documentationIssues = useMemo(
     () => getDocumentationIssues(layout),
     [layout],
@@ -599,7 +612,12 @@ function App() {
   }, []);
 
   function handleIssueSelect(issue: ValidationIssue) {
-    if (NEW_SHELL && libraryModalMode) { useLayoutPrefsStore.getState().setDeviceLibraryDrawerOpen(false); setInspectorOpen(true); }
+    setReviewedIssue(null);
+    setCheckEditContext(null);
+    if (NEW_SHELL) {
+      if (libraryModalMode) useLayoutPrefsStore.getState().setDeviceLibraryDrawerOpen(false);
+      setInspectorOpen(true);
+    }
     setSelectedIssueId(issue.id);
     setCurrentWorkspace("audit");
     setWorkspaceLens("audit", "issues");
@@ -706,7 +724,7 @@ function App() {
 
   function handleAddCableTask() {
     handleSelectWorkflow("cable");
-    setInspectorOpen(true);
+    handleConnectFromSidebar();
   }
 
   function togglePlugin(pluginId: string) {
@@ -818,7 +836,7 @@ function App() {
 
     switch (panelId) {
       case "property":
-        return <PropertyPanel />;
+        return <PropertyPanel focusTarget={checkEditContext?.deviceId === selectedDeviceId && checkEditContext.targetRackId === layout.id ? checkEditContext.target : undefined} />;
       case "port-reservation":
         return <PortReservationPanel />;
       case "port-speed":
@@ -937,10 +955,24 @@ function App() {
         <Suspense fallback={null}>
           <CheckIssueDetails
             issue={selectedIssue}
+            reviewedTitle={reviewedIssue?.id === selectedIssueId && reviewedIssue.rackId === layout.id ? reviewedIssue.title : undefined}
+            onEditRack={handleOpenRackSettingsTask}
             onEdit={() => {
-              handleSelectWorkflow(
-                selectedIssue?.cableIds?.length ? "cable" : "build",
-              );
+              if (!selectedIssue) return;
+              setCheckEditContext({ issue: selectedIssue, rackId: layout.id,
+                targetRackId: selectedIssue.editTarget?.rackId ?? layout.id,
+                deviceId: selectedIssue.editTarget?.deviceId ?? (selectedIssue.cableIds?.length ? undefined : selectedIssue.deviceIds?.[0]),
+                target: selectedIssue.editTarget || !selectedIssue.cableIds?.length ? propertyTargetForIssue(selectedIssue) : undefined });
+              if (selectedIssue?.editTarget) {
+                useRackStore.getState().switchRack(selectedIssue.editTarget.rackId);
+                useRackStore.getState().selectDevice(selectedIssue.editTarget.deviceId);
+                handleSelectWorkflow("build");
+                setInspectorOpen(true);
+                return;
+              }
+              if (selectedIssue?.cableIds?.length) selectCable(selectedIssue.cableIds[0]);
+              else if (selectedIssue?.deviceIds?.length) selectDevice(selectedIssue.deviceIds[0]);
+              handleSelectWorkflow(selectedIssue?.cableIds?.length ? "cable" : "build");
               setInspectorOpen(true);
             }}
           />
@@ -1391,6 +1423,7 @@ function App() {
   }
 
   function renderModelWorkspace() {
+    if (viewMode === 'cable-labels') return <Suspense fallback={<p role="status">Loading labels…</p>}>{renderCanvas()}</Suspense>;
     return (
       <Suspense fallback={null}>
         <ModelWorkspaceLayout
@@ -1417,6 +1450,19 @@ function App() {
             sidebar={
               <CheckSidebar
                 issues={issues}
+                severity={checkSeverity}
+                onSeverity={setCheckSeverity}
+                category={checkCategory}
+                onCategory={setCheckCategory}
+                strictCabling={(layout.policies ?? []).some((policy) => policy.type === 'no-endpoint-switch-direct' && policy.enabled)}
+                onStrictCabling={(strict) => {
+                  const policies = layout.policies ?? [];
+                  const existing = policies.some((policy) => policy.type === 'no-endpoint-switch-direct');
+                  useRackStore.getState().updateRack({ policies: existing
+                    ? policies.map((policy) => policy.type === 'no-endpoint-switch-direct' ? { ...policy, enabled: strict } : policy)
+                    : [...policies, { id: 'check-direct-switch-policy', type: 'no-endpoint-switch-direct', enabled: strict, severity: 'warning', params: {} }],
+                  });
+                }}
                 selectedId={selectedIssueId}
                 onSelect={handleIssueSelect}
                 lens={currentAuditLens}
@@ -1449,6 +1495,7 @@ function App() {
             issues={issues}
             totals={{
               powerW: totals.powerW,
+              powerInputUnverified: totals.powerInputUnverified,
               heatScore: totals.heatScore,
               occupiedU: totals.occupiedU,
             }}
@@ -1528,6 +1575,7 @@ function App() {
     onImportLayout: () => fileInputRef.current?.click(),
     onLoadSample: () => setSamplePickerOpen(true),
     onExportJson: () => void handleExportLayoutJson(),
+    onWorkspaceBackup: () => setWorkspaceBackupOpen(true),
     onExportPng: () => void handleExportRackPng(),
     onExportDrawio: () => void handleExportDiagram("drawio"),
     onExportExcalidraw: () => void handleExportDiagram("excalidraw"),
@@ -1601,7 +1649,17 @@ function App() {
               onToggleViewMode={setViewMode}
               onSetViewSide={setViewSide}
               toolbarActions={toolbarActions}
-              onOpenCheck={() => setCurrentWorkspace("audit")}
+              onOpenCheck={(category = 'overview', severity) => {
+                if (libraryModalMode) {
+                  setInspectorOpen(false);
+                  useLayoutPrefsStore.getState().setDeviceLibraryDrawerOpen(true);
+                }
+                setCheckCategory(category);
+                setCheckSeverity(severity ?? (category === 'overview' ? 'attention' : 'all'));
+                setSelectedIssueId(null);
+                setWorkspaceLens('audit', category === 'thermal' ? 'thermal' : 'issues');
+                setCurrentWorkspace('audit');
+              }}
               {...shellMenuProps}
             />
           </Suspense>
@@ -1689,6 +1747,21 @@ function App() {
               }
             }}
           >
+            {NEW_SHELL && checkEditContext && workflow !== 'check' && (
+              <div className="sticky top-0 z-20 mb-3 flex items-center gap-2 rounded-xl border border-accent/30 bg-surface p-2 shadow-sm" aria-label="Editing from Check">
+                <p className="min-w-0 flex-1 truncate text-xs font-semibold text-accent-fg" title={checkEditContext.issue.title}>From Check: {checkEditContext.issue.title}</p>
+                <button type="button" className="shrink-0 rounded-lg border border-edge bg-surface px-3 py-2 text-xs hover:bg-fill" onClick={() => {
+                  const originExists = workspace.racks.some(rack => rack.id === checkEditContext.rackId);
+                  if (originExists && layout.id !== checkEditContext.rackId) useRackStore.getState().switchRack(checkEditContext.rackId);
+                  setSelectedIssueId(originExists ? checkEditContext.issue.id : null);
+                  setReviewedIssue(originExists ? { id: checkEditContext.issue.id, title: checkEditContext.issue.title, rackId: checkEditContext.rackId } : null);
+                  setCurrentWorkspace('audit');
+                  setWorkspaceLens('audit', 'issues');
+                  setInspectorOpen(true);
+                  setCheckEditContext(null);
+                }}>Return to check</button>
+              </div>
+            )}
             {renderInspectorPanels()}
           </RightInspectorShell>
         </div>
@@ -1717,6 +1790,7 @@ function App() {
             </WorkspaceDialog>
           </Suspense>
         )}
+        {workspaceBackupOpen && <Suspense fallback={null}><WorkspaceBackup onClose={() => setWorkspaceBackupOpen(false)} /></Suspense>}
         {confirmAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div className="w-80 rounded-lg border border-edge-strong bg-fill p-5 shadow-xl dark:border-edge-strong dark:bg-surface-raised">

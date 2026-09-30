@@ -10,6 +10,7 @@ interface ValidationPanelProps {
   totals: {
     weightKg: number;
     powerW: number;
+    powerInputUnverified?: boolean;
     heatScore: number;
     occupiedU: number;
     reservedU?: number;
@@ -147,7 +148,7 @@ export function ValidationPanel({ issues, totals, selectedIssueId, onIssueSelect
             </div>
             <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
               <span className="uppercase tracking-[0.18em] text-content-faint">Power</span>
-              <span className="font-semibold text-content">{totals.powerW}W</span>
+              <span className="font-semibold text-content">{Number(totals.powerW.toFixed(2))}W{totals.powerInputUnverified ? ' · Review' : ''}</span>
             </div>
             <div className="inline-flex min-w-[6.5rem] items-center justify-between gap-2 rounded-full border border-edge bg-surface/80 px-3 py-2 text-content-secondary shadow-sm dark:border-edge dark:bg-surface/70 dark:text-content-secondary">
               <span className="uppercase tracking-[0.18em] text-content-faint">Used U</span>

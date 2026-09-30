@@ -163,7 +163,7 @@ test("draw through selected points, save, reload, and cancel without creating a 
   ).toBe(1);
 });
 
-test("drawing hints recover after an invalid pick and clear when changing face", async ({
+test("keyboard drawing hints recover after an invalid pick and clear when changing face", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
@@ -188,7 +188,10 @@ test("drawing hints recover after an invalid pick and clear when changing face",
   await expect(draw.getByRole("status")).toContainText(
     "power port cannot connect to the ethernet source",
   );
-  await draw.getByRole("button", { name: "ethernet 2", exact: true }).hover();
+  // Use the supported keyboard preview so canvas pointer-out events cannot
+  // clear the hint while the browser positions its mouse for a hover.
+  await page.mouse.move(0, 0);
+  await draw.getByRole("button", { name: "ethernet 2", exact: true }).focus();
   await expect(draw.getByRole("status")).toContainText(
     "Click to finish at Lower device",
   );

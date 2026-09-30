@@ -1,7 +1,14 @@
+import { getRackPowerSummary } from './rackPower';
+import { batterySupplyLayout } from './upsOutletBackup';
+import { getPoeIssues } from './poeBudget';
+import { getConnectorIssues } from './connectorCompatibility';
+import { getInstallationIssues, getSupportingShelf } from './installationChecks';
+import { needsPowerReview, planningPowerBasis, POWER_BASIS_LABELS } from './powerAssumptions';
 import { shouldHideDevice } from './featureFlags';
-import type { PlacedDevice, RackLayout, ValidationIssue, CableRoute } from '../types/rack';
+import type { PlacedDevice, RackLayout, ValidationIssue, CableRoute, Workspace } from '../types/rack';
 import { getPatchPanelJacks } from './patchPanel';
-import { calculateCablePlan, isPdu, standardCableLength } from './routing';
+import { calculateCablePlan, isPdu } from './routing';
+import { getCableLengthRequirements, cablePurchaseLengthLabel, cablePurchaseNote } from './cableLengthRequirements';
 import { validateCableColorConvention } from './cableColors';
 import {
   getDeviceWidthMm,
@@ -20,7 +27,7 @@ import {
   rangesOverlap,
   isZeroU
 } from './rackMath';
-import { getCircuitLoads, checkPowerRedundancy, getDeviceCapacityW, validatePduOutletAssignments } from './powerChain';
+import { buildPowerTopology, isPowerSource, checkPowerRedundancy, getDeviceCapacityW, validatePduOutletAssignments } from './powerChain';
 import { getServiceabilityIssues } from './serviceability';
 import { reservationOverlapsDevice, reservationWithinRack } from './reservations';
 import { validatePrintedMountFit } from './printedMount';
@@ -29,14 +36,6 @@ import { canShareShelf, isTrayShelf, shelfDeckHeight, deviceBodyHeightMm, U_HEIG
 
 function totalWeight(devices: PlacedDevice[]) {
   return devices.reduce((sum, device) => sum + device.weightKg, 0);
-}
-
-function totalPower(devices: PlacedDevice[]) {
-  return devices.reduce((sum, device) => sum + device.powerW, 0);
-}
-
-function isShelfSupport(device: PlacedDevice) {
-  return device.category === 'shelf';
 }
 
 function blocksAirflow(device: PlacedDevice) {
@@ -72,21 +71,18 @@ function areMediaCompatible(a: string, b: string): boolean {
   return true;
 }
 
-function recommendCableLength(pathLengthMm: number): string {
-  const match = standardCableLength(pathLengthMm * 1.15);
-  return match ? `${match / 1000}m` : '5m+';
-}
 
 function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationIssue | null {
-  if (!cable.lengthMm || cable.lengthMm <= 0) return null;
-  const plan = calculateCablePlan(cable, layout);
-  if (!plan) return null;
-  if (cable.lengthMm < plan.estimatedLengthMm) {
+  const requirement = getCableLengthRequirements(layout).get(cable.id);
+  if (!requirement) return null;
+  const short = requirement.requiredMm !== null && !!cable.lengthMm && cable.lengthMm < requirement.requiredMm;
+  if (requirement.status !== 'estimated' || short) {
     return {
-      id: `cable-short-${cable.id}`,
+      id: `${short ? 'cable-short' : 'cable-length-review'}-${cable.id}`,
+      evidence: short ? undefined : 'unverified',
       severity: 'warning',
-      title: `Cable ${cable.id} may be too short`,
-      detail: `Routed path is ~${Math.ceil(plan.baseLengthMm / 100) * 100}mm plus ${plan.slackMm}mm slack. Declared: ${cable.lengthMm}mm. Recommended stocked length: ${recommendCableLength(plan.estimatedLengthMm)}.`,
+      title: short ? `Cable ${cable.id} may be too short` : `Cable ${cable.id} length needs review`,
+      detail: `${cablePurchaseNote(requirement)}${cable.lengthMm ? ` Declared: ${cable.lengthMm}mm.` : ''} Purchase length: ${cablePurchaseLengthLabel(requirement)}.`,
       deviceIds: [cable.fromDeviceId, cable.toDeviceId],
       cableIds: [cable.id]
     };
@@ -94,7 +90,7 @@ function validateCableLength(cable: CableRoute, layout: RackLayout): ValidationI
   return null;
 }
 
-export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
+export function validateRackLayout(layout: RackLayout, workspace?: Workspace): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const hidden = layout.devices.filter(shouldHideDevice);
   if (hidden.length) issues.push({
@@ -102,6 +98,11 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     detail: '0U physical planning is disabled. Devices and attached cables are retained in JSON, but are not rendered or editable. Export JSON for a compatible version; do not rely on this view to validate their fit.',
     deviceIds: hidden.map(d => d.id),
   });
+  // Direct links are normal in a homelab; an enabled policy can require structured cabling.
+  const directLinkSeverityRank: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+  const directLinkPolicy = (layout.policies ?? []).filter((policy) =>
+    policy.type === 'no-endpoint-switch-direct' && policy.enabled,
+  ).sort((a, b) => (directLinkSeverityRank[a.severity] ?? 2) - (directLinkSeverityRank[b.severity] ?? 2))[0];
   const rackSpec = RACK_SPECS[layout.rackType];
   const reservations = layout.reservations ?? [];
   const depthSummary = getDepthSummary(layout);
@@ -183,7 +184,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
         id: `depth-${device.id}`,
         severity: 'warning',
         title: `${device.name} may be too deep`,
-        detail: `${device.depthMm}mm device depth exceeds the ${depthSummary.usableDepthMm}mm usable depth after rear cable and door clearances.`,
+        detail: `${device.depthMm}mm device depth exceeds the ${depthSummary.usableDepthMm}mm usable depth after rear cable and door clearances. Additional usable depth required: ${(device.depthMm - depthSummary.usableDepthMm).toFixed(1)} mm.`,
         deviceIds: [device.id]
       });
     }
@@ -232,17 +233,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     if (device.physicalHeightMm !== undefined && deviceBodyHeightMm(device) + (device.clearanceAboveMm ?? 0) > device.sizeU * U_HEIGHT_MM) issues.push({ id: `physical-height-${device.id}`, severity: 'critical', title: `${device.name}: too tall`, detail: 'Increase Rack size U.', deviceIds: [device.id] });
 
     if ((device.widthType === 'shelf' || device.widthType === 'custom') && device.category !== 'shelf' && device.mountingSupport !== 'printed-mount' && !isZeroU(device)) {
-      const hasNearbyShelf = layout.devices.some((shelf) => {
-        if (!isShelfSupport(shelf)) return false;
-        if (isTrayShelf(shelf)) return canShareShelf(layout, shelf, device);
-        if (getDeviceMountSide(shelf) !== getDeviceMountSide(device)) return false;
-        const shelfX = getDeviceXRange(layout, shelf);
-        const deviceX = getDeviceXRange(layout, device);
-        return (
-          rangesOverlap(shelf.positionU, shelf.sizeU, Math.max(1, device.positionU - 1), device.sizeU + 1) &&
-          rangesOverlap(shelfX.x, shelfX.width, deviceX.x, deviceX.width)
-        );
-      });
+      const hasNearbyShelf = getSupportingShelf(layout, device) !== undefined;
       if (!hasNearbyShelf) {
         issues.push({
           id: `shelf-${device.id}`,
@@ -284,34 +275,55 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     });
   }
 
-  const power = totalPower(layout.devices);
+  const powerSummary = getRackPowerSummary(layout, workspace);
+  const power = powerSummary.powerW;
+  issues.push(...powerSummary.issues);
+  if (powerSummary.powerAttributionActive) issues.push({ id: 'power-attribution', severity: 'info', title: 'Rack power is attributed to supply inputs', detail: `Device planning sum: ${Number(powerSummary.devicePowerW.toFixed(2))} W. Attributed rack input: ${Number(power.toFixed(2))} W. PoE output and conversion losses are assigned to the supply rack; PoE-only receivers are not counted again here. Independent wired feeds retain full planning load. This is conditional planning input, not measured wall power or local heat output.` });
   if (power > layout.powerBudgetW) {
     issues.push({
       id: 'power-limit',
       severity: 'critical',
       title: 'Power budget exceeded',
-      detail: `Estimated usage is ${power}W, above the configured ${layout.powerBudgetW}W budget.`
+      detail: `Attributed input is ${Number(power.toFixed(2))}W, above the configured ${layout.powerBudgetW}W budget.`
     });
   } else if (power > layout.powerBudgetW * 0.8) {
     issues.push({
       id: 'power-near-limit',
       severity: 'warning',
       title: 'Power usage is near the budget',
-      detail: `Estimated usage is ${power}W, over 80% of the configured budget.`
+      detail: `Attributed input is ${Number(power.toFixed(2))}W, over 80% of the configured budget.`
     });
   }
 
-  // Per-circuit safe breaker utilization
-  const circuitLoads = getCircuitLoads(layout);
-  for (const cl of circuitLoads) {
-    const totalCapacity = cl.sources.reduce((sum, s) => sum + (getDeviceCapacityW(s) ?? 0), 0);
-    if (totalCapacity > 0 && cl.totalW > totalCapacity * 0.8) {
+  for (const [index, warning] of buildPowerTopology(layout).warnings.entries()) {
+    issues.push({ id: `power-topology-${index}`, severity: 'warning', title: 'Power topology needs review', detail: warning });
+  }
+
+  for (const device of layout.devices.filter(needsPowerReview)) {
+    issues.push({
+      id: `power-assumption-${device.id}`, severity: 'warning', evidence: 'unverified', title: 'Planning power needs review',
+      detail: `${device.name} uses ${device.powerW}W (${POWER_BASIS_LABELS[planningPowerBasis(device)]}) in power, runtime and energy estimates. Review the workload and installed configuration in Power & Lifecycle before relying on these results.`,
+      deviceIds: [device.id],
+    });
+  }
+
+  issues.push(...getInstallationIssues(layout), ...getConnectorIssues(layout));
+  issues.push(...batterySupplyLayout(layout).unknowns.map(w => ({
+    id: `power-ups-backup-${w.cableId}`, severity: 'warning' as const, evidence: 'unverified' as const, title: 'UPS outlet backup is unverified',
+    detail: w.detail, deviceIds: [w.sourceId], cableIds: [w.cableId],
+  })));
+  const poeWorkspace: Workspace = workspace ? { ...workspace, racks: workspace.racks.map(rack => rack.id === layout.id ? layout : rack) } : { id: 'local-audit', name: layout.name, racks: [layout], interRackCables: [], updatedAt: layout.updatedAt };
+  issues.push(...getPoeIssues(poeWorkspace, layout.id));
+
+  // Unknown ratings must not appear as a successful electrical capacity check.
+  for (const device of layout.devices.filter(isPowerSource)) {
+    if (getDeviceCapacityW(device) === undefined) {
       issues.push({
-        id: `circuit-overload-${cl.circuit}`,
+        id: `power-capacity-unknown-${device.id}`, evidence: 'unverified',
         severity: 'warning',
-        title: `Circuit ${cl.circuit} load exceeds safe breaker utilization`,
-        detail: `Circuit ${cl.circuit} load is ${cl.totalW}W, over 80% of ${totalCapacity}W total source capacity. Consider adding more capacity or moving devices to the other circuit.`,
-        deviceIds: cl.sources.map((s) => s.id),
+        title: 'Power output capacity is unverified',
+        detail: `${device.name} has no verified output rating in watts. Enter its continuous rated output in device properties; socket count does not establish capacity. Circuit breaker capacity is not verified by this check.`,
+        deviceIds: [device.id],
       });
     }
   }
@@ -529,13 +541,15 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     const fromIsEndpoint = isEndpoint(from);
     const toIsEndpoint = isEndpoint(to);
 
-    // 1. Endpoint → switch direct connection ban
+    // 1. Endpoint → switch direct connection guidance
     if ((fromIsEndpoint && toIsSwitch) || (fromIsSwitch && toIsEndpoint)) {
       issues.push({
         id: `endpoint-switch-direct-${cable.id}`,
-        severity: 'critical',
+        severity: directLinkPolicy?.severity ?? 'info',
         title: 'Endpoint connected directly to switch',
-        detail: `${from.name} → ${to.name}: endpoints must connect to patch panel rear ports; switches must connect to patch panel front ports.`,
+        detail: directLinkPolicy
+          ? `${from.name} → ${to.name}: your structured-cabling policy requires endpoints on patch panel rear ports and switches on front ports.`
+          : `${from.name} → ${to.name}: direct links are allowed for homelabs. A patch panel is optional for easier cable organization.`,
         deviceIds: [from.id, to.id],
         cableIds: [cable.id]
       });
@@ -655,7 +669,7 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     // Legacy ethernet/fiber: warn if bypassing patch panel
     if (cable.type === 'ethernet' || cable.type === 'fiber') {
       const hasPatchPanel = fromIsPatch || toIsPatch;
-      if (!hasPatchPanel) {
+      if (!hasPatchPanel && !((fromIsEndpoint && toIsSwitch) || (fromIsSwitch && toIsEndpoint))) {
         issues.push({
           id: `network-direct-${cable.id}`,
           severity: 'info',
@@ -748,8 +762,8 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
       issues.push({
         id: `redundancy-${result.device.id}`,
         severity: 'warning',
-        title: 'Redundant power feeds share the same circuit',
-        detail: `${result.device.name} has ${result.powerCables.length} power cable(s) but they all trace back to Circuit ${result.circuits[0] ?? 'unassigned'}. For true redundancy, connect each PSU to a different circuit (A and B).`,
+        title: 'Independent power feeds are unverified',
+        detail: `${result.device.name}: independent A/B supply paths are not confirmed. Check circuit labels, distinct PSU sockets, supply directions and shared upstream equipment. Remaining-feed capacity and UPS battery operation still require verification.`,
         deviceIds: [result.device.id],
         cableIds: result.powerCables.map((c) => c.id),
       });
@@ -762,8 +776,10 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
     const severity: ValidationIssue['severity'] =
       oi.type === 'duplicate-assignment' || oi.type === 'outlet-overload' ? 'critical' : 'warning';
     const titleMap: Record<string, string> = {
+      'unknown-count': 'Power source outlet count unknown',
       'duplicate-assignment': 'Duplicate PDU outlet assignment',
       'unassigned-cable': 'Unassigned PDU power cable',
+      'conflicting-assignment': 'Power socket and legacy outlet disagree',
       'outlet-overload': 'PDU outlet index out of range',
       'ab-mismatch': 'Dual-PSU device on same circuit',
     };
@@ -783,15 +799,19 @@ export function validateRackLayout(layout: RackLayout): ValidationIssue[] {
   return issues;
 }
 
-export function getRackTotals(layout: RackLayout) {
+export function getRackTotals(layout: RackLayout, workspace?: Workspace) {
   const devices = layout.devices.filter((d) => !isZeroU(d));
   const depthSummary = getDepthSummary(layout);
   const deepestMm = devices.reduce((max, d) => Math.max(max, d.depthMm), 0);
   const depthIssues = getDepthCompatibilityIssues(layout).length;
+  const power = getRackPowerSummary(layout, workspace);
 
   return {
     weightKg: totalWeight(layout.devices),
-    powerW: totalPower(layout.devices),
+    powerW: power.powerW,
+    devicePowerW: power.devicePowerW,
+    powerInputUnverified: power.powerInputUnverified,
+    poeAttributedDevices: power.poeAttributedDevices,
     heatScore: layout.devices.reduce((sum, device) => sum + device.heatLevel * Math.max(1, device.sizeU), 0),
     occupiedU: occupiedUnits(layout.devices, layout.heightU).size,
     reservedU: occupiedUnits(

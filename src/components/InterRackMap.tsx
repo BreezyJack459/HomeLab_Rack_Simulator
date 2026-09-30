@@ -1,3 +1,4 @@
+import { InterRackConnectorReview } from './InterRackConnectorReview';
 import { useMemo, useState } from 'react';
 import { Network, Server, Cable, ArrowRight, AlertCircle, MapPin, Plus } from 'lucide-react';
 import { useRackStore } from '../store/rackStore';
@@ -73,6 +74,7 @@ interface CablePosition {
 }
 
 function InterRackMap({ onAddCable }: InterRackMapProps) {
+  const workspace = useRackStore(state => state.workspace);
   const racks = useRackStore((state) => state.workspace.racks);
   const interRackCables = useRackStore(
     (state) => state.workspace.interRackCables,
@@ -402,6 +404,7 @@ function InterRackMap({ onAddCable }: InterRackMapProps) {
               </div>
             </div>
 
+            <InterRackConnectorReview key={selectedCable.id} workspace={workspace} cable={selectedCable} />
             {selectedCable.notes && (
               <div>
                 <div className="mb-1 text-xs font-medium uppercase tracking-wider text-content-muted">Notes</div>

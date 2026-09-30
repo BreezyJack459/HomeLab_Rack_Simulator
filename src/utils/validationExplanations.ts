@@ -381,12 +381,12 @@ const matchers: Matcher[] = [
       ? {
           meaning: 'An endpoint device is connected directly to a switch, bypassing the patch panel.',
           whyItMatters:
-            'Structured cabling discipline requires endpoint → patch panel → switch. Direct connections are hard to trace and reconfigure.',
+            'Structured installations use endpoint → patch panel → switch to keep permanent runs organized. A direct link is valid in a homelab.',
           realWorldSymptom: 'You move the switch and must re-run every endpoint cable; labels do not match wall plate numbers.',
           fixDifficulty: 'medium',
           riskIfIgnored: 'medium',
           whenAcceptableToIgnore:
-            'Temporary lab links, management ports, or out-of-band connections that do not need wall-plate mapping.',
+            'Homelab direct links, temporary lab links, management ports, or connections that do not need wall-plate mapping.',
         }
       : null,
 

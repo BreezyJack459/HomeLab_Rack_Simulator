@@ -1,9 +1,11 @@
+import { checkConnectorCompatibility } from './connectorCompatibility';
 /**
  * Port selection utilities for cable creation.
  * Extracted from CablePlanner.tsx to support auto-assign and device-first workflows.
  */
 
 import type { CableType, PlacedDevice, PortRef, PortType, RackLayout } from '../types/rack';
+import { powerOutletIndex } from './powerOutlet';
 import { DEFAULT_CABLE_COLORS } from './cableColors';
 import { ENABLE_ZERO_U_PDU } from './featureFlags';
 import { getPortFaceMap, getPortMetadata } from './portLayout';
@@ -55,7 +57,12 @@ function portClaimMatches(port: PortRef | undefined, portType: PortType, portInd
 
 export function getUsedPorts(layout: RackLayout, deviceId: string, portType: PortType, side?: PortFace): Set<number> {
   const used = new Set<number>();
+  const device = layout.devices.find(d => d.id === deviceId);
   layout.cables.forEach((cable) => {
+    if (portType === 'power' && (device?.category === 'pdu' || device?.category === 'pdu-0u' || device?.category === 'ups')) {
+      const index = powerOutletIndex(cable, deviceId);
+      if (index !== undefined) used.add(index);
+    }
     if (cable.fromDeviceId === deviceId && portClaimMatches(cable.fromPort, portType, cable.fromPort?.index ?? -1, side)) {
       used.add(cable.fromPort!.index);
     }
@@ -67,11 +74,7 @@ export function getUsedPorts(layout: RackLayout, deviceId: string, portType: Por
 }
 
 export function isPortUsed(layout: RackLayout, deviceId: string, portType: PortType, portIndex: number, side?: PortFace): boolean {
-  return layout.cables.some((cable) => {
-    if (cable.fromDeviceId === deviceId && portClaimMatches(cable.fromPort, portType, portIndex, side)) return true;
-    if (cable.toDeviceId === deviceId && portClaimMatches(cable.toPort, portType, portIndex, side)) return true;
-    return false;
-  });
+  return getUsedPorts(layout, deviceId, portType, side).has(portIndex);
 }
 
 // ============================================================================
@@ -142,7 +145,7 @@ export function portOptionsForDevice(device: PlacedDevice | undefined, cableType
     return Array.from({ length: count }, (_, index) => ({
       index,
       label: `${label} ${index + 1}`,
-      side: 'front' as const,
+      side: defaultFace,
       disabled: used.has(index)
     }));
   }
@@ -230,8 +233,15 @@ export function resolveCompatibleCable(
   const targetDevice = deviceMap?.get(choice.deviceId) ?? layout.devices.find((d) => d.id === choice.deviceId);
   if (!sourceDevice || !targetDevice) return null;
 
-  const inferred = inferCableType(sourceDevice, targetDevice);
-  if (!inferred || portTypeForCableType(inferred) !== source.port.type || choice.type !== source.port.type) return null;
+  if (choice.type !== source.port.type) return null;
+  // Physical port selection owns the type. Device-category inference is only
+  // used to distinguish Ethernet patch-panel front and rear connections.
+  const panelPort = sourceDevice.category === 'patch-panel' ? source.port
+    : targetDevice.category === 'patch-panel' ? choice : null;
+  const inferred: CableType = source.port.type === 'ethernet' && panelPort
+    ? panelPort.side === 'rear' ? 'structured'
+      : sourceDevice.category === 'switch' || targetDevice.category === 'switch' ? 'patch' : 'ethernet'
+    : source.port.type;
   if (!sourceSupportsCableType(source, sourceDevice, inferred, layout)) return null;
 
   const targetOption = portOptionsForDevice(targetDevice, inferred, layout).find(
@@ -240,6 +250,12 @@ export function resolveCompatibleCable(
   if (!targetOption) return null;
   if (isPortUsed(layout, choice.deviceId, choice.type, choice.index, choice.side)) return null;
 
+  const compatibility = checkConnectorCompatibility(layout, {
+    id: 'candidate', fromDeviceId: source.deviceId, fromPort: source.port,
+    toDeviceId: choice.deviceId, toPort: { type: choice.type, index: choice.index, side: choice.side },
+    type: inferred, color: DEFAULT_CABLE_COLORS[inferred],
+  });
+  if (compatibility.status === 'conflict') return null;
   return { cableType: inferred, color: DEFAULT_CABLE_COLORS[inferred] };
 }
 
@@ -317,15 +333,16 @@ export function autoResolveCable(
   const cableType = inferCableType(from, to);
   if (!cableType) return null;
 
-  const fromPort = getNextFreePort(from, cableType, layout);
-  const toPort = getNextFreePort(to, cableType, layout);
-
-  if (!fromPort || !toPort) return null;
-
-  return {
-    fromPort: { type: portTypeForCableType(cableType), index: fromPort.index, side: fromPort.side },
-    toPort: { type: portTypeForCableType(cableType), index: toPort.index, side: toPort.side },
-    cableType,
-    color: DEFAULT_CABLE_COLORS[cableType]
-  };
+  const portType = portTypeForCableType(cableType);
+  for (const fromOption of portOptionsForDevice(from, cableType, layout).filter(p => !p.disabled)) {
+    for (const toOption of portOptionsForDevice(to, cableType, layout).filter(p => !p.disabled)) {
+      const fromPort = { type: portType, index: fromOption.index, side: fromOption.side };
+      const toPort = { type: portType, index: toOption.index, side: toOption.side };
+      const color = DEFAULT_CABLE_COLORS[cableType];
+      if (checkConnectorCompatibility(layout, { id: 'candidate', fromDeviceId: from.id, toDeviceId: to.id, fromPort, toPort, type: cableType, color }).status !== 'conflict') {
+        return { fromPort, toPort, cableType, color };
+      }
+    }
+  }
+  return null;
 }

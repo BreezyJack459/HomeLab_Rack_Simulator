@@ -48,6 +48,19 @@ describe('getPortFaceMap', () => {
 });
 
 describe('buildPortLayout', () => {
+  it('keeps compact multi-row port groups inside the face without overlapping', () => {
+    const device = makeDevice({ category: 'mini-pc', ports: { ethernet: 2, usb: 6, hdmi: 2, power: 1 } });
+    const slots = buildPortLayout(device, 0.12, 0.04445, 'rear').flatMap(group => group.slots);
+    expect(slots.length).toBeGreaterThan(5);
+    for (const [index, slot] of slots.entries()) {
+      expect(Math.abs(slot.y) + slot.height / 2).toBeLessThanOrEqual(0.04445 / 2);
+      for (const other of slots.slice(index + 1)) {
+        const overlapX = Math.abs(slot.x - other.x) < (slot.width + other.width) / 2;
+        const overlapY = Math.abs(slot.y - other.y) < (slot.height + other.height) / 2;
+        expect(overlapX && overlapY).toBe(false);
+      }
+    }
+  });
   it('returns empty when device has no ports', () => {
     const device = makeDevice({ ports: {} });
     expect(buildPortLayout(device, 1, 1, 'front')).toEqual([]);

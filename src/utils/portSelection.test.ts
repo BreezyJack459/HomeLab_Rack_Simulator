@@ -701,3 +701,41 @@ describe('resolveCompatibleCable', () => {
     expect(resolveCompatibleCable(layout, source, choice)).toBeNull();
   });
 });
+
+describe('diagram-selected physical endpoints', () => {
+  it.each(['usb', 'hdmi', 'fiber', 'power', 'atx', 'coax'] as const)('connects %s without inferring Ethernet from device category', type => {
+    const a = makeDevice({ id: 'a', ports: { [type]: 2 } });
+    const b = makeDevice({ id: 'b', ports: { [type]: 2 } });
+    const layout = makeLayout([a, b]);
+    const selected = portChoicesForDevice(a, layout).find(c => c.index === 1)!;
+    const target = portChoicesForDevice(b, layout)[0];
+    expect(resolveCompatibleCable(layout, { deviceId: a.id, port: selected }, target)?.cableType).toBe(type);
+  });
+  it('preserves a switch face override rather than inventing front ports', () => {
+    const sw = makeDevice({ category: 'switch', portFaceOverrides: { ethernet: 'rear' } });
+    const choices = portChoicesForDevice(sw, makeLayout([sw]));
+    expect(choices).toHaveLength(4);
+    expect(choices.every(c => c.side === 'rear')).toBe(true);
+  });
+  it('distinguishes front patching and rear landing on the same panel jack', () => {
+    const sw = makeDevice({ id: 'sw', category: 'switch' });
+    const pp = makeDevice({ id: 'pp', category: 'patch-panel' });
+    const layout = makeLayout([sw, pp]);
+    const source = { deviceId: 'sw', port: portChoicesForDevice(sw, layout)[2] };
+    const choices = portChoicesForDevice(pp, layout);
+    expect(resolveCompatibleCable(layout, source, choices.find(c => c.side === 'front')!)?.cableType).toBe('patch');
+    expect(resolveCompatibleCable(layout, source, choices.find(c => c.side === 'rear')!)?.cableType).toBe('structured');
+    const occupied = makeLayout([sw, pp], [makeCable({ fromDeviceId: 'sw', fromPort: source.port })]);
+    expect(resolveCompatibleCable(occupied, source, choices[0])).toBeNull();
+  });
+});
+
+
+it('reserves legacy PDU outlet assignments in the visual socket picker', () => {
+  const pdu = makeDevice({ id: 'pdu', category: 'pdu', ports: { power: 4 } });
+  const server = makeDevice({ id: 'server', ports: { power: 1 } });
+  const layout = makeLayout([pdu, server], [{ id: 'old', type: 'power', fromDeviceId: 'pdu', toDeviceId: 'server', outletIndex: 2 }]);
+  expect(getUsedPorts(layout, 'pdu', 'power')).toEqual(new Set([2]));
+  expect(isPortUsed(layout, 'pdu', 'power', 2)).toBe(true);
+  expect(portChoicesForDevice(pdu, layout).find(p => p.index === 2)?.disabled).toBe(true);
+});

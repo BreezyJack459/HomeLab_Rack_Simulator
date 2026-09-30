@@ -99,7 +99,7 @@ describe('checkDeviceFit', () => {
     expect(result!.canFit).toBe(true);
     expect(result!.checks.physical).toBe('pass');
     expect(result!.checks.weight).toBe('pass');
-    expect(result!.checks.power).toBe('pass');
+    expect(result!.checks.power).toBe('warning');
     expect(result!.checks.heat).toBe('pass');
     expect(result!.checks.stability).toBe('pass');
   });
@@ -331,4 +331,29 @@ describe('checkDeviceFit', () => {
     const result = checkDeviceFit(layout, miniPcTemplate);
     expect(result).not.toBeNull();
   });
+});
+
+it('preserves installation and electrical metadata and blocks a rail mismatch in preview', () => {
+  const template: DeviceTemplate = { ...miniPcTemplate, installationRequirements: { support: 'rails', railMinMm: 500, railMaxMm: 600 }, installationKit: 'Recorded kit', powerCapacityW: 100, poeBudgetW: 30, poeInputMode: 'self-only', poeEfficiencyPct: 90, portConnectionSpecs: { 'ethernet:front:0': { poeRole: 'pse', poeLimitW: 30 } }, batteryWh: 100, upsBatteryAssumptions: { chargePct: 50 } };
+  const mismatch = checkDeviceFit(createTestLayout({ mountingPostSpacingMm: 450 }), template)!;
+  expect(mismatch.canFit).toBe(false);
+  expect(mismatch.checks.installation).toBe('fail');
+  expect(mismatch.proposedDevice).toMatchObject({ installationRequirements: template.installationRequirements, installationKit: 'Recorded kit', powerCapacityW: 100, poeBudgetW: 30, poeInputMode: 'self-only', poeEfficiencyPct: 90, batteryWh: 100, upsBatteryAssumptions: { chargePct: 50 } });
+  expect(mismatch.proposedDevice.portConnectionSpecs).toEqual(template.portConnectionSpecs);
+  mismatch.proposedDevice.portConnectionSpecs!['ethernet:front:0'].poeLimitW = 1;
+  expect(template.portConnectionSpecs!['ethernet:front:0'].poeLimitW).toBe(30);
+  const missing = checkDeviceFit(createTestLayout(), template)!;
+  expect(missing.canFit).toBe(true);
+  expect(missing.checks.installation).toBe('warning');
+  expect(checkDeviceFit(createTestLayout({ mountingPostSpacingMm: 550 }), template)!.checks.installation).toBe('pass');
+});
+
+it('uses recorded physical height for normal and 0U preview instead of only nominal U', () => {
+  const tall = checkDeviceFit(createTestLayout(), { ...miniPcTemplate, physicalHeightMm: 100 })!;
+  expect(tall.canFit).toBe(false);
+  expect(tall.checks.physical).toBe('fail');
+  const zeroU: DeviceTemplate = { ...miniPcTemplate, category: 'pdu-0u', defaultU: 0, physicalHeightMm: 1000, widthType: 'custom', customWidthMm: 50 };
+  const result = checkDeviceFit(createTestLayout({ heightU: 6 }), zeroU)!;
+  expect(result.proposedDevice.physicalHeightMm).toBe(1000);
+  expect(result.canFit).toBe(false);
 });

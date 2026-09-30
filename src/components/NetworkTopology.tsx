@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { Download, ZoomIn, ZoomOut, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { matchesCableQuery } from '../utils/cableQuery';
@@ -46,9 +46,15 @@ export function NetworkTopology({ layout }: Props) {
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
 
   // Measure container
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // Lay out against the real canvas before paint, rather than briefly showing
+    // the 800x600 fallback and moving every device on the observer's first tick.
+    const initial = el.getBoundingClientRect();
+    if (initial.width > 0 && initial.height > 0) {
+      setContainerSize({ width: initial.width, height: initial.height });
+    }
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const cr = entry.contentRect;

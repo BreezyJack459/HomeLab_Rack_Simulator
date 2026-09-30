@@ -1,3 +1,4 @@
+import { resolvePortFace } from './portLayout';
 import type { CableRoute, PlacedDevice, PortRef } from '../types/rack';
 
 export interface CableLabel {
@@ -105,7 +106,7 @@ export function detectLabelInconsistencies(
 
     // Track for duplicate detection
     if (cable.fromPort && fromDevice) {
-      const sourceKey = `${fromDevice.name}:${cable.fromPort.type}${cable.fromPort.index + 1}`;
+      const sourceKey = `${fromDevice.id}:${resolvePortFace(fromDevice, cable.fromPort)}:${cable.fromPort.type}${cable.fromPort.index + 1}`;
       const existing = sourceLabels.get(sourceKey) ?? [];
       existing.push(cable.id);
       sourceLabels.set(sourceKey, existing);

@@ -1,3 +1,5 @@
+// Model a ready library before invoking synchronous template actions.
+import '../data/deviceCatalog';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PerspectiveCamera, Vector3 } from 'three';
 import type { PlacedDevice, RackLayout } from '../types/rack';

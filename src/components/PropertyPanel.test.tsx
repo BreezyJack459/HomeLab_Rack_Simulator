@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PropertyPanel } from './PropertyPanel';
 import { useRackStore } from '../store/rackStore';
@@ -67,6 +67,16 @@ describe('PropertyPanel selection summary', () => {
     expect(screen.getByText('U19')).toBeInTheDocument();
     expect(screen.getByText('19in')).toBeInTheDocument();
     expect(screen.getByText('front')).toBeInTheDocument();
+  });
+
+  it('opens the relevant collapsed section and focuses the depth field from Check', async () => {
+    const { rerender } = render(<PropertyPanel />);
+    expect(screen.queryByRole('spinbutton', { name: 'Depth mm' })).not.toBeInTheDocument();
+    rerender(<PropertyPanel focusTarget={{ section: 'Dimensions & placement', field: 'Depth mm' }} />);
+    expect(screen.getByRole('button', { name: 'Dimensions & placement' })).toHaveAttribute('aria-expanded', 'true');
+    await waitFor(() => expect(screen.getByRole('spinbutton', { name: 'Depth mm' })).toHaveFocus());
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Depth mm' }), { target: { value: '80' } });
+    expect(useRackStore.getState().layout.devices[0].depthMm).toBe(80);
   });
 
   it('lets compact equipment use a printed mount and keeps the chosen model URL', () => {

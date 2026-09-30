@@ -9,7 +9,7 @@ export const getShellWorkflow = (
 ): ShellWorkflow =>
   workspace === "audit"
     ? "check"
-    : workspace !== "model"
+    : workspace !== "model" || view === "cable-labels"
       ? "tools"
       : isCableView(view)
         ? "cable"

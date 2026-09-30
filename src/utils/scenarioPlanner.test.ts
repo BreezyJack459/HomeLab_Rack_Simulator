@@ -38,6 +38,7 @@ function device(overrides: Partial<PlacedDevice> & Pick<PlacedDevice, 'id' | 'ca
     powerW: 50,
     heatLevel: 2,
     color: '#888',
+    ...(overrides.category === 'ups' ? { portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' as const } } } : {}),
     ...overrides,
   } as PlacedDevice;
 }
@@ -45,6 +46,8 @@ function device(overrides: Partial<PlacedDevice> & Pick<PlacedDevice, 'id' | 'ca
 function powerCable(from: string, to: string): CableRoute {
   return {
     id: `pc-${from}-${to}`,
+    fromPort: { type: 'power', index: 0 },
+    toPort: { type: 'power', index: 0 },
     fromDeviceId: from,
     toDeviceId: to,
     type: 'power',
@@ -211,12 +214,12 @@ describe('runScenario — nas-disk-failure', () => {
     expect(result.survivingDevices.some((s) => s.deviceId === 'srv2')).toBe(true);
   });
 
-  it('flags single-NAS as a single point of failure', () => {
+  it('keeps backup recoverability unknown for a single recorded NAS', () => {
     const layout = createLayout({
       devices: [device({ id: 'nas1', category: 'nas', name: 'NAS' })],
     });
     const result = runScenario(layout, 'nas-disk-failure');
-    expect(result.failedAssumptions.some((a) => a.id === 'second-nas' && a.status === 'fail')).toBe(true);
+    expect(result.failedAssumptions.some((a) => a.id === 'second-nas' && a.status === 'unknown')).toBe(true);
   });
 });
 
@@ -245,6 +248,20 @@ describe('runScenario — ups-battery-weak', () => {
 });
 
 describe('runScenario — summer-heatwave', () => {
+  it('does not certify cooling or dilute heat scores with passive rack accessories', () => {
+    const rack = createLayout({ devices: [device({ id: 'hot', name: 'Hot', category: 'server', heatLevel: 5 }),
+      ...Array.from({ length: 20 }, (_, i) => device({ id: `blank-${i}`, name: 'Blank', category: 'blank', heatLevel: 1 })),
+    ] });
+    const result = runScenario(rack, 'summer-heatwave');
+    expect(result.summary).toContain('5.0/5');
+    expect(result.failedAssumptions.find(a => a.id === 'rack-cooling')?.status).toBe('unknown');
+    const text = JSON.stringify(result);
+    expect(text).not.toContain('3–7°C');
+    expect(text).not.toContain('at thermal throttle threshold');
+    const cool = runScenario(createLayout({ devices: [device({ id: 'cool', name: 'Cool', category: 'switch', heatLevel: 1 })] }), 'summer-heatwave');
+    expect(cool.failedAssumptions.find(a => a.id === 'rack-cooling')?.status).toBe('unknown');
+    expect(cool.survivingDevices[0].reason).toContain('unverified');
+  });
   it('flags devices with heat level 4 or 5 as warnings or critical', () => {
     const layout = createLayout({
       devices: [
@@ -301,12 +318,12 @@ describe('runScenario — ap-offline', () => {
 });
 
 describe('runScenario — management-network-down', () => {
-  it('flags missing IP-KVM as a failed assumption', () => {
+  it('keeps out-of-band recovery unknown when no IP-KVM is recorded', () => {
     const layout = createLayout({
       devices: [device({ id: 'srv1', category: 'server', name: 'Server' })],
     });
     const result = runScenario(layout, 'management-network-down');
-    expect(result.failedAssumptions.some((a) => a.id === 'has-ip-kvm' && a.status === 'fail')).toBe(true);
+    expect(result.failedAssumptions.some((a) => a.id === 'has-ip-kvm' && a.status === 'unknown')).toBe(true);
     expect(result.recommendations.some((r) => r.id === 'add-ip-kvm')).toBe(true);
   });
 
@@ -367,7 +384,19 @@ describe('getOverallReadinessScore', () => {
   it('returns zero for empty results', () => {
     const score = getOverallReadinessScore([]);
     expect(score.score).toBe(0);
-    expect(score.status).toBe('critical');
+    expect(score.status).toBe('warning');
+  });
+
+  it('gives unknown assumptions no pass credit and never rounds incomplete checks to 100%', () => {
+    const base = runScenario(createLayout(), 'summer-heatwave');
+    const check = (statuses: ('pass' | 'fail' | 'unknown')[]) => getOverallReadinessScore([{ ...base,
+      failedAssumptions: statuses.map((status, i) => ({ id: String(i), title: 'Check', detail: '', status })),
+    }]);
+    expect(check([])).toMatchObject({ score: 0, status: 'warning', totalAssumptionCount: 0 });
+    expect(check(['unknown', 'unknown'])).toMatchObject({ score: 0, status: 'warning', unknownAssumptionCount: 2 });
+    expect(check(['pass', 'fail', 'unknown'])).toMatchObject({ score: 33, passedAssumptionCount: 1, failedAssumptionCount: 1, unknownAssumptionCount: 1 });
+    expect(check([...Array<'pass'>(999).fill('pass'), 'unknown'])).toMatchObject({ score: 99, status: 'warning' });
+    expect(check(['pass', 'pass'])).toMatchObject({ score: 100, status: 'good' });
   });
 
   it('computes a percentage score from failed vs. passed assumptions', () => {
@@ -386,6 +415,25 @@ describe('getOverallReadinessScore', () => {
   });
 });
 
+it('requires reviewed loads and output ratings for a weak-battery target pass', () => {
+  const rack = createLayout({ devices: [
+    device({ id: 'ups', name: 'UPS', category: 'ups', powerW: 0, powerReviewed: true, batteryWh: 100,
+      upsBatteryAssumptions: { efficiencyPct: 100, usableCapacityPct: 100, chargePct: 100 } }),
+    device({ id: 'load', name: 'Critical', category: 'server', powerW: 60, powerReviewed: true, shutdownPriority: 'critical' }),
+  ], cables: [powerCable('ups', 'load')] });
+  const target = () => runScenario(rack, 'ups-battery-weak').failedAssumptions.find(a => a.id === 'runtime-after-degradation')!;
+  expect(target().status).toBe('unknown');
+  rack.devices[0].powerCapacityW = 100;
+  expect(target().status).toBe('pass');
+  rack.devices[1].powerReviewed = false;
+  expect(target().status).toBe('unknown');
+  rack.devices[0].powerCapacityW = 30;
+  expect(target().status).toBe('fail');
+  expect(target().detail).toContain('output rating is exceeded');
+  rack.devices.push(device({ id: 'unknown-ups', name: 'Unknown UPS', category: 'ups', powerW: 0 }));
+  expect(target().detail).toContain('Cannot compute an overall runtime');
+});
+
 describe('non-mutating', () => {
   it('does not mutate the input layout', () => {
     const layout = createLayout({
@@ -399,4 +447,22 @@ describe('non-mutating', () => {
     runAllScenarios(layout);
     expect(JSON.stringify(layout)).toBe(snapshot);
   });
+});
+
+
+it('uses directed supply paths for reverse-picked cables and keeps missing battery runtime unverified', () => {
+  const layout = createLayout({ devices: [
+    device({ id: 'ups', name: 'UPS', category: 'ups', powerW: 0 }),
+    device({ id: 'load', name: 'Load', category: 'server', powerW: 100 }),
+  ], cables: [powerCable('load', 'ups')] });
+  const result = runScenario(layout, 'power-outage');
+  expect(result.survivingDevices.some(d => d.deviceId === 'load')).toBe(true);
+  expect(result.summary).toContain('unverified');
+  expect(result.summary).not.toContain('∞');
+  expect(result.failedAssumptions.find(a => a.id === 'ups-present')?.status).toBe('unknown');
+  expect(result.metrics.estimatedRuntimeMinutes).toBeUndefined();
+  const degraded = runScenario(layout, 'ups-battery-weak');
+  expect(degraded.summary).toContain('unverified');
+  expect(degraded.metrics.estimatedRuntimeMinutes).toBeUndefined();
+  expect(degraded.failedAssumptions.find(a => a.id === 'runtime-after-degradation')?.status).toBe('unknown');
 });

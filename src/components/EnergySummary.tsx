@@ -1,16 +1,18 @@
+import { useRackStore } from '../store/rackStore';
 import type { RackLayout } from '../types/rack';
 import { calculateEnergySummary, formatBtuPerHour, formatCurrency } from '../utils/energyCalc';
 
 interface EnergySummaryProps {
   layout: RackLayout;
-  onRateChange?: (rate: number) => void;
+  onRateChange?: (rate: number | undefined) => void;
 }
 
 export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
-  const summary = calculateEnergySummary(layout);
+  const workspace = useRackStore(state => state.workspace);
+  const summary = calculateEnergySummary(layout, workspace);
 
   return (
-    <section
+    <section aria-label="Energy and heat estimate"
       className="rounded-lg border p-4"
       style={{
         backgroundColor: 'var(--theme-bg-secondary)',
@@ -31,7 +33,7 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
         >
           <div className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>Monthly kWh</div>
           <div className="mt-0.5 text-lg font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
-            {summary.monthlyKwh.toFixed(1)}
+            {summary.inputUnverified ? 'Not estimated' : summary.monthlyKwh.toFixed(1)}
           </div>
         </div>
 
@@ -44,7 +46,7 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
         >
           <div className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>Est. monthly cost</div>
           <div className="mt-0.5 text-lg font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
-            {formatCurrency(summary.monthlyCost, layout.electricityRatePerKwh ?? 0)}
+            {summary.inputUnverified || layout.electricityRatePerKwh === undefined ? 'Not estimated' : formatCurrency(summary.monthlyCost, layout.electricityRatePerKwh)}
           </div>
         </div>
 
@@ -57,7 +59,7 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
         >
           <div className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>Heat output</div>
           <div className="mt-0.5 text-lg font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
-            {formatBtuPerHour(summary.heatBtuPerHour)} BTU/h
+            {summary.heatUnverified ? 'Not estimated' : `${formatBtuPerHour(summary.heatBtuPerHour)} BTU/h`}
           </div>
         </div>
 
@@ -70,11 +72,12 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
         >
           <div className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>Power utilization</div>
           <div className="mt-0.5 text-lg font-semibold" style={{ color: 'var(--theme-text-primary)' }}>
-            {summary.utilizationPercent}%
+            {summary.inputUnverified ? 'Unverified' : `${summary.utilizationPercent}%`}
           </div>
         </div>
       </div>
 
+      <p className="mt-3 text-xs text-content-muted">Energy uses attributed rack input at constant load for 730 hours per month. Remote PoE demand is charged to its supply rack. PoE heat is not estimated because exported power and cable losses are not localized; input watts are not local heat. Cost requires a recorded electricity rate.</p>
       {onRateChange && (
         <label className="mt-3 block text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
           Electricity rate ($/kWh)
@@ -90,8 +93,8 @@ export function EnergySummary({ layout, onRateChange }: EnergySummaryProps) {
             step={0.01}
             value={Number.isNaN(layout.electricityRatePerKwh) ? '' : (layout.electricityRatePerKwh ?? '')}
             onChange={(e) => {
-              const val = e.target.value === '' ? 0 : Number(e.target.value);
-              onRateChange(Number.isNaN(val) ? 0 : Math.max(0, val));
+              const val = e.target.value === '' ? undefined : Number(e.target.value);
+              if (val === undefined || Number.isFinite(val)) onRateChange(val === undefined ? undefined : Math.max(0, val));
             }}
           />
         </label>

@@ -164,7 +164,7 @@ export function ServiceabilityPanel({
                   color: 'var(--theme-text-muted)',
                 }}
               >
-                No serviceability concerns detected. All devices should be accessible for maintenance.
+                No modeled serviceability concerns detected. Confirm actual access, release points and moving clearances before maintenance.
               </div>
               {selectedDeviceId && maintenanceChecklist.length > 0 && (
                 <div className="rounded-md border p-3" style={{ backgroundColor: 'var(--theme-bg-primary)', borderColor: 'var(--theme-border)' }}>
@@ -225,7 +225,7 @@ export function ServiceabilityPanel({
                     <span className="text-xs font-medium text-amber-300">Cable strain</span>
                   </div>
                   <div className="mt-1 text-xs" style={{ color: 'var(--theme-text-secondary)' }}>
-                    {risk.deviceName}: cable is {risk.cableLengthMm}mm but needs {risk.requiredLengthMm}mm to pull out for service.
+                    {risk.deviceName}: {risk.detail}
                   </div>
                 </button>
               ))}

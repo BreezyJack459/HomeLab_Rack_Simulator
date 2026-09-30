@@ -1,6 +1,7 @@
+import { validateImportedLayout } from './layoutValidation';
 import { describe, expect, it } from 'vitest';
 import type { RackLayout } from '../types/rack';
-import { calculateUpsRuntimes } from './upsRuntime';
+import { assessUpsOutage, calculateUpsRuntimes } from './upsRuntime';
 
 const baseLayout: RackLayout = {
   id: 'test',
@@ -31,6 +32,7 @@ describe('calculateUpsRuntimes', () => {
           id: 'ups1',
           templateId: 'ups-1u',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: '1U UPS',
           positionU: 1,
           sizeU: 1,
@@ -60,6 +62,7 @@ describe('calculateUpsRuntimes', () => {
           id: 'ups1',
           templateId: 'ups-1u',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: '1U UPS',
           positionU: 1,
           sizeU: 1,
@@ -106,13 +109,14 @@ describe('calculateUpsRuntimes', () => {
     );
   });
 
-  it('returns ok status for long runtime', () => {
+  it('does not display a long self-load estimate as successful rack backup', () => {
     const layout: RackLayout = {
       ...baseLayout,
       devices: [
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'Big UPS',
           positionU: 1,
           sizeU: 1,
@@ -127,8 +131,8 @@ describe('calculateUpsRuntimes', () => {
       ],
     };
     const result = calculateUpsRuntimes(layout);
-    expect(result[0].status).toBe('ok');
-    expect(result[0].runtimeLabel).toContain('h');
+    expect(result[0].status).toBe('warning');
+    expect(result[0].runtimeLabel).toBe('Not estimated');
   });
 
   it('returns critical status for very short runtime', () => {
@@ -138,6 +142,7 @@ describe('calculateUpsRuntimes', () => {
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'Small UPS',
           positionU: 1,
           sizeU: 1,
@@ -187,6 +192,7 @@ describe('calculateUpsRuntimes', () => {
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'Medium UPS',
           positionU: 1,
           sizeU: 1,
@@ -236,6 +242,7 @@ describe('calculateUpsRuntimes', () => {
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'UPS',
           positionU: 1,
           sizeU: 1,
@@ -339,6 +346,7 @@ describe('calculateUpsRuntimes', () => {
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'UPS',
           positionU: 1,
           sizeU: 1,
@@ -384,13 +392,14 @@ describe('calculateUpsRuntimes', () => {
     expect(result.warnings.some((warning) => warning.includes('under 10 minutes'))).toBe(true);
   });
 
-  it('skips UPS devices without batteryWh', () => {
+  it('keeps UPS devices with unknown battery energy visible', () => {
     const layout: RackLayout = {
       ...baseLayout,
       devices: [
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'Legacy UPS',
           positionU: 1,
           sizeU: 1,
@@ -403,16 +412,20 @@ describe('calculateUpsRuntimes', () => {
         },
       ],
     };
-    expect(calculateUpsRuntimes(layout)).toEqual([]);
+    const result = calculateUpsRuntimes(layout);
+    expect(result).toHaveLength(1);
+    expect(result[0].runtimeLabel).toBe('Not estimated');
+    expect(result[0].status).toBe('warning');
   });
 
-  it('formats infinity runtime for zero load', () => {
+  it('does not promise infinite runtime for zero load', () => {
     const layout: RackLayout = {
       ...baseLayout,
       devices: [
         {
           id: 'ups1',
           category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } },
           name: 'Idle UPS',
           positionU: 1,
           sizeU: 1,
@@ -427,7 +440,37 @@ describe('calculateUpsRuntimes', () => {
       ],
     };
     const result = calculateUpsRuntimes(layout);
-    expect(result[0].runtimeLabel).toBe('∞');
-    expect(result[0].status).toBe('ok');
+    expect(result[0].runtimeLabel).toBe('Not estimated');
+    expect(result[0].status).toBe('warning');
   });
+});
+
+
+it('applies charge and usable capacity, checks output separately and compares outage duration', () => {
+  const common = { sizeU: 1, positionU: 1, widthType: '19in' as const, depthMm: 100, weightKg: 1, heatLevel: 1 as const, color: '#333', powerReviewed: true };
+  const layout: RackLayout = { ...baseLayout, devices: [
+    { ...common, id: 'ups', name: 'UPS', category: 'ups',
+          portConnectionSpecs: { 'power:rear:0': { upsBackup: 'battery' }, 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } }, powerW: 10, batteryWh: 200, powerCapacityW: 90,
+      upsBatteryAssumptions: { efficiencyPct: 100, usableCapacityPct: 50, chargePct: 50 } },
+    { ...common, id: 'load', name: 'Load', category: 'server', powerW: 90 },
+  ], cables: [{ id: 'feed', fromDeviceId: 'ups', fromPort: { type: 'power', index: 0 }, toDeviceId: 'load', type: 'power', color: '#333' }] };
+  expect(validateImportedLayout(layout).valid).toBe(true);
+  for (const assumptions of [{ chargePct: 101 }, { efficiencyPct: 0 }, { usableCapacityPct: -1 }]) {
+    expect(validateImportedLayout({ ...layout, devices: [{ ...layout.devices[0], upsBatteryAssumptions: assumptions }] }).valid).toBe(false);
+  }
+  expect(validateImportedLayout({ ...layout, devices: [{ ...layout.devices[0], batteryWh: -1 }] }).valid).toBe(false);
+  let result = calculateUpsRuntimes(layout)[0];
+  expect(result.runtimeMinutes).toBe(30);
+  expect(result.loadPercent).toBe(100); // UPS self-load affects energy, not rated output.
+  expect(assessUpsOutage(result, 30)).toContain('covers 30 minutes');
+  expect(assessUpsOutage(result, 31)).toContain('falls short');
+  expect(assessUpsOutage({ ...result, unreviewedLoads: true }, 30)).toContain('need review');
+  expect(assessUpsOutage({ ...result, topologyUnverified: true }, 30)).toContain('wiring warnings');
+  expect(assessUpsOutage({ ...result, capacityW: undefined }, 30)).toContain('rating is unknown');
+  layout.devices[0].powerCapacityW = 80;
+  result = calculateUpsRuntimes(layout)[0];
+  expect(result.loadPercent).toBe(112.5);
+  expect(assessUpsOutage(result, 1)).toContain('overloaded by 10 W');
+  layout.devices[0].upsBatteryAssumptions!.chargePct = 0;
+  expect(calculateUpsRuntimes(layout)[0].runtimeMinutes).toBe(0);
 });

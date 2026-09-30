@@ -4,29 +4,21 @@ import { CurvePath, LineCurve3, QuadraticBezierCurve3, Quaternion, Vector3, type
 import type { CableFocusMode } from '../../../store/cableWorkspaceStore';
 import type { WorldPoint } from '../../../utils/rackGeometry';
 import type { ManagedRoute } from '../../../utils/rackSceneModel';
+import { managedRouteCurve } from '../../../utils/managedRouteCurve';
 
 const VECTOR_Y_UP = new Vector3(0, 1, 0);
 
 /** Convert canonical route points into a smooth, constant-radius curve. */
 export function buildRouteCurve(points: WorldPoint[]): CurvePath<Vector3> | null {
-  if (points.length < 2) return null;
-  const vectors = points.map((point) => new Vector3(point.x, point.y, point.z))
-    .filter((point, index, all) => index === 0 || point.distanceToSquared(all[index - 1]) > 1e-10);
-  if (vectors.length < 2) return null;
+  const segments = managedRouteCurve(points);
+  if (!segments.length) return null;
+  const vector = (point: WorldPoint) => new Vector3(point.x, point.y, point.z);
   const curve = new CurvePath<Vector3>();
-  let previous = vectors[0];
-  for (let i = 1; i < vectors.length - 1; i++) {
-    const corner = vectors[i];
-    // Local fillets stay inside the corner triangle. A global spline can
-    // overshoot a short port exit and cut through the device or its neighbour.
-    const trim = Math.min(0.06, corner.distanceTo(vectors[i - 1]) * 0.25, corner.distanceTo(vectors[i + 1]) * 0.25);
-    const entry = corner.clone().add(vectors[i - 1].clone().sub(corner).setLength(trim));
-    const exit = corner.clone().add(vectors[i + 1].clone().sub(corner).setLength(trim));
-    curve.add(new LineCurve3(previous, entry));
-    curve.add(new QuadraticBezierCurve3(entry, corner, exit));
-    previous = exit;
+  for (const segment of segments) {
+    curve.add(segment.kind === 'line'
+      ? new LineCurve3(vector(segment.from), vector(segment.to))
+      : new QuadraticBezierCurve3(vector(segment.from), vector(segment.control), vector(segment.to)));
   }
-  curve.add(new LineCurve3(previous, vectors[vectors.length - 1]));
   return curve;
 }
 

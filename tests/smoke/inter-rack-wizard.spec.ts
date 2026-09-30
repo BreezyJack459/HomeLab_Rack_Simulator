@@ -15,6 +15,7 @@ async function openMap(page: Page) {
       devices: [{ id: `${id}-switch`, name: `Switch ${id.toUpperCase()}`, category: 'switch', positionU: 1,
         sizeU: 1, depthMm: 200, widthType: '19in', weightKg: 2, powerW: 20, heatLevel: 1, color: '#333',
         ports: { ethernet: 4, fiber: 2 }, portLayouts: { front: [{ type: 'ethernet', count: 4, mediaType: 'rj45' }, { type: 'fiber', count: 2, mediaType: 'sfp+' }] },
+        portConnectionSpecs: { 'ethernet:front:0': { connector: 'RJ45', role: 'bidirectional' } },
       }], cables: [], portReservations: [{ id: `${id}-reserved`, deviceId: `${id}-switch`, portType: 'ethernet', portIndex: 3, purpose: 'Future' }],
     }));
     localStorage.setItem('homelab-rack-simulator-workspace', JSON.stringify({ id: 'ws', name: 'Lab', racks, interRackCables: [], updatedAt: '' }));
@@ -46,6 +47,15 @@ async function endpoints(page: Page, type: string) {
   await dialog.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(dialog.getByLabel('Length (m)')).toBeFocused();
   await dialog.getByLabel('Label', { exact: true }).fill(`Test ${type}`);
+  await expect(dialog.getByText('Connector compatibility is not verified.', { exact: true })).toBeVisible();
+  if (type === 'cat6a') {
+    await dialog.getByRole('textbox', { name: 'Source cable end fits socket identity' }).fill('M12');
+    await expect(dialog.getByRole('button', { name: 'Create', exact: true })).toBeDisabled();
+    await expect(dialog.getByText(/socket is RJ45/).first()).toBeVisible();
+    await dialog.getByRole('textbox', { name: 'Source cable end fits socket identity' }).fill('RJ45');
+    await dialog.getByRole('textbox', { name: 'Destination cable end fits socket identity' }).fill('RJ45');
+    await expect(dialog.getByText('Recorded connector constraints match.', { exact: true })).toBeVisible();
+  }
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
   await expect(dialog).not.toBeVisible();
 }
@@ -98,6 +108,14 @@ for (const type of ['cat6a', 'sfp+', 'dac', 'fiber']) {
     await link.focus();
     await page.keyboard.press('Space');
     await expect(link).toHaveAttribute('aria-pressed', 'true');
+    if (type === 'cat6a') {
+      await expect(page.getByText('Recorded connector constraints match', { exact: true })).toBeVisible();
+      await page.getByRole('textbox', { name: 'Source cable end fits socket identity' }).fill('M12');
+      await expect(page.getByRole('button', { name: 'Save cable-end identities' })).toBeDisabled();
+      await page.getByRole('textbox', { name: 'Source cable end fits socket identity' }).fill('rj45');
+      await page.getByRole('button', { name: 'Save cable-end identities' }).click();
+      await expect(page.getByRole('button', { name: 'Save cable-end identities' })).toBeDisabled();
+    }
     await page.reload();
     await navigateToMap(page);
     await expect(link).toHaveAttribute('aria-pressed', 'false');

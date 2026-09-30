@@ -3,6 +3,24 @@ import { buildPortLayout, getPortMetadata, resolvePortFace } from './portLayout'
 import { portOptionsForDevice } from './portSelection';
 import { isPortReserved } from './portReservations';
 import { getDeviceWidthMm } from './rackMath';
+import { checkConnectorCompatibility, type ConnectorCompatibility } from './connectorCompatibility';
+
+export const checkInterRackConnectors = (workspace: Workspace, cable: Omit<InterRackCable, 'id'>): ConnectorCompatibility => {
+  const rack = workspace.racks.find(r => r.id === cable.fromRackId);
+  const from = rack?.devices.find(d => d.id === cable.fromDeviceId);
+  const to = workspace.racks.find(r => r.id === cable.toRackId)?.devices.find(d => d.id === cable.toDeviceId);
+  if (!rack || !from || !to) return { status: 'unverified', conflicts: [], unknowns: ['Endpoint devices are missing.'] };
+  if (cable.socketFit !== undefined && (!cable.socketFit || typeof cable.socketFit !== 'object' || Array.isArray(cable.socketFit) ||
+      Object.values(cable.socketFit).some(value => value !== undefined && typeof value !== 'string'))) {
+    return { status: 'conflict', conflicts: ['Cable-end socket identities must be text.'], unknowns: [] };
+  }
+  // Device ids are only unique within a rack; isolate endpoints before using
+  // the shared checker so equal ids across two racks never resolve to one device.
+  return checkConnectorCompatibility({ ...rack, devices: [{ ...from, id: 'from' }, { ...to, id: 'to' }] }, {
+    id: 'inter-rack-check', fromDeviceId: 'from', toDeviceId: 'to', fromPort: cable.fromPort, toPort: cable.toPort,
+    type: cable.type === 'cat6a' ? 'ethernet' : 'fiber', color: cable.color ?? '#000', socketFit: cable.socketFit,
+  });
+};
 
 export const interRackPortType = (type: InterRackCableType) => type === 'cat6a' ? 'ethernet' : 'fiber';
 
@@ -64,13 +82,18 @@ export const interRackEndpointError = (
 };
 
 export const validateInterRackCable = (
-  workspace: Workspace, cable: Omit<InterRackCable, 'id'>, excludeId?: string,
+  workspace: Workspace, cable: Omit<InterRackCable, 'id'>, excludeId?: string, checkRecordedConnectors = true,
 ): string | null => {
+  if (cable.poe !== undefined && typeof cable.poe !== 'boolean') return 'PoE intent must be boolean.';
   if (cable.fromRackId === cable.toRackId) return 'Inter-rack cables need two different racks.';
   const fromError = interRackEndpointError(workspace, cable.fromRackId, cable.fromDeviceId, cable.fromPort, cable.type, excludeId);
   if (fromError) return `Source: ${fromError}`;
   const toError = interRackEndpointError(workspace, cable.toRackId, cable.toDeviceId, cable.toPort, cable.type, excludeId);
   if (toError) return `Destination: ${toError}`;
+  if (checkRecordedConnectors) {
+    const connectors = checkInterRackConnectors(workspace, cable);
+    if (connectors.status === 'conflict') return connectors.conflicts.join(' ');
+  }
   if (cable.type === 'dac') {
     const media = (rackId: string, deviceId: string, port: PortRef) => {
       const device = workspace.racks.find(r => r.id === rackId)!.devices.find(d => d.id === deviceId)!;
@@ -99,7 +122,9 @@ export const pruneInvalidInterRackCables = (workspace: Workspace): Workspace => 
   const accepted: InterRackCable[] = [];
   for (const cable of workspace.interRackCables) {
     if (!cable || !cable.id || accepted.some(c => c.id === cable.id)) continue;
-    if (!validateInterRackCable({ ...workspace, interRackCables: accepted }, cable)) accepted.push(cable);
+    // Recorded spec edits may expose a conflict in an existing connection.
+    // Preserve that record for review instead of silently deleting it on load.
+    if (!validateInterRackCable({ ...workspace, interRackCables: accepted }, cable, undefined, false)) accepted.push(cable);
   }
   return accepted.length === workspace.interRackCables.length ? workspace : { ...workspace, interRackCables: accepted };
 };

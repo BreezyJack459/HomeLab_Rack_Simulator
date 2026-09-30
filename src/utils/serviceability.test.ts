@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DeviceCategory, RackLayout } from '../types/rack';
+import { getCableLengthRequirements } from './cableLengthRequirements';
 import {
   getDeviceMaintenanceChecklist,
   getCableStrainRisks,
@@ -45,6 +46,30 @@ function makeDevice(id: string, category: DeviceCategory, overrides: Record<stri
 }
 
 describe('getCableStrainRisks', () => {
+  it('reserves the existing route before allowing chassis-depth maintenance travel', () => {
+    const layout: RackLayout = {
+      ...baseLayout, heightU: 18, rackDepthMm: 800,
+      devices: [makeDevice('a', 'server', { positionU: 10, depthMm: 400, ports: { ethernet: 2 } }), makeDevice('b', 'server', { positionU: 6, depthMm: 400, ports: { ethernet: 2 } })],
+      cables: [{ id: 'c', type: 'ethernet', fromDeviceId: 'a', toDeviceId: 'b', fromPort: { type: 'ethernet', index: 0 }, toPort: { type: 'ethernet', index: 0 }, color: '#333', lengthMm: 700 }],
+    };
+    const requirement = getCableLengthRequirements(layout).get('c')!;
+    const risk = getCableStrainRisks(layout).find(item => item.deviceId === 'a')!;
+    expect(risk.status).toBe('short');
+    expect(getServiceabilityIssues(layout).filter(item => item.id.startsWith('cable-strain-')).every(item => item.evidence === undefined && item.severity === 'warning')).toBe(true);
+    expect(risk.requiredLengthMm).toBe(Math.ceil(requirement.centrelineMm! + 400 + Math.max(300, requirement.slackMm)));
+    expect(risk.detail).toContain('chassis-depth travel 400mm');
+    const sufficient = { ...layout, cables: [{ ...layout.cables[0], lengthMm: risk.requiredLengthMm! }] };
+    expect(getCableStrainRisks(sufficient)).toHaveLength(0);
+    const unknown = { ...layout, cables: [{ ...layout.cables[0], lengthMm: undefined }] };
+    expect(getCableStrainRisks(unknown).every(item => item.status === 'unverified')).toBe(true);
+    const pendingIssues = getServiceabilityIssues(unknown).filter(item => item.id.startsWith('cable-strain-'));
+    expect(pendingIssues).toHaveLength(2);
+    expect(pendingIssues.every(item => item.evidence === 'unverified' && item.severity === 'warning')).toBe(true);
+    expect(getDeviceMaintenanceChecklist(unknown, 'a').some(item => item.title === 'Review service cable' && item.severity === 'warning')).toBe(true);
+    const blocked = { ...sufficient, devices: [...layout.devices, makeDevice('overlap', 'server', { positionU: 10, depthMm: 800, mountSide: 'rear' })] };
+    expect(getCableStrainRisks(blocked).find(item => item.deviceId === 'a')?.requiredLengthMm).toBeNull();
+  });
+
   it('returns empty when no cables', () => {
     expect(getCableStrainRisks(baseLayout)).toHaveLength(0);
   });

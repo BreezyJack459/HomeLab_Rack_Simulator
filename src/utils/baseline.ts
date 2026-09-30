@@ -59,6 +59,7 @@ export function createLayoutSnapshot(layout: RackLayout): RackLayoutSnapshot {
     rearClearanceMm: layout.rearClearanceMm,
     frontDoorClearanceMm: layout.frontDoorClearanceMm,
     rearDoorClearanceMm: layout.rearDoorClearanceMm,
+    mountingPostSpacingMm: layout.mountingPostSpacingMm,
     railMinDepthMm: layout.railMinDepthMm,
     railMaxDepthMm: layout.railMaxDepthMm,
     electricityRatePerKwh: layout.electricityRatePerKwh

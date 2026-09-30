@@ -194,7 +194,7 @@ describe('lazy built-in registration', () => {
     ]);
     expect(JSON.parse(JSON.stringify(builtInPluginManifests))).toEqual(builtInPluginManifests);
     expect(builtInPluginManifests.map((manifest) => manifest.id)).toEqual([
-      'cable-management', 'governance-tools', ...builtInPackPluginIds, 'port-labels',
+      'cable-management', 'governance-tools', ...builtInPackPluginIds, 'port-labels', 'cable-labels',
     ]);
   });
 

@@ -17,6 +17,7 @@ interface AuditWorkbenchProps {
   issues: ValidationIssue[];
   totals: {
     powerW: number;
+    powerInputUnverified?: boolean;
     heatScore: number;
     occupiedU: number;
   };
@@ -274,7 +275,7 @@ export function AuditWorkbench({
                   Power headroom
                 </div>
                 <div className="mt-1 font-semibold text-content">
-                  {powerHeadroom}W
+                  {totals.powerInputUnverified ? 'Unverified' : `${Number(powerHeadroom.toFixed(2))}W`}
                 </div>
               </div>
               <div className="rounded-xl border border-edge bg-fill-subtle/80 p-3 text-sm dark:border-edge dark:bg-surface/60">

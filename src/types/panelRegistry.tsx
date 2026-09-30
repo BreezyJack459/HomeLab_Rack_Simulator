@@ -14,7 +14,7 @@ export const PANEL_REGISTRY: PanelRegistryItem[] = [
   // Audit
   { id: 'rack-health', title: 'Rack Health', workspace: 'audit', priority: 10, defaultPlacement: 'main' },
   { id: 'serviceability', title: 'Serviceability', workspace: 'audit', priority: 20, defaultPlacement: 'inspector' },
-  { id: 'depth-compatibility', title: 'Depth Compatibility', workspace: 'audit', priority: 25, defaultPlacement: 'inspector' },
+  { id: 'depth-compatibility', title: 'Depth Compatibility', workspace: 'audit', priority: 25, defaultPlacement: 'main' },
   { id: 'validation', title: 'Validation', workspace: 'audit', priority: 30, defaultPlacement: 'inspector' },
   { id: 'documentation-audit', title: 'Documentation Audit', workspace: 'audit', priority: 40, defaultPlacement: 'main' },
   { id: 'rack-debt', title: 'Rack Debt', workspace: 'audit', priority: 50, defaultPlacement: 'main' },

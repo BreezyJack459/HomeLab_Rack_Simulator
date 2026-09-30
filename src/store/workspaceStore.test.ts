@@ -1,4 +1,8 @@
+// Model a ready library before invoking synchronous template actions.
+import '../data/deviceCatalog';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { getServiceStatus } from '../utils/serviceMap';
+import { buildPowerTopology } from '../utils/powerChain';
 import { useRackStore } from './rackStore';
 import type { RackLayout, InterRackCable } from '../types/rack';
 
@@ -236,5 +240,49 @@ describe('workspace store', () => {
     expect(Array.isArray(state.workspace.racks)).toBe(true);
     expect(Array.isArray(state.workspace.interRackCables)).toBe(true);
     expect(state.workspace.updatedAt).toBeTruthy();
+  });
+});
+
+describe('rack duplication reference integrity', () => {
+  it('remaps all service dependencies and explicit supply directions across save/reload', () => {
+    useRackStore.getState().newLayout('19in', 12);
+    const base = useRackStore.getState().layout;
+    const device = (id: string, category: 'server' | 'ups' | 'pdu') => ({
+      id, name: id, category, positionU: 1, sizeU: 1, depthMm: 100, widthType: '19in' as const,
+      weightKg: 1, powerW: 10, heatLevel: 1 as const, color: '#333', ports: { power: 8 },
+    });
+    const rack: RackLayout = { ...base,
+      devices: [device('host', 'server'), device('storage', 'server'), device('network', 'server'), device('ups', 'ups'), device('pdu', 'pdu'), device('backup', 'server')],
+      services: [{ id: 'service', name: 'Service', criticality: 'critical', hostDeviceId: 'host', storageDeviceIds: ['storage'], networkDeviceIds: ['network'], powerDeviceIds: ['pdu'], backupDeviceId: 'backup', notes: 'Preserve this note' }],
+      cables: [{ id: 'power-wire', type: 'power', color: '#333', fromDeviceId: 'ups', toDeviceId: 'pdu', powerSourceDeviceId: 'ups' }],
+    };
+    useRackStore.getState().loadLayout(rack);
+    useRackStore.getState().duplicateRack(rack.id, 'Reference copy');
+    useRackStore.getState().saveLocal();
+    expect(useRackStore.getState().loadWorkspace()).toBe(true);
+    const copy = useRackStore.getState().workspace.racks.find(r => r.name === 'Reference copy')!;
+    const ids = new Map(copy.devices.map(d => [d.name, d.id]));
+    expect(copy.services![0]).toEqual({ ...rack.services![0], hostDeviceId: ids.get('host'), storageDeviceIds: [ids.get('storage')], networkDeviceIds: [ids.get('network')], powerDeviceIds: [ids.get('pdu')], backupDeviceId: ids.get('backup') });
+    expect(getServiceStatus(copy.services![0], copy).healthy).toBe(true);
+    expect(copy.cables[0].powerSourceDeviceId).toBe(ids.get('ups'));
+    expect(buildPowerTopology(copy).edges).toHaveLength(1);
+    expect(buildPowerTopology(copy).warnings).toEqual([]);
+    expect(useRackStore.getState().workspace.racks.find(r => r.id === rack.id)!.services).toEqual(rack.services);
+  });
+
+  it('rejects malformed saved services without overwriting the original or current plan', () => {
+    useRackStore.getState().newLayout('19in', 12);
+    const before = useRackStore.getState().layout;
+    const raw = JSON.stringify({ id: 'bad-ws', name: 'Malformed', racks: [{ ...before, services: [{ id: 'bad', name: 'Bad', criticality: 'critical', storageDeviceIds: 'invalid' }] }], interRackCables: [] });
+    localStorage.setItem('homelab-rack-simulator-workspace', raw);
+    expect(useRackStore.getState().loadWorkspace()).toBe(false);
+    expect(useRackStore.getState().layout).toBe(before);
+    expect(useRackStore.getState().persistenceBlocked).toBe(true);
+    expect(useRackStore.getState().persistenceError).toContain('services[0].storageDeviceIds');
+    expect(useRackStore.getState().recoverySource).toBe(raw);
+    useRackStore.getState().saveLocal();
+    expect(localStorage.getItem('homelab-rack-simulator-workspace')).toBe(raw);
+    useRackStore.setState({ persistenceBlocked: false, persistenceError: null, recoverySource: null });
+    localStorage.removeItem('homelab-rack-simulator-workspace');
   });
 });

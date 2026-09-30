@@ -6,6 +6,7 @@ export type LayoutValidationResult =
   | { valid: false; errors: string[] };
 
 const RACK_TYPES = new Set(['10in', '19in']);
+const POWER_BASES = new Set(['unspecified', 'idle', 'typical', 'maximum', 'measured', 'estimated', 'passive']);
 const VIEW_SIDES = new Set(['front', 'rear']);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -46,6 +47,62 @@ function validateDevice(device: unknown, index: number): string[] {
   if (!isPositiveNumber(device.depthMm)) errors.push(`${prefix}.depthMm must be > 0`);
   if (!isNonEmptyString(device.widthType)) errors.push(`${prefix}.widthType missing or invalid`);
   if (!isNonNegativeNumber(device.weightKg)) errors.push(`${prefix}.weightKg must be >= 0`);
+  if (device.portConnectionSpecs !== undefined) {
+    if (!isPlainObject(device.portConnectionSpecs)) errors.push(`${prefix}.portConnectionSpecs must be an object`);
+    else for (const [key, spec] of Object.entries(device.portConnectionSpecs)) {
+      if (!/^(ethernet|fiber|usb|hdmi|power|atx|coax):(front|rear):\d+$/.test(key) || !isPlainObject(spec)) {
+        errors.push(`${prefix}.portConnectionSpecs has an invalid socket key or value`);
+        continue;
+      }
+      for (const field of ['connector', 'polarity', 'source', 'poeProfile']) if (spec[field] !== undefined && typeof spec[field] !== 'string') errors.push(`${prefix}.portConnectionSpecs.${key}.${field} must be text`);
+      if (spec.poeRole !== undefined && !['none', 'pse', 'pd'].includes(String(spec.poeRole))) errors.push(`${prefix}.portConnectionSpecs.${key}.poeRole is invalid`);
+      if (spec.upsBackup !== undefined && !['battery', 'surge-only'].includes(String(spec.upsBackup))) errors.push(`${prefix}.portConnectionSpecs.${key}.upsBackup is invalid`);
+      for (const field of ['poeLimitW', 'poeRequiredW', 'poeDrawW']) if (spec[field] !== undefined && !isNonNegativeNumber(spec[field])) errors.push(`${prefix}.portConnectionSpecs.${key}.${field} must be non-negative`);
+      if (spec.role !== undefined && !['unknown', 'input', 'output', 'bidirectional', 'passive'].includes(String(spec.role))) errors.push(`${prefix}.portConnectionSpecs.${key}.role is invalid`);
+      if (spec.powerKind !== undefined && !['ac', 'dc'].includes(String(spec.powerKind))) errors.push(`${prefix}.portConnectionSpecs.${key}.powerKind is invalid`);
+      if (spec.nominalVoltageV !== undefined && !isPositiveNumber(spec.nominalVoltageV)) errors.push(`${prefix}.portConnectionSpecs.${key}.nominalVoltageV must be positive`);
+    }
+  }
+  if (device.installationKit !== undefined && typeof device.installationKit !== 'string') errors.push(`${prefix}.installationKit must be text`);
+  if (device.installationRequirements !== undefined) {
+    const requirements = device.installationRequirements;
+    if (!isPlainObject(requirements) || !['unknown', 'rails', 'front-mount', 'shelf', 'printed-mount'].includes(String(requirements.support))) {
+      errors.push(`${prefix}.installationRequirements is invalid`);
+    } else {
+      for (const key of ['railMinMm', 'railMaxMm', 'rearClearanceMm']) {
+        if (requirements[key] !== undefined && !isNonNegativeNumber(requirements[key])) errors.push(`${prefix}.installationRequirements.${key} must be non-negative`);
+      }
+      if (requirements.source !== undefined && typeof requirements.source !== 'string') errors.push(`${prefix}.installationRequirements.source must be text`);
+    }
+  }
+  if (device.powerBasis !== undefined && !POWER_BASES.has(String(device.powerBasis))) errors.push(`${prefix}.powerBasis is invalid`);
+  if (device.powerPlanningNote !== undefined && typeof device.powerPlanningNote !== 'string') errors.push(`${prefix}.powerPlanningNote must be text`);
+  if (device.powerReviewed !== undefined && typeof device.powerReviewed !== 'boolean') errors.push(`${prefix}.powerReviewed must be boolean`);
+  if (device.powerReference !== undefined) {
+    const reference = device.powerReference;
+    if (!isPlainObject(reference) || !isNonNegativeNumber(reference.watts) || !POWER_BASES.has(String(reference.basis)) ||
+      (reference.source !== undefined && typeof reference.source !== 'string')) errors.push(`${prefix}.powerReference is invalid`);
+  }
+  if (device.batteryWh !== undefined && !isNonNegativeNumber(device.batteryWh)) errors.push(`${prefix}.batteryWh must be non-negative`);
+  if (device.upsBatteryAssumptions !== undefined) {
+    const assumptions = device.upsBatteryAssumptions;
+    if (!isPlainObject(assumptions)) errors.push(`${prefix}.upsBatteryAssumptions must be an object`);
+    else for (const key of ['efficiencyPct', 'usableCapacityPct', 'chargePct']) {
+      const value = assumptions[key];
+      if (value !== undefined && (!isNonNegativeNumber(value) || (value as number) > 100 || (key === 'efficiencyPct' && value === 0))) errors.push(`${prefix}.upsBatteryAssumptions.${key} must be ${key === 'efficiencyPct' ? '> 0 and ' : ''}at most 100`);
+    }
+  }
+  if (device.poeInputMode !== undefined && !['self-only', 'includes-poe'].includes(device.poeInputMode as string)) errors.push(`${prefix}.poeInputMode is invalid`);
+  if (device.poeEfficiencyPct !== undefined && (!isNonNegativeNumber(device.poeEfficiencyPct) || device.poeEfficiencyPct <= 0 || device.poeEfficiencyPct > 100)) errors.push(`${prefix}.poeEfficiencyPct must be above 0 and at most 100`);
+  if (device.poeBudgetW !== undefined && !isNonNegativeNumber(device.poeBudgetW)) errors.push(`${prefix}.poeBudgetW must be non-negative`);
+  if (device.powerCapacityW !== undefined && !isPositiveNumber(device.powerCapacityW)) errors.push(`${prefix}.powerCapacityW must be > 0`);
+  if (device.powerCapacityReference !== undefined) {
+    const ref = device.powerCapacityReference;
+    if (!isPlainObject(ref) || !isPositiveNumber(ref.watts) || typeof ref.model !== 'string' || !ref.model.trim() ||
+      typeof ref.source !== 'string' || !ref.source.trim() || typeof ref.checkedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(ref.checkedAt)) {
+      errors.push(`${prefix}.powerCapacityReference is invalid`);
+    }
+  }
   if (!isNonNegativeNumber(device.powerW)) errors.push(`${prefix}.powerW must be >= 0`);
   if (typeof device.heatLevel !== 'number' || !Number.isFinite(device.heatLevel) || device.heatLevel < 1 || device.heatLevel > 5) {
     errors.push(`${prefix}.heatLevel must be a finite number between 1 and 5`);
@@ -82,6 +139,15 @@ function validateCable(cable: unknown, index: number): string[] {
   if (!isNonEmptyString(cable.toDeviceId)) errors.push(`${prefix}.toDeviceId missing or invalid`);
   if (!isNonEmptyString(cable.type)) errors.push(`${prefix}.type missing or invalid`);
   if (!isNonEmptyString(cable.color)) errors.push(`${prefix}.color missing or invalid`);
+  if (cable.poe !== undefined && typeof cable.poe !== 'boolean') errors.push(`${prefix}.poe must be boolean`);
+  if (cable.socketFit !== undefined && (!isPlainObject(cable.socketFit) ||
+    ['from', 'to'].some(key => cable.socketFit && isPlainObject(cable.socketFit) && cable.socketFit[key] !== undefined && typeof cable.socketFit[key] !== 'string'))) {
+    errors.push(`${prefix}.socketFit must contain optional from/to socket names`);
+  }
+  if (cable.powerSourceDeviceId !== undefined && (cable.type !== 'power' ||
+    (cable.powerSourceDeviceId !== cable.fromDeviceId && cable.powerSourceDeviceId !== cable.toDeviceId))) {
+    errors.push(`${prefix}.powerSourceDeviceId must be an endpoint of a power cable`);
+  }
   if (cable.manualPath !== undefined && (!Array.isArray(cable.manualPath) || !cable.manualPath.every(isCableRouteAnchor))) {
     errors.push(`${prefix}.manualPath must be a list of channel or manager routing points`);
   }
@@ -122,6 +188,7 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
   if (data.rearClearanceMm !== undefined && !isNonNegativeNumber(data.rearClearanceMm)) errors.push('rearClearanceMm must be a non-negative number');
   if (data.frontDoorClearanceMm !== undefined && !isNonNegativeNumber(data.frontDoorClearanceMm)) errors.push('frontDoorClearanceMm must be a non-negative number');
   if (data.rearDoorClearanceMm !== undefined && !isNonNegativeNumber(data.rearDoorClearanceMm)) errors.push('rearDoorClearanceMm must be a non-negative number');
+  if (data.mountingPostSpacingMm !== undefined && !isPositiveNumber(data.mountingPostSpacingMm)) errors.push('mountingPostSpacingMm must be positive');
   if (data.railMinDepthMm !== undefined && !isNonNegativeNumber(data.railMinDepthMm)) errors.push('railMinDepthMm must be a non-negative number');
   if (data.railMaxDepthMm !== undefined && !isNonNegativeNumber(data.railMaxDepthMm)) errors.push('railMaxDepthMm must be a non-negative number');
   if (!isNonNegativeNumber(data.weightLimitKg)) errors.push('weightLimitKg must be a non-negative number');
@@ -155,6 +222,22 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
       errors.push(`${key} must be an array of records`);
     }
   }
+  if (Array.isArray(data.services)) data.services.forEach((service, index) => {
+    if (!isPlainObject(service)) return; // The collection guard above reports this.
+    const prefix = `services[${index}]`;
+    if (!isNonEmptyString(service.id)) errors.push(`${prefix}.id must be a non-empty string`);
+    if (typeof service.name !== 'string') errors.push(`${prefix}.name must be a string`);
+    if (typeof service.criticality !== 'string' || !['critical', 'high', 'medium', 'low'].includes(service.criticality)) errors.push(`${prefix}.criticality must be critical, high, medium or low`);
+    for (const key of ['hostDeviceId', 'backupDeviceId']) {
+      if (service[key] !== undefined && typeof service[key] !== 'string') errors.push(`${prefix}.${key} must be a device ID string`);
+    }
+    for (const key of ['storageDeviceIds', 'networkDeviceIds', 'powerDeviceIds']) {
+      if (service[key] !== undefined && (!Array.isArray(service[key]) || !(service[key] as unknown[]).every(isNonEmptyString))) {
+        errors.push(`${prefix}.${key} must be an array of non-empty device ID strings`);
+      }
+    }
+    if (service.notes !== undefined && typeof service.notes !== 'string') errors.push(`${prefix}.notes must be a string`);
+  });
   if (Array.isArray(data.reservations)) data.reservations.forEach((r, index) => {
     if (!isPlainObject(r) || !isNonEmptyString(r.id) || typeof r.name !== 'string' || !isPositiveNumber(r.positionU) || !isPositiveNumber(r.sizeU)) errors.push(`reservations[${index}] is invalid`);
   });

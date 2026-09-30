@@ -1,8 +1,11 @@
+import { isThermalIssue } from '../utils/issueCategories';
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import type { getRackTotals } from '../utils/validation';
 
 type RackTotals = ReturnType<typeof getRackTotals>;
 type StripLayout = Pick<RackLayout, 'heightU' | 'powerBudgetW' | 'weightLimitKg'>;
+
+export type HealthCheckCategory = 'overview' | 'thermal' | 'power' | 'capacity' | 'weight' | 'cable';
 
 export type HealthChipStatus = 'good' | 'warn' | 'critical' | 'unconfigured';
 
@@ -21,10 +24,8 @@ const statusForPercent = (percent: number, warnAt: number): HealthChipStatus =>
 const percentOf = (value: number, denominator: number) =>
   denominator > 0 ? (value / denominator) * 100 : 0;
 
-const HEAT_ISSUE_PATTERN = /heat|airflow|thermal/i;
-
 export const countHeatIssues = (issues: ValidationIssue[]) =>
-  issues.filter((issue) => HEAT_ISSUE_PATTERN.test(`${issue.id} ${issue.title}`)).length;
+  issues.filter(isThermalIssue).length;
 
 interface RackHealthStripProps {
   totals: RackTotals;
@@ -42,7 +43,7 @@ function HealthChip({
 }: {
   label: string;
   valueText: string;
-  percent: number;
+  percent?: number;
   status: HealthChipStatus;
   testId: string;
   onClick?: () => void;
@@ -65,12 +66,12 @@ function HealthChip({
       <span className="whitespace-nowrap text-xs font-medium text-content-secondary dark:text-content-secondary">
         {valueText}
       </span>
-      <span className="h-1 w-10 overflow-hidden rounded-full bg-fill dark:bg-fill" aria-hidden>
+      {percent !== undefined && <span className="h-1 w-10 overflow-hidden rounded-full bg-fill dark:bg-fill" aria-hidden>
         <span
           className={`block h-full rounded-full ${colors.bar}`}
           style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
         />
-      </span>
+      </span>}
     </Component>
   );
 }
@@ -80,7 +81,7 @@ export function RackHealthStrip({
   layout,
   issues,
   onOpenCheck,
-}: RackHealthStripProps & { onOpenCheck?: () => void }) {
+}: RackHealthStripProps & { onOpenCheck?: (category?: HealthCheckCategory) => void }) {
   const capacityPct = percentOf(totals.occupiedU, layout.heightU);
   const powerPct = percentOf(totals.powerW, layout.powerBudgetW);
   const weightPct = percentOf(totals.weightKg, layout.weightLimitKg);
@@ -94,35 +95,34 @@ export function RackHealthStrip({
     >
       <HealthChip
         label="Capacity"
-        valueText={`${totals.occupiedU}/${layout.heightU}U`}
+        valueText={`${totals.occupiedU} / ${layout.heightU} U`}
         percent={capacityPct}
         status={statusForPercent(capacityPct, 85)}
         testId="health-chip-capacity"
-        onClick={onOpenCheck}
+        onClick={onOpenCheck ? () => onOpenCheck('capacity') : undefined}
       />
       <HealthChip
         label="Power"
-        valueText={layout.powerBudgetW > 0 ? `${totals.powerW}/${layout.powerBudgetW}W` : 'Not configured'}
+        valueText={layout.powerBudgetW > 0 ? `${Number(totals.powerW.toFixed(1))} / ${Number(layout.powerBudgetW.toFixed(1))} W${totals.powerInputUnverified ? ' · Review' : ''}` : 'Not configured'}
         percent={powerPct}
-        status={layout.powerBudgetW > 0 ? statusForPercent(powerPct, 80) : 'unconfigured'}
+        status={(layout.powerBudgetW > 0 && powerPct >= 100) || issues.some(issue => issue.id.startsWith('power-poe-') && issue.severity === 'critical') ? 'critical' : totals.powerInputUnverified || issues.some(issue => issue.id.startsWith('power-poe-')) ? 'warn' : layout.powerBudgetW > 0 ? (powerPct < 80 && issues.some(issue => issue.id.startsWith('power-assumption-') || issue.id.startsWith('power-capacity-unknown-')) ? 'warn' : statusForPercent(powerPct, 80)) : 'unconfigured'}
         testId="health-chip-power"
-        onClick={onOpenCheck}
+        onClick={onOpenCheck ? () => onOpenCheck('power') : undefined}
       />
       <HealthChip
         label="Weight"
-        valueText={layout.weightLimitKg > 0 ? `${totals.weightKg}/${layout.weightLimitKg}kg` : 'Not configured'}
+        valueText={layout.weightLimitKg > 0 ? `${totals.weightKg.toFixed(2)} / ${layout.weightLimitKg.toFixed(2)} kg` : 'Not configured'}
         percent={weightPct}
         status={layout.weightLimitKg > 0 ? statusForPercent(weightPct, 80) : 'unconfigured'}
         testId="health-chip-weight"
-        onClick={onOpenCheck}
+        onClick={onOpenCheck ? () => onOpenCheck('weight') : undefined}
       />
       <HealthChip
-        label="Heat"
-        valueText={`${heatCount}`}
-        percent={Math.min(heatCount * 25, 100)}
+        label="Thermal"
+        valueText={heatCount ? `${heatCount} ${heatCount === 1 ? 'issue' : 'issues'}` : 'No issues'}
         status={heatCount > 0 ? 'warn' : 'good'}
         testId="health-chip-heat"
-        onClick={onOpenCheck}
+        onClick={onOpenCheck ? () => onOpenCheck('thermal') : undefined}
       />
     </div>
   );

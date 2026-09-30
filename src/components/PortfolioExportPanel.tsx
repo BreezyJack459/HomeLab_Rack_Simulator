@@ -15,17 +15,18 @@ const SECTION_LABELS: { key: keyof PortfolioExportOptions; label: string }[] = [
   { key: 'includeRedundancy', label: 'Redundancy & Resilience' },
   { key: 'includeBackup', label: 'Backup Posture' },
   { key: 'includeCables', label: 'Cable Summary' },
-  { key: 'includeSkills', label: 'Skills Demonstrated' },
+  { key: 'includeSkills', label: 'Planning Topics' },
 ];
 
 export function PortfolioExportPanel() {
   const layout = useRackStore((state) => state.layout);
+  const workspace = useRackStore(state => state.workspace);
   const [options, setOptions] = useState<PortfolioExportOptions>(DEFAULT_PORTFOLIO_OPTIONS);
   const [showPreview, setShowPreview] = useState(false);
 
   const markdown = useMemo(
-    () => exportPortfolioMarkdown(layout, options),
-    [layout, options]
+    () => exportPortfolioMarkdown(layout, options, workspace),
+    [layout, options, workspace]
   );
 
   function toggleOption(key: keyof PortfolioExportOptions) {
@@ -45,7 +46,7 @@ export function PortfolioExportPanel() {
   const enabledCount = SECTION_LABELS.filter((s) => options[s.key]).length;
 
   return (
-    <section
+    <section aria-label="Portfolio report"
       className="rounded-lg border p-4"
       style={{
         backgroundColor: 'var(--theme-bg-secondary)',
@@ -63,6 +64,7 @@ export function PortfolioExportPanel() {
         <button
           type="button"
           onClick={download}
+          aria-label="Download portfolio Markdown"
           className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] uppercase tracking-[0.16em]"
           style={{
             borderColor: 'var(--theme-border)',
@@ -149,7 +151,7 @@ export function PortfolioExportPanel() {
       </button>
 
       {showPreview && (
-        <div
+        <pre aria-label="Portfolio Markdown preview"
           className="max-h-64 overflow-auto rounded-md border p-2 text-[10px] leading-relaxed"
           style={{
             borderColor: 'var(--theme-border)',
@@ -158,12 +160,8 @@ export function PortfolioExportPanel() {
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
           }}
         >
-          {markdown.split('\n').map((line, i) => (
-            <div key={i} className="whitespace-pre">
-              {line || ' '}
-            </div>
-          ))}
-        </div>
+          {markdown}
+        </pre>
       )}
     </section>
   );

@@ -1,3 +1,4 @@
+import { getCableLengthRequirements, cablePurchaseLengthLabel } from '../utils/cableLengthRequirements';
 import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { CableDrawingControls, CableDrawingScene, useCableRouteDrawing } from './CableRouteDrawing';
 import { Text } from '@react-three/drei';
@@ -42,7 +43,7 @@ const endpointName = (device: PlacedDevice | undefined, port: PortRef | undefine
 /*  Main component                                                    */
 /* ------------------------------------------------------------------ */
 
-export function CableViewer3D() {
+export function CableViewer3D({ fitAvailableHeight = false }: { fitAvailableHeight?: boolean } = {}) {
   const [drawingActive, setDrawingActive] = useState(false);
   const [editingCableId, setEditingCableId] = useState<string | null>(null);
   const closeDrawing = useCallback(() => setDrawingActive(false), []);
@@ -62,6 +63,7 @@ export function CableViewer3D() {
   // Canonical scene model: opaque frame, device solids, management channels,
   // and managed route paths. Rebuilt only when the layout or routing mode
   // changes — filtering never reshuffles lanes.
+  const purchaseLengths = useMemo(() => getCableLengthRequirements(layout), [layout]);
   const sceneModel = useMemo(
     () => buildRackSceneModel(layout, { routingMode: cableRoutingMode }),
     [layout, cableRoutingMode]
@@ -173,7 +175,7 @@ export function CableViewer3D() {
   };
 
   return (
-    <div className="relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-edge bg-surface" data-testid="cable-viewer-3d">
+    <div className={`relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-edge bg-surface ${fitAvailableHeight ? 'lg:min-h-0' : ''}`} data-testid="cable-viewer-3d">
       <SceneViewToolbar title="3D cable routing" preset={focus ? null : cameraPreset}
         onPreset={(value) => { setCameraPreset(value); chooseFocus('rack'); }}
         onFit={() => { setCameraPreset('overview'); chooseFocus('rack'); }}>
@@ -363,6 +365,13 @@ export function CableViewer3D() {
             <div className="break-words"><strong className="mr-2 text-accent-fg">A</strong>{fromLabel}</div>
             <div className="break-words"><strong className="mr-2 text-accent-fg">B</strong>{toLabel}</div>
             <div className={selectedRoute.routingDecision.kind === 'blocked' ? 'text-amber-400' : 'text-content-secondary'}>3D route: {selectedRoute.routingDecision.reason}</div>
+            <div aria-label="3D route length">
+              3D centreline: {selectedRoute.renderedLengthMm === null ? 'Not estimated — route blocked' : `${(selectedRoute.renderedLengthMm / 1000).toFixed(2)} m`}
+              {selectedRoute.renderedLengthMm !== null && <span> · excludes extra installation slack</span>}
+            </div>
+            {selectedRoute.renderedLengthMm !== null && !!selectedRoute.cable.lengthMm && selectedRoute.cable.lengthMm < selectedRoute.renderedLengthMm &&
+              <div className="text-amber-400">Recorded cable is {((selectedRoute.renderedLengthMm - selectedRoute.cable.lengthMm) / 1000).toFixed(2)} m shorter than this 3D centreline.</div>}
+            <div aria-label="Cable purchase length" className="text-content-muted">Purchase length: {cablePurchaseLengthLabel(purchaseLengths.get(selectedRoute.cableId)!)}. Uses the longer Clean/Realistic route plus installation slack; verify before buying.</div>
           </div>
           <div className="flex flex-wrap gap-1">
             <button className={sceneButtonClass} type="button" aria-pressed={cameraFocus === 'route'} onClick={() => chooseFocus('route')}>Fit route</button>

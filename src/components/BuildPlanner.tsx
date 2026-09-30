@@ -40,6 +40,7 @@ export function BuildPlanner() {
 
   return (
     <section
+      aria-label="Build procurement"
       className="rounded-lg border p-4"
       style={{
         backgroundColor: 'var(--theme-bg-secondary)',
@@ -108,6 +109,7 @@ export function BuildPlanner() {
           </div>
 
           <div className="space-y-2">
+            {items.some(item => item.reviewReason) && <p className="text-xs text-amber-400">Previous cable records need review. Their saved status is retained, but they are excluded from the current requirement totals above.</p>}
             {items.length === 0 ? (
               <div
                 className="rounded-md border p-3 text-xs"
@@ -123,6 +125,7 @@ export function BuildPlanner() {
               items.map((item) => (
                 <div
                   key={item.id}
+                  data-procurement-state={item.reviewReason ? 'previous' : 'current'}
                   className="rounded-md border p-3"
                   style={{
                     backgroundColor: 'var(--theme-bg-primary)',
@@ -144,6 +147,9 @@ export function BuildPlanner() {
                       {getProcurementStatusLabel(item.status)}
                     </span>
                   </div>
+
+                  {item.reviewReason && <p className="mt-2 text-xs text-amber-400">{item.reviewReason}</p>}
+                  {item.calculationNote && <p className="mt-2 text-xs text-content-muted">Current calculation: {item.calculationNote}</p>}
 
                   <div className="mt-2 grid grid-cols-[140px_1fr] gap-2">
                     <label className="text-[11px] text-content-muted">

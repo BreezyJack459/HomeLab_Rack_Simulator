@@ -1,3 +1,4 @@
+import { checkInterRackConnectors } from '../utils/interRackCables';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { InterRackCable, MediaType, PlacedDevice, RackLayout, Workspace } from '../types/rack';
 import { normalizeWorkspace, useRackStore } from './rackStore';
@@ -150,4 +151,25 @@ describe('inter-rack graph integrity', () => {
     expect(state().loadWorkspace()).toBe(true);
     expect(state().workspace.interRackCables.map(c => c.id)).toEqual(['link']);
   });
+});
+
+
+it('blocks known connector conflicts, preserves existing conflicts and isolates repeated device ids across racks', () => {
+  const ws = workspace();
+  for (const r of ws.racks) {
+    r.devices[0].id = 'same-id';
+    r.devices[0].portConnectionSpecs = { 'ethernet:front:0': { connector: r.id === 'a' ? 'RJ45' : 'M12', role: 'bidirectional' } };
+  }
+  const route = link({ fromDeviceId: 'same-id', toDeviceId: 'same-id', socketFit: { from: 'RJ45', to: 'RJ45' } });
+  state().setWorkspace(ws);
+  expect(state().addInterRackCable(route)).toBe(false);
+  expect(checkInterRackConnectors(ws, route).conflicts.join(' ')).toContain('M12');
+  const recorded = { ...route, socketFit: { from: 'RJ45', to: 'M12' } };
+  expect(checkInterRackConnectors(ws, recorded).status).toBe('recorded-match');
+  expect(state().addInterRackCable(recorded)).toBe(true);
+  expect(importWorkspaceJson(exportWorkspaceJson(state().workspace))?.interRackCables[0].socketFit).toEqual(recorded.socketFit);
+  const conflicted = normalizeWorkspace({ ...ws, interRackCables: [route] });
+  expect(conflicted.interRackCables).toEqual([route]);
+  expect(checkInterRackConnectors(conflicted, route).status).toBe('conflict');
+  expect(checkInterRackConnectors(ws, { ...route, socketFit: undefined }).status).toBe('unverified');
 });

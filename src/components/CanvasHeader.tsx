@@ -8,7 +8,7 @@ import { useCableWorkspaceStore } from "../store/cableWorkspaceStore";
 import { ActionMenus, type ActionMenusProps } from "./ActionBar";
 import { DeviceLibraryToggle } from "./DeviceLibraryToggle";
 import { ShellTopBar, type ShellTopBarProps } from "./ShellTopBar";
-import { RackHealthStrip } from "./RackHealthStrip";
+import { RackHealthStrip, type HealthCheckCategory } from "./RackHealthStrip";
 
 type CanvasHeaderProps = ActionMenusProps & {
   layout: RackLayout;
@@ -22,7 +22,7 @@ type CanvasHeaderProps = ActionMenusProps & {
   onToggleViewMode: (mode: ViewMode) => void;
   onSetViewSide: (side: "front" | "rear") => void;
   summaryContent?: ReactNode;
-  onOpenCheck?: () => void;
+  onOpenCheck?: (category?: HealthCheckCategory, severity?: ValidationIssue['severity']) => void;
   workflow?: ShellWorkflow;
 };
 
@@ -177,13 +177,23 @@ export function CanvasHeader({
           issues={issues}
           onOpenCheck={onOpenCheck}
         />
-        <button
-          type="button"
-          onClick={onOpenCheck}
-          className="rounded-full border border-edge px-3 py-1 text-xs text-content-muted"
-        >
-          {issues.length} issues
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5" aria-label="Issues by severity">
+          {(["critical", "warning", "info"] as const).map((severity) => {
+            const count = issues.filter((issue) => issue.severity === severity).length;
+            const label = severity === "critical" ? "Critical" : severity === "warning" ? "Warnings" : "Suggestions";
+            return (
+              <button
+                key={severity}
+                type="button"
+                onClick={() => onOpenCheck?.("overview", severity)}
+                aria-label={`${count} ${label.toLowerCase()}`}
+                className={`rounded-full border border-edge px-2.5 py-1 text-xs hover:bg-fill focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${count > 0 && severity === "critical" ? "text-red-500" : count > 0 && severity === "warning" ? "text-amber-500" : "text-content-secondary"}`}
+              >
+                {count} {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {summaryContent}
     </div>

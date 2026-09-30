@@ -34,6 +34,7 @@ describe('layoutPrefsStore', () => {
     const raw = localStorage.getItem('homelab-rack-simulator-layout-prefs');
     expect(raw).toBeTruthy();
     expect(JSON.parse(raw!)).toEqual({
+      prefsVersion: 1,
       deviceLibraryOpen: true,
       inspectorOpen: false,
       rackSummaryOpen: true,
@@ -55,6 +56,7 @@ describe('layoutPrefsStore', () => {
     expect(
       JSON.parse(localStorage.getItem('homelab-rack-simulator-layout-prefs')!),
     ).toEqual({
+      prefsVersion: 1,
       deviceLibraryOpen: false,
       inspectorOpen: true,
       rackSummaryOpen: false,
@@ -75,6 +77,7 @@ describe('layoutPrefsStore', () => {
     expect(
       JSON.parse(localStorage.getItem('homelab-rack-simulator-layout-prefs')!),
     ).toEqual({
+      prefsVersion: 1,
       deviceLibraryOpen: false,
       inspectorOpen: true,
       rackSummaryOpen: false,
@@ -86,7 +89,7 @@ describe('layoutPrefsStore', () => {
 });
 
 describe('initial plugin preference migration', () => {
-  it('keeps fresh installs core-only and appends workspace packs for returning users', async () => {
+  it('checkpoints fresh and unversioned preferences without re-enabling omitted packs', async () => {
     localStorage.removeItem('homelab-rack-simulator-layout-prefs');
     vi.resetModules();
     const fresh = await import('./layoutPrefsStore');
@@ -98,9 +101,26 @@ describe('initial plugin preference migration', () => {
     vi.resetModules();
     const returning = await import('./layoutPrefsStore');
     expect(returning.useLayoutPrefsStore.getState().enabledPluginIds).toEqual([
-      'cable-management', 'port-labels', 'operations-pack', 'planning-pack', 'fleet-pack',
+      'cable-management', 'port-labels',
     ]);
     expect(returning.useLayoutPrefsStore.getState().approvedLocalPluginIds).toEqual(['rack-reports-local']);
+    expect(JSON.parse(localStorage.getItem('homelab-rack-simulator-layout-prefs')!).prefsVersion).toBe(1);
+    returning.useLayoutPrefsStore.getState().setEnabledPluginIds([]);
+    vi.resetModules();
+    const reloaded = await import('./layoutPrefsStore');
+    expect(reloaded.useLayoutPrefsStore.getState().enabledPluginIds).toEqual([]);
+    expect(reloaded.useLayoutPrefsStore.getState().approvedLocalPluginIds).toEqual(['rack-reports-local']);
     localStorage.removeItem('homelab-rack-simulator-layout-prefs');
   });
+});
+
+it('keeps a fresh install core-only after saving another preference and reloading', async () => {
+  localStorage.removeItem('homelab-rack-simulator-layout-prefs');
+  vi.resetModules();
+  const fresh = await import('./layoutPrefsStore');
+  fresh.useLayoutPrefsStore.getState().toggleInspector();
+  vi.resetModules();
+  const reloaded = await import('./layoutPrefsStore');
+  expect(reloaded.useLayoutPrefsStore.getState().enabledPluginIds).toEqual(defaultEnabledPluginIds);
+  localStorage.removeItem('homelab-rack-simulator-layout-prefs');
 });

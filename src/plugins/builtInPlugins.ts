@@ -6,6 +6,7 @@ import {
   planningPackManifest,
   fleetPackManifest,
   portDocumentationManifest,
+  cableLabelsManifest,
 } from './builtInPluginManifests';
 
 // Only default workflows are executable synchronously.
@@ -19,6 +20,7 @@ const lazyBuiltIns = [
   { manifest: planningPackManifest, load: () => import('./planningPackPlugin').then((m) => m.planningPackPlugin) },
   { manifest: fleetPackManifest, load: () => import('./fleetPackPlugin').then((m) => m.fleetPackPlugin) },
   { manifest: portDocumentationManifest, load: () => import('./portDocumentationPlugin').then((m) => m.portDocumentationPlugin) },
+  { manifest: cableLabelsManifest, load: () => import('./cableLabelsPlugin').then(m => m.cableLabelsPlugin) },
 ];
 
 export const builtInPluginManifests = [

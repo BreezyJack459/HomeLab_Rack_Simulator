@@ -30,11 +30,11 @@ for (const viewport of [
 
     // A button can exist in the DOM yet be clipped by its scroll container.
     // Trial clicks verify that every row can actually be reached and hit.
-    await expect(switches.getByRole('button')).toHaveCount(6);
+    await expect(switches.getByRole('button')).toHaveCount(7);
     for (const option of await switches.getByRole('button').all()) {
       await option.click({ trial: true });
     }
-    const lastOption = switches.getByRole('button', { name: /Port Labels/ });
+    const lastOption = switches.getByRole('button', { name: /Cable Labels/ });
     await expect(lastOption).toHaveAttribute('aria-pressed', 'false');
     await lastOption.click();
     await expect(lastOption).toHaveAttribute('aria-pressed', 'true');

@@ -35,7 +35,7 @@ npm run build
 node scripts/check-bundle-size.mjs
 ```
 
-The default Vitest config includes source/component/store/integration tests and a separate importer test project. The plugin configuration is a focused subset, not a replacement for all tests. Playwright uses Chromium, one worker and a dev-server fixture; outside CI it can reuse an existing server.
+The default Vitest config includes source/component/store/integration tests and a separate importer test project. The plugin configuration is a focused subset, not a replacement for all tests. Playwright uses Chromium and one worker. By default it uses a dev-server fixture, reusing an existing server outside CI. After building, run `PLAYWRIGHT_PRODUCTION=1 npx playwright test` to test the production output on an isolated preview server at port 5174. This mode never reuses an existing server; CI uses it before uploading the production artifact.
 
 Browser specs cover shell/plugin menus and loading, placement, shelves, printed mounts, 0U PDUs, custom/rear routes, topology, property editing, inter-rack links, recovery and 3D inspection, alongside general app/workspace flows. Presence of a test is not evidence that it passed on a particular revision. Record command, scope and final exit status when reporting validation.
 
@@ -58,9 +58,9 @@ Use function declarations for React components, strict TypeScript and type impor
 
 ## CI and hosting
 
-`.github/workflows/ci.yml` runs `npm ci`, `npm test` and `npm run build` on Node 20.x and 22.x. It does not currently run Playwright, the separate plugin command or the bundle guard explicitly.
+`.github/workflows/ci.yml` runs `npm ci`, unit tests, plugin tests, the production build and the eager bundle guard on Node 20.x and 22.x. Node 22 also installs Chromium and runs the complete Playwright suite against the production build. The validated Node 22 bundle is uploaded as `production-dist`. This workflow supports reuse through `workflow_call`.
 
-`.github/workflows/deploy.yml` separately builds on Node 20 and publishes `dist/` to GitHub Pages on pushes to `main` or manual dispatch. It does not wait for the CI workflow as a deployment gate. The configured base is `/HomeLab_Rack_Simulator/`; change Vite's base for another hosting path. There is no application server to deploy.
+`.github/workflows/deploy.yml` invokes the reusable CI workflow on pushes to `main` or manual dispatch. Packaging requires every validation job to succeed, then downloads `production-dist` from that same run and publishes it to GitHub Pages without rebuilding. A failed test or bundle gate prevents deployment. The configured base is `/HomeLab_Rack_Simulator/`; change Vite's base for another hosting path. There is no application server to deploy.
 
 ## Shell diagnostics
 

@@ -246,3 +246,20 @@ describe('validateImportedLayout', () => {
     });
   });
 });
+
+describe('service import validation', () => {
+  const service = { id: 'service', name: 'Service', criticality: 'high', hostDeviceId: '', storageDeviceIds: [], networkDeviceIds: ['missing-device'], powerDeviceIds: [], notes: '' };
+  it('preserves optional fields, extension records and unresolved string device references', () => {
+    const result = validateImportedLayout({ ...buildValidLayout(), services: [{ ...service, extension: 'keep' }] });
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.layout.services).toEqual([{ ...service, extension: 'keep' }]);
+  });
+  it.each([
+    ['id', 4], ['name', null], ['criticality', 'urgent'], ['hostDeviceId', []], ['backupDeviceId', {}],
+    ['storageDeviceIds', 'invalid'], ['networkDeviceIds', ['valid', 4]], ['powerDeviceIds', ['']], ['notes', 5],
+  ])('rejects invalid %s with an actionable field path', (key, value) => {
+    const result = validateImportedLayout({ ...buildValidLayout(), services: [{ ...service, [key]: value }] });
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.errors.some(error => error.includes(`services[0].${key}`))).toBe(true);
+  });
+});

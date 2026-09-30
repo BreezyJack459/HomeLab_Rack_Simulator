@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { calculateUpsRuntimes } from './upsRuntime';
+import { validateImportedLayout } from './layoutValidation';
+import { validateRackLayout } from './validation';
 import type { DeviceCategory, RackLayout } from '../types/rack';
 import {
   buildPowerChains,
+  buildPowerTopology,
   checkPowerRedundancy,
   formatWatts,
   getCircuitLoads,
@@ -62,32 +66,22 @@ describe('getUpsCapacityW', () => {
     expect(getUpsCapacityW(makeDevice('d', 'server', 100))).toBeUndefined();
   });
 
-  it('estimates capacity by outlet count', () => {
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 4 } }))).toBe(600);
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 6 } }))).toBe(900);
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 8 } }))).toBe(1500);
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 10 } }))).toBe(2200);
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 16 } }))).toBe(3000);
-  });
-
-  it('defaults to 4 outlets', () => {
-    expect(getUpsCapacityW(makeDevice('d', 'ups', 0))).toBe(600);
+  it('does not invent an output rating from socket count', () => {
+    for (const power of [4, 6, 8, 10, 16]) {
+      expect(getUpsCapacityW(makeDevice('d', 'ups', 0, { ports: { power } }))).toBeUndefined();
+    }
   });
 });
 
 describe('getDeviceCapacityW', () => {
-  it('returns PDU capacity for PDU', () => {
-    expect(getDeviceCapacityW(makeDevice('d', 'pdu', 0, { ports: { power: 8 } }))).toBe(3680);
-    expect(getDeviceCapacityW(makeDevice('d', 'pdu', 0, { ports: { power: 12 } }))).toBe(4600);
-    expect(getDeviceCapacityW(makeDevice('d', 'pdu', 0, { ports: { power: 20 } }))).toBe(7360);
-  });
-
-  it('returns UPS capacity for UPS', () => {
-    expect(getDeviceCapacityW(makeDevice('d', 'ups', 0, { ports: { power: 4 } }))).toBe(600);
-  });
-
-  it('returns undefined for other devices', () => {
-    expect(getDeviceCapacityW(makeDevice('d', 'server', 100))).toBeUndefined();
+  it('uses only explicit positive finite ratings for power sources', () => {
+    for (const category of ['ups', 'pdu', 'pdu-0u'] as const) {
+      expect(getDeviceCapacityW(makeDevice('d', category, 0, { powerCapacityW: 750 }))).toBe(750);
+      for (const powerCapacityW of [undefined, 0, -1, NaN, Infinity]) {
+        expect(getDeviceCapacityW(makeDevice('d', category, 0, { powerCapacityW }))).toBeUndefined();
+      }
+    }
+    expect(getDeviceCapacityW(makeDevice('d', 'server', 100, { powerCapacityW: 750 }))).toBeUndefined();
   });
 });
 
@@ -198,10 +192,8 @@ describe('buildPowerChains', () => {
     // pdu1 -> pdu2 circular reference should be guarded (pdu2 won't re-expand pdu1)
     expect(chains[0].root.children[0].children).toHaveLength(1);
     expect(chains[0].root.children[0].children[0].device.id).toBe('pdu2');
-    // pdu2 -> pdu1 is circular; guard returns pdu1 with empty children
-    expect(chains[0].root.children[0].children[0].children).toHaveLength(1);
-    expect(chains[0].root.children[0].children[0].children[0].device.id).toBe('pdu1');
-    expect(chains[0].root.children[0].children[0].children[0].children).toHaveLength(0);
+    expect(chains[0].root.children[0].children[0].children).toHaveLength(0);
+    expect(buildPowerTopology(layout).warnings.some(w => w.includes('cycle'))).toBe(true);
   });
 
   it('includes orphaned PDUs as empty roots', () => {
@@ -366,6 +358,7 @@ describe('checkPowerRedundancy', () => {
       cables: [
         {
           id: 'c1',
+          toPort: { type: 'power', index: 0 },
           fromDeviceId: 'pdu1',
           toDeviceId: 'srv1',
           type: 'power',
@@ -374,6 +367,7 @@ describe('checkPowerRedundancy', () => {
         },
         {
           id: 'c2',
+          toPort: { type: 'power', index: 1 },
           fromDeviceId: 'pdu2',
           toDeviceId: 'srv1',
           type: 'power',
@@ -747,5 +741,187 @@ describe('simulateOutletFailure', () => {
     expect(result!.downstreamDevices).toHaveLength(1);
     expect(result!.downstreamDevices[0].id).toBe('srv1');
     expect(result!.totalLostW).toBe(200);
+  });
+});
+
+
+describe('endpoint-based outlet assignment', () => {
+  const layout: RackLayout = {
+    ...baseLayout,
+    devices: [makeDevice('pdu', 'pdu', 0, { ports: { power: 8 }, circuit: 'A' }), makeDevice('server', 'server', 100, { ports: { power: 2 } })],
+    cables: [{ id: 'c', type: 'power', color: '#fff', fromDeviceId: 'server', toDeviceId: 'pdu',
+      fromPort: { type: 'power', index: 0 }, toPort: { type: 'power', index: 3 } }],
+  };
+  it('uses the PDU endpoint in either direction for usage and failure simulation', () => {
+    expect(validatePduOutletAssignments(layout)).toEqual([]);
+    expect(getPduOutletUsage(layout, 'pdu')?.usedOutlets).toBe(1);
+    expect(getPduOutletMap(layout, 'pdu')[3].assignedDeviceId).toBe('server');
+    expect(simulateOutletFailure(layout, 'pdu', 3)?.affectedDevices.map(d => d.id)).toEqual(['server']);
+    const c = layout.cables[0];
+    const reversed = { ...layout, cables: [{ ...c, fromDeviceId: c.toDeviceId, toDeviceId: c.fromDeviceId, fromPort: c.toPort, toPort: c.fromPort }] };
+    expect(getPduOutletMap(reversed, 'pdu')).toEqual(getPduOutletMap(layout, 'pdu'));
+  });
+  it('reports conflicting legacy data without losing the explicit socket', () => {
+    const conflict = { ...layout, cables: [{ ...layout.cables[0], outletIndex: 1 }] };
+    expect(validatePduOutletAssignments(conflict).map(i => i.type)).toContain('conflicting-assignment');
+    expect(getPduOutletMap(conflict, 'pdu')[3].assignedDeviceId).toBe('server');
+  });
+  it('detects duplicate sockets and invalid endpoint indices', () => {
+    const duplicate = { ...layout, cables: [...layout.cables, { ...layout.cables[0], id: 'duplicate' }] };
+    expect(validatePduOutletAssignments(duplicate).map(i => i.type)).toContain('duplicate-assignment');
+    const invalid = { ...layout, cables: [{ ...layout.cables[0], toPort: { type: 'power' as const, index: 8 } }] };
+    expect(validatePduOutletAssignments(invalid).map(i => i.type)).toContain('outlet-overload');
+  });
+  it('does not claim both PSUs share a circuit when only one is connected', () => {
+    expect(validatePduOutletAssignments(layout).some(i => i.type === 'ab-mismatch')).toBe(false);
+  });
+});
+
+
+describe('explicit power rating persistence and validation', () => {
+  it('preserves a rated output through JSON export/import validation', () => {
+    const layout = { ...baseLayout, devices: [makeDevice('pdu', 'pdu', 0, { powerCapacityW: 2300 })] };
+    const result = validateImportedLayout(JSON.parse(JSON.stringify(layout)));
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.layout.devices[0].powerCapacityW).toBe(2300);
+  });
+
+  it('rejects invalid ratings but accepts legacy layouts without ratings', () => {
+    for (const powerCapacityW of [0, -1, Infinity, NaN, '2300']) {
+      const result = validateImportedLayout({ ...baseLayout, devices: [makeDevice('pdu', 'pdu', 0, { powerCapacityW })] });
+      expect(result.valid).toBe(false);
+    }
+    expect(validateImportedLayout({ ...baseLayout, devices: [makeDevice('pdu', 'pdu', 0)] }).valid).toBe(true);
+  });
+
+  it('surfaces unknown ratings and does not infer breaker limits from source ratings', () => {
+    const unknown = makeDevice('pdu', 'pdu', 0, { circuit: 'A' });
+    expect(validateRackLayout({ ...baseLayout, devices: [unknown] }).some(i => i.id === 'power-capacity-unknown-pdu')).toBe(true);
+    const known = { ...unknown, powerCapacityW: 2300 };
+    const issues = validateRackLayout({ ...baseLayout, devices: [known] });
+    expect(issues.some(i => i.id.startsWith('power-capacity-unknown-'))).toBe(false);
+    expect(issues.some(i => i.id.startsWith('circuit-overload-'))).toBe(false);
+  });
+});
+
+
+describe('directed power reachability', () => {
+  const cable = (id: string, fromDeviceId: string, toDeviceId: string, extras = {}) => ({
+    id, fromDeviceId, toDeviceId, type: 'power' as const, color: '#000', ...extras,
+  });
+  it('checks surviving stages against full unique downstream load, excluding their own consumption', () => {
+    const layout: RackLayout = { ...baseLayout, devices: [
+      makeDevice('a', 'pdu', 0, { powerCapacityW: 400 }),
+      makeDevice('ups', 'ups', 30, { powerCapacityW: 220 }),
+      makeDevice('b', 'pdu', 20, { powerCapacityW: 150 }),
+      makeDevice('load', 'server', 200),
+    ], cables: [
+      cable('al', 'a', 'load', { outletIndex: 0 }),
+      cable('ub', 'ups', 'b', { powerSourceDeviceId: 'ups' }),
+      cable('bl', 'b', 'load'), cable('bl2', 'b', 'load'),
+    ] };
+    const result = simulateOutletFailure(layout, 'a', 0)!;
+    expect(result.survivingDevices.map(d => d.id)).toContain('load');
+    expect(result.remainingSupplies).toEqual([
+      { id: 'a', name: 'a', loadW: 0, capacityW: 400, status: 'within-rating' },
+      { id: 'ups', name: 'ups', loadW: 220, capacityW: 220, status: 'within-rating' },
+      { id: 'b', name: 'b', loadW: 200, capacityW: 150, status: 'overload' },
+    ]);
+    layout.devices[2].powerCapacityW = undefined;
+    expect(simulateOutletFailure(layout, 'a', 0)!.remainingSupplies[2].status).toBe('unknown');
+    const cascadeFailure = simulateOutletFailure({ ...layout, cables: layout.cables.map(c => c.id === 'ub' ? { ...c, outletIndex: 1 } : c) }, 'ups', 1)!;
+    expect(cascadeFailure.remainingSupplies.map(s => s.id)).not.toContain('b');
+  });
+  it('normalizes consumer-first picks and traces multiple distribution levels', () => {
+    const layout: RackLayout = { ...baseLayout,
+      devices: [makeDevice('a', 'pdu', 0, { circuit: 'A' }), makeDevice('b', 'pdu', 0), makeDevice('c', 'pdu', 0), makeDevice('load', 'server', 200)],
+      cables: [cable('ab', 'b', 'a', { powerSourceDeviceId: 'a', outletIndex: 0 }), cable('bc', 'b', 'c', { powerSourceDeviceId: 'b' }), cable('cl', 'load', 'c')],
+    };
+    expect(buildPowerChains(layout)[0].root.totalW).toBe(200);
+    expect(getDeviceCircuit(layout, 'load')).toBe('A');
+    expect(getCircuitLoads(layout)[0].totalW).toBe(200);
+    expect(getPduOutletMap(layout, 'a')[0].assignedDeviceId).toBe('b');
+    expect(getPduOutletMap(layout, 'a')[0].loadW).toBe(200);
+    expect(getPduOutletMap(layout, 'b').some(outlet => outlet.assignedDeviceId === 'a')).toBe(false);
+    const failure = simulateOutletFailure(layout, 'a', 0)!;
+    expect(failure.affectedDevices.map(d => d.id)).toEqual(['b']);
+    expect(new Set(failure.downstreamDevices.map(d => d.id))).toEqual(new Set(['c', 'load']));
+    expect(failure.totalLostW).toBe(200);
+  });
+
+  it('preserves a dual-fed consumer when one outlet fails and counts shared load once', () => {
+    const layout: RackLayout = { ...baseLayout,
+      devices: [makeDevice('root', 'ups', 0), makeDevice('a', 'pdu', 0), makeDevice('b', 'pdu', 0), makeDevice('load', 'server', 200)],
+      cables: [cable('ra', 'root', 'a', { powerSourceDeviceId: 'root' }), cable('rb', 'root', 'b', { powerSourceDeviceId: 'root' }), cable('al', 'a', 'load', { outletIndex: 0 }), cable('bl', 'load', 'b', { outletIndex: 0 })],
+    };
+    expect(buildPowerChains(layout)[0].root.totalW).toBe(200);
+    const failure = simulateOutletFailure(layout, 'a', 0)!;
+    expect(failure.totalLostW).toBe(0);
+    expect(failure.survivingDevices.map(d => d.id)).toContain('load');
+    expect(checkPowerRedundancy(layout)[0].isRedundant).toBe(false);
+  });
+
+  it('does not energize a rootless cycle or recurse forever', () => {
+    const layout: RackLayout = { ...baseLayout,
+      devices: [makeDevice('a', 'pdu', 0), makeDevice('b', 'pdu', 0)],
+      cables: [cable('ab', 'a', 'b', { powerSourceDeviceId: 'a' }), cable('ba', 'b', 'a', { powerSourceDeviceId: 'b' })],
+    };
+    expect(buildPowerChains(layout)).toEqual([]);
+    expect(getDeviceCircuit(layout, 'a')).toBeUndefined();
+    expect(buildPowerTopology(layout).warnings.some(w => w.includes('cycle'))).toBe(true);
+    expect(simulateOutletFailure(layout, 'a', 0)?.totalLostW).toBe(0);
+  });
+
+  it('requires distinct documented inlets before claiming A/B paths', () => {
+    const layout: RackLayout = { ...baseLayout,
+      devices: [makeDevice('a', 'pdu', 0, { circuit: 'A' }), makeDevice('b', 'pdu', 0, { circuit: 'B' }), makeDevice('load', 'server', 200, { ports: { power: 2 } })],
+      cables: [cable('al', 'a', 'load', { toPort: { type: 'power', index: 0 } }), cable('bl', 'b', 'load', { toPort: { type: 'power', index: 0 } })],
+    };
+    expect(checkPowerRedundancy(layout)[0].isRedundant).toBe(false);
+    layout.cables[1].toPort = { type: 'power', index: 1 };
+    expect(checkPowerRedundancy(layout)[0].isRedundant).toBe(true);
+    expect(getDeviceCircuit(layout, 'load')).toBeUndefined();
+  });
+});
+
+
+it('includes nested UPS loads and deduplicates runtime groups across shared descendants', () => {
+  const layout: RackLayout = { ...baseLayout,
+    devices: [makeDevice('pdu', 'pdu', 0), makeDevice('ups', 'ups', 5, { batteryWh: 100, portConnectionSpecs: { 'power:rear:1': { upsBackup: 'battery' }, 'power:rear:2': { upsBackup: 'battery' } } }), makeDevice('a', 'pdu', 0), makeDevice('b', 'pdu', 0), makeDevice('load', 'server', 200)],
+    cables: [['pdu','ups'], ['ups','a'], ['ups','b'], ['a','load'], ['b','load']].map(([fromDeviceId, toDeviceId], index) => ({ id: String(index), fromPort: { type: 'power', index, side: 'rear' }, fromDeviceId, toDeviceId, powerSourceDeviceId: fromDeviceId, type: 'power', color: '#000' })),
+  };
+  const runtime = calculateUpsRuntimes(layout)[0];
+  expect(runtime.loadW).toBe(205);
+  expect(runtime.groups.gracefulW).toBe(200);
+  expect(runtime.shutdownPlan).toHaveLength(1);
+});
+
+
+describe('unknown outlet inventory', () => {
+  const layout: RackLayout = {
+    ...baseLayout,
+    devices: [makeDevice('pdu', 'pdu', 0), makeDevice('server', 'server', 200)],
+    cables: [{ id: 'recorded', fromDeviceId: 'pdu', toDeviceId: 'server',
+      type: 'power', color: '#fff', nodes: [], outletIndex: 9 }],
+  };
+
+  it('retains recorded connections and load without inventing free sockets or a range limit', () => {
+    expect(getPduOutletUsage(layout, 'pdu')).toMatchObject({
+      totalOutlets: null, freeOutlets: null, usedOutlets: 1, loadW: 200,
+    });
+    expect(getPduOutletMap(layout, 'pdu').map(outlet => outlet.outletIndex)).toEqual([9]);
+    const issues = validatePduOutletAssignments(layout);
+    expect(issues.some(issue => issue.type === 'unknown-count')).toBe(true);
+    expect(issues.some(issue => issue.type === 'outlet-overload')).toBe(false);
+  });
+
+  it('still flags duplicate assignments and distinguishes explicit zero capacity', () => {
+    const duplicate = { ...layout, cables: [...layout.cables, { ...layout.cables[0], id: 'duplicate' }] };
+    expect(validatePduOutletAssignments(duplicate).some(issue => issue.type === 'duplicate-assignment')).toBe(true);
+    const zero = { ...layout, devices: layout.devices.map(device => device.id === 'pdu'
+      ? { ...device, ports: { power: 0 } } : device) };
+    expect(getPduOutletUsage(zero, 'pdu')).toMatchObject({ totalOutlets: 0, freeOutlets: 0, loadW: 200 });
+    expect(validatePduOutletAssignments(zero).some(issue => issue.type === 'outlet-overload')).toBe(true);
+    expect(validatePduOutletAssignments(zero).some(issue => issue.type === 'unknown-count')).toBe(false);
   });
 });

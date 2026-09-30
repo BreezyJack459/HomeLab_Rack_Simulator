@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import {
-  builtInPackPluginIds,
   defaultEnabledPluginIds,
 } from '../plugins/builtInPlugins';
 
 const STORAGE_KEY = 'homelab-rack-simulator-layout-prefs';
+const PREFS_VERSION = 1;
 
 type LayoutPrefs = {
   deviceLibraryOpen: boolean;
@@ -15,7 +15,7 @@ type LayoutPrefs = {
   approvedLocalPluginIds: string[];
 };
 
-type PersistedPrefs = Partial<LayoutPrefs>;
+type PersistedPrefs = Partial<LayoutPrefs> & { prefsVersion?: number };
 
 function readPrefs(): PersistedPrefs {
   try {
@@ -29,7 +29,7 @@ function readPrefs(): PersistedPrefs {
 
 function writePrefs(prefs: LayoutPrefs) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prefs, prefsVersion: PREFS_VERSION }));
   } catch {
     // ignore quota / private mode
   }
@@ -52,19 +52,13 @@ interface LayoutPrefsState extends LayoutPrefs {
 
 const saved = readPrefs();
 
-// Fresh installs get the default set (workspace packs off). Returning users
-// already have a saved list — append any built-in workspace packs they are
-// missing so the operate/plan/portfolio workspaces don't silently disappear.
+// A saved list is authoritative: missing packs may have been explicitly
+// disabled. Unversioned data cannot distinguish that choice from legacy defaults.
+// Checkpoint it once without re-enabling packs; fresh installs stay core-only.
 function resolveEnabledPluginIds(savedIds: string[] | undefined): string[] {
-  if (!savedIds) {
-    return defaultEnabledPluginIds;
-  }
-  const missingPackIds = builtInPackPluginIds.filter(
-    (pluginId) => !savedIds.includes(pluginId),
-  );
-  return missingPackIds.length > 0
-    ? [...savedIds, ...missingPackIds]
-    : savedIds;
+  return Array.isArray(savedIds)
+    ? savedIds.filter((id): id is string => typeof id === 'string')
+    : defaultEnabledPluginIds;
 }
 
 function snapshot(state: LayoutPrefs): LayoutPrefs {
@@ -169,3 +163,7 @@ export const useLayoutPrefsStore = create<LayoutPrefsState>((set) => ({
       return { approvedLocalPluginIds };
     }),
 }));
+
+if ((saved.prefsVersion ?? 0) < PREFS_VERSION) {
+  writePrefs(snapshot(useLayoutPrefsStore.getState()));
+}

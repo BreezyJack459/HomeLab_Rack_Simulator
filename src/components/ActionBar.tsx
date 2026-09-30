@@ -39,6 +39,7 @@ export interface ActionMenusProps {
   onImportLayout: () => void;
   onLoadSample: () => void;
   onExportJson: () => void;
+  onWorkspaceBackup?: () => void;
   onExportPng: () => void;
   onExportDrawio?: () => void;
   onExportExcalidraw?: () => void;
@@ -107,6 +108,7 @@ export function ActionMenus({
   onImportLayout,
   onLoadSample,
   onExportJson,
+  onWorkspaceBackup,
   onExportPng,
   onExportDrawio,
   onExportExcalidraw,
@@ -201,6 +203,8 @@ export function ActionMenus({
           <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onDuplicate)} type="button">Duplicate current rack</button>
           <div className="my-1 border-t border-edge" />
         </>}
+        <p className="px-3 py-2 text-xs text-content-muted">Autosave is stored in this browser only.</p>
+        {onWorkspaceBackup && <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onWorkspaceBackup)} type="button">Workspace backup and restore</button>}
         <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onSaveLocal)} type="button">
           <Save className="mr-2 inline" size={13} />
           Save local copy

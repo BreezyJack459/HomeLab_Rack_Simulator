@@ -85,7 +85,7 @@ describe('RackHealthStrip', () => {
       <RackHealthStrip totals={makeTotals()} layout={layout} issues={[]} />,
     );
     expect(chipStatus('health-chip-heat')).toBe('good');
-    expect(screen.getByTestId('health-chip-heat')).toHaveTextContent('0');
+    expect(screen.getByTestId('health-chip-heat')).toHaveTextContent('No issues');
 
     rerender(
       <RackHealthStrip
@@ -111,7 +111,13 @@ describe('RackHealthStrip', () => {
     expect(chipStatus('health-chip-weight')).toBe('unconfigured');
     expect(screen.getByTestId('health-chip-power')).toHaveTextContent('Not configured');
     expect(screen.getByTestId('health-chip-weight')).toHaveTextContent('Not configured');
-    expect(screen.getByTestId('health-chip-capacity')).toHaveTextContent('3/0U');
+    expect(screen.getByTestId('health-chip-capacity')).toHaveTextContent('3 / 0 U');
+  });
+
+  it('formats fractional totals without floating-point noise', () => {
+    render(<RackHealthStrip totals={makeTotals({ weightKg: 14.280000000000001, powerW: 629.1000000000001 })} layout={layout} issues={[]} />);
+    expect(screen.getByTestId('health-chip-weight')).toHaveTextContent('14.28 / 300.00 kg');
+    expect(screen.getByTestId('health-chip-power')).toHaveTextContent('629.1 / 3000 W');
   });
 
   it('opens the health workspace from any interactive chip', () => {
@@ -126,6 +132,21 @@ describe('RackHealthStrip', () => {
     );
 
     fireEvent.click(screen.getByTestId('health-chip-power'));
-    expect(onOpenCheck).toHaveBeenCalledOnce();
+    expect(onOpenCheck).toHaveBeenLastCalledWith('power');
+    fireEvent.click(screen.getByTestId('health-chip-heat'));
+    expect(onOpenCheck).toHaveBeenLastCalledWith('thermal');
+    fireEvent.click(screen.getByTestId('health-chip-weight'));
+    expect(onOpenCheck).toHaveBeenLastCalledWith('weight');
   });
+});
+
+
+it('surfaces PoE failures without downgrading an overloaded rack to a warning', () => {
+  const warning = makeIssue('power-poe-link-one', 'PoE power unverified');
+  const { rerender } = render(<RackHealthStrip totals={makeTotals({ powerW: 10 })} layout={layout} issues={[warning]} />);
+  expect(chipStatus('health-chip-power')).toBe('warn');
+  rerender(<RackHealthStrip totals={makeTotals({ powerW: 10 })} layout={layout} issues={[{ ...warning, severity: 'critical' }]} />);
+  expect(chipStatus('health-chip-power')).toBe('critical');
+  rerender(<RackHealthStrip totals={makeTotals({ powerW: 3100 })} layout={layout} issues={[warning]} />);
+  expect(chipStatus('health-chip-power')).toBe('critical');
 });

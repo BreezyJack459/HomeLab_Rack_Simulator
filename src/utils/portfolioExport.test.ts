@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { RackLayout } from '../types/rack';
+import type { PlacedDevice, RackLayout } from '../types/rack';
 import {
   generatePortfolioMarkdown,
   DEFAULT_PORTFOLIO_OPTIONS,
@@ -168,7 +168,7 @@ describe('generatePortfolioMarkdown', () => {
     const layout = makeLayout();
     const md = generatePortfolioMarkdown(layout);
     expect(md).toContain('## Power & Energy');
-    expect(md).toContain('| Total Draw |');
+    expect(md).toContain('| Attributed Input |');
     expect(md).toContain('| Monthly kWh |');
   });
 
@@ -193,6 +193,24 @@ describe('generatePortfolioMarkdown', () => {
     const md = generatePortfolioMarkdown(layout);
     expect(md).toContain('## Redundancy & Resilience');
     expect(md).toContain('| UPS Units | 1 |');
+  });
+
+  it('does not infer redundancy from boot dependencies or cable counts', () => {
+    const common = { sizeU: 1, positionU: 1, widthType: '19in' as const, depthMm: 100, weightKg: 1, powerW: 10, heatLevel: 1 as const, color: '#333' };
+    const devices: PlacedDevice[] = [
+      { ...common, id: 'a', name: 'A', category: 'pdu', circuit: 'A', ports: { power: 1 } },
+      { ...common, id: 'b', name: 'B', category: 'pdu', circuit: 'B', ports: { power: 1 } },
+      { ...common, id: 'load', name: 'Load', category: 'server', ports: { power: 2 }, bootDependsOn: ['a'] },
+    ];
+    const layout = makeLayout({ devices, cables: [0, 1, 2].map(index => ({ id: `data${index}`, type: 'ethernet', fromDeviceId: 'a', toDeviceId: 'load', color: '#333' })) });
+    const report = generatePortfolioMarkdown(layout);
+    expect(report).toContain('| Devices with modeled A/B power paths | 0 |');
+    expect(report).toContain('| Network redundancy | Not verified |');
+    expect(report).not.toContain('Dual-PSU Devices');
+    layout.cables = ['a', 'b'].map((id, index) => ({ id, type: 'power', fromDeviceId: id, toDeviceId: 'load', color: '#333', fromPort: { type: 'power', index: 0 }, toPort: { type: 'power', index } }));
+    expect(generatePortfolioMarkdown(layout)).toContain('| Devices with modeled A/B power paths | 1 |');
+    layout.devices[1].circuit = 'A';
+    expect(generatePortfolioMarkdown(layout)).toContain('| Devices with modeled A/B power paths | 0 |');
   });
 
   it('includes backup posture section', () => {
@@ -264,7 +282,7 @@ describe('generatePortfolioMarkdown', () => {
       ],
     });
     const md = generatePortfolioMarkdown(layout);
-    expect(md).toContain('## Skills Demonstrated');
+    expect(md).toContain('## Planning Topics');
     expect(md).toContain('- Network design (VLANs, routing, switching)');
   });
 
@@ -274,7 +292,7 @@ describe('generatePortfolioMarkdown', () => {
       ...DEFAULT_PORTFOLIO_OPTIONS,
       includeSkills: false,
     });
-    expect(md).not.toContain('## Skills Demonstrated');
+    expect(md).not.toContain('## Planning Topics');
   });
 
   it('produces valid markdown for empty layout', () => {

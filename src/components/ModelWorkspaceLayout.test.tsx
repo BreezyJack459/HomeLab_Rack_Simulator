@@ -55,10 +55,31 @@ describe('ModelWorkspaceLayout device library', () => {
     const drawer = screen.getByRole('dialog', { name: 'Device library' });
     expect(drawer).toHaveAttribute('aria-modal', 'true');
     expect(drawer).toHaveClass('fixed', 'lg:static');
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Close device library' })).toHaveLength(2);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Close device library' })[0]);
     expect(screen.queryByRole('dialog', { name: 'Device library' })).not.toBeInTheDocument();
+  });
+
+  it('resizes with the keyboard and keeps width inside usable bounds', () => {
+    render(<ModelWorkspaceLayout layout={layout} canvas={<div>Rack canvas</div>} />);
+    const handle = screen.getByRole('separator', { name: 'Resize device library' });
+    expect(handle).toHaveAttribute('aria-valuenow', '280');
+    fireEvent.keyDown(handle, { key: 'ArrowRight' });
+    expect(handle).toHaveAttribute('aria-valuenow', '300');
+    fireEvent.keyDown(handle, { key: 'Home' });
+    fireEvent.keyDown(handle, { key: 'ArrowLeft' });
+    expect(handle).toHaveAttribute('aria-valuenow', '240');
+    fireEvent.keyDown(handle, { key: 'End' });
+    fireEvent.keyDown(handle, { key: 'ArrowRight' });
+    expect(handle).toHaveAttribute('aria-valuenow', '400');
+  });
+
+  it('preserves custom sidebar dimensions without a library resize handle', () => {
+    render(<ModelWorkspaceLayout layout={layout} canvas={<div>Rack canvas</div>} sidebar={<div>Cable controls</div>} />);
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    expect(screen.getByText('Cable controls')).toBeInTheDocument();
   });
 
   it('closes on Escape and restores focus to the control that opened it', () => {

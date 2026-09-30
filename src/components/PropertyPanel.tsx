@@ -1,8 +1,13 @@
+import { PortSpecificationsEditor } from './PortSpecificationsEditor';
+import { InstallationFields } from './InstallationFields';
+import { getPowerReference, planningPowerBasis, POWER_BASIS_LABELS } from '../utils/powerAssumptions';
 import { ChevronDown, SlidersHorizontal, Trash2, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { IssuePropertyTarget } from '../utils/checkWorkflow';
 import { useRackStore } from '../store/rackStore';
 import type {
   HeatLevel,
+  PowerBasis,
   LifecycleStatus,
   OutletFacing,
   PlacedDevice,
@@ -24,6 +29,7 @@ import {
   zeroUDepthMm,
   U_HEIGHT_MM,
 } from '../utils/rackMath';
+import { isPowerSource } from '../utils/powerChain';
 import { getPortFaceMap } from '../utils/portLayout';
 
 function NumberField({
@@ -61,17 +67,34 @@ function PropertySection({
   title,
   children,
   defaultOpen = true,
+  focusTarget,
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  focusTarget?: IssuePropertyTarget;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen || !!focusTarget);
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => { if (focusTarget) setIsOpen(true); }, [focusTarget]);
+  useEffect(() => {
+    if (!focusTarget || !isOpen) return;
+    const frame = requestAnimationFrame(() => {
+      const section = sectionRef.current;
+      if (!section) return;
+      const label = focusTarget.field ? [...section.querySelectorAll('label')].find(item => item.textContent?.trim().startsWith(focusTarget.field!)) : undefined;
+      const target = label?.querySelector<HTMLElement>('input,select,textarea') ?? section.querySelector<HTMLElement>('button');
+      target?.focus({ preventScroll: true });
+      target?.scrollIntoView?.({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusTarget, isOpen]);
 
   return (
-    <section className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+    <section ref={sectionRef} className={`rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70 ${focusTarget ? 'ring-2 ring-accent/40' : ''}`}>
       <button
         type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
@@ -257,7 +280,7 @@ function renderPortAliases(
   );
 }
 
-export function PropertyPanel() {
+export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarget }) {
   const layout = useRackStore((state) => state.layout);
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const updateDevice = useRackStore((state) => state.updateDevice);
@@ -312,6 +335,7 @@ export function PropertyPanel() {
   }, [device, layout.cables, layout.devices]);
 
   const [isOpen, setIsOpen] = useState(true);
+  useEffect(() => { if (focusTarget) setIsOpen(true); }, [focusTarget]);
   const [selectedAliasKey, setSelectedAliasKey] = useState('');
   const [aliasInput, setAliasInput] = useState('');
 
@@ -439,7 +463,7 @@ export function PropertyPanel() {
                 </div>
               </PropertySection>
 
-              <PropertySection key={device.sizeU === 0 ? 'zero-u' : 'standard'} title="Dimensions & placement" defaultOpen={device.sizeU === 0}>
+              <PropertySection key={device.sizeU === 0 ? 'zero-u' : 'standard'} title="Dimensions & placement" focusTarget={focusTarget?.section === "Dimensions & placement" ? focusTarget : undefined} defaultOpen={device.sizeU === 0}>
                   {device.category === 'shelf' && <div className="space-y-3 rounded-xl border border-edge p-3">
                     <label className="block space-y-1 text-xs text-content-muted">
                       <span>Shelf placement</span>
@@ -595,9 +619,85 @@ export function PropertyPanel() {
                 </div>
               </PropertySection>
 
-              <PropertySection title="Power & Lifecycle" defaultOpen={false}>
+              <PropertySection title="Socket specifications" focusTarget={focusTarget?.section === "Socket specifications" ? focusTarget : undefined} defaultOpen={false}>
+                <PortSpecificationsEditor layout={layout} device={device} onChange={patch} />
+              </PropertySection>
+
+              <PropertySection title="Installation requirements" focusTarget={focusTarget?.section === "Installation requirements" ? focusTarget : undefined} defaultOpen={false}>
+                <InstallationFields layout={layout} device={device} onChange={patch} />
+              </PropertySection>
+
+              <PropertySection title="Power & Lifecycle" focusTarget={focusTarget?.section === "Power & Lifecycle" ? focusTarget : undefined} defaultOpen={false}>
                 <div className="grid gap-3">
-                  <NumberField label="Power W" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
+                  <NumberField label="Planning power (W)" min={0} value={device.powerW} onChange={(value) => patch({ powerW: value })} />
+                  <p className="text-xs text-content-muted">
+                    Reference: {getPowerReference(device).watts} W · {POWER_BASIS_LABELS[getPowerReference(device).basis]}. {getPowerReference(device).source}
+                  </p>
+                  <label className="space-y-1 text-xs text-content-muted">
+                    Planning power basis
+                    <select className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
+                      value={planningPowerBasis(device)} onChange={event => patch({ powerBasis: event.target.value as PowerBasis })}>
+                      {Object.entries(POWER_BASIS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs text-content-muted">
+                    Planning load notes / measurement source
+                    <input type="text" value={device.powerPlanningNote ?? ''}
+                      placeholder="Workload, installed drives, meter reading or specification source"
+                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
+                      onChange={event => patch({ powerPlanningNote: event.target.value || undefined })} />
+                  </label>
+                  <label className="flex items-start gap-2 text-xs text-content-muted">
+                    <input type="checkbox" checked={device.powerReviewed === true} onChange={event => patch({ powerReviewed: event.target.checked })} />
+                    I reviewed this planning load for my hardware and workload
+                  </label>
+                  <p className="text-xs text-content-muted">This value is the planning-load basis. Supply and UPS calculations also use declared PoE draw and conversion assumptions. Idle is not a peak-load budget; maximum is not typical usage. Changing load inputs, socket specifications or connected PoE demand clears the review, including changes in another rack.</p>
+                  {isPowerSource(device) && (
+                    <label className="space-y-1 text-xs text-content-muted">
+                      Rated output capacity (W)
+                      <input
+                        type="number" min="1" step="any"
+                        className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                        placeholder="Unknown — check equipment rating"
+                        value={device.powerCapacityW ?? ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          if (value === '') patch({ powerCapacityW: undefined });
+                          else if (Number.isFinite(Number(value)) && Number(value) > 0) patch({ powerCapacityW: Number(value) });
+                        }}
+                      />
+                      <span className="block">Use the continuous output rating in watts, not VA or socket count. Blank means capacity is unverified.</span>
+                    </label>
+                  )}
+                  {isPowerSource(device) && device.powerCapacityReference && <div className="space-y-1 rounded border border-edge p-2 text-xs text-content-muted" aria-label="Output rating reference">
+                    <p className="font-semibold">Recorded output reference: {device.powerCapacityReference.watts} W</p>
+                    <p>{device.powerCapacityReference.model} · Checked {device.powerCapacityReference.checkedAt}</p>
+                    <p className="break-words">{/^https?:\/\//i.test(device.powerCapacityReference.source)
+                      ? <a className="underline" href={device.powerCapacityReference.source} target="_blank" rel="noopener noreferrer">{device.powerCapacityReference.source}</a>
+                      : device.powerCapacityReference.source}</p>
+                    <p>{device.powerCapacityW === undefined
+                      ? 'Current output capacity is unknown. The reference does not fill in a blank rating.'
+                      : device.powerCapacityW !== device.powerCapacityReference.watts
+                        ? 'Current output capacity differs from this reference. Calculations use your current value; verify it for your exact hardware.'
+                        : 'Current output capacity matches this recorded reference. Confirm the exact model and regional variant.'}</p>
+                  </div>}
+                  {device.category === 'ups' && <div className="space-y-2 rounded border border-edge p-2">
+                    <p className="text-xs font-semibold">Battery estimate assumptions</p>
+                    <label className="block text-xs">Battery energy (Wh)
+                      <input type="number" min="0" step="any" className="mt-1 w-full rounded border border-edge bg-surface p-2" value={device.batteryWh ?? ''} placeholder="Unknown" onChange={e => {
+                        const value = e.target.value;
+                        if (value === '') patch({ batteryWh: undefined });
+                        else if (Number.isFinite(Number(value)) && Number(value) >= 0) patch({ batteryWh: Number(value) });
+                      }} />
+                    </label>
+                    {([['efficiencyPct', 'Inverter efficiency (%)', 85], ['usableCapacityPct', 'Usable battery capacity (%)', 80], ['chargePct', 'Starting charge (%)', 100]] as const).map(([key, label, fallback]) => <label key={key} className="block text-xs">{label}
+                      <input type="number" min={key === 'efficiencyPct' ? 0.1 : 0} max="100" step="any" className="mt-1 w-full rounded border border-edge bg-surface p-2" value={device.upsBatteryAssumptions?.[key] ?? ''} placeholder={`Default ${fallback}%`} onChange={e => {
+                        const value = e.target.value;
+                        if (value === '' || (Number.isFinite(Number(value)) && Number(value) <= 100 && (key === 'efficiencyPct' ? Number(value) > 0 : Number(value) >= 0))) patch({ upsBatteryAssumptions: { ...device.upsBatteryAssumptions, [key]: value === '' ? undefined : Number(value) } });
+                      }} />
+                    </label>)}
+                    <p className="text-xs text-content-muted">Usable capacity is your allowance for aging and discharge limits. Blank percentages use the shown defaults. Energy estimates do not verify transfer time or discharge curves.</p>
+                  </div>}
                   <label className="space-y-1 text-xs text-content-muted">
                     Heat
                     <select

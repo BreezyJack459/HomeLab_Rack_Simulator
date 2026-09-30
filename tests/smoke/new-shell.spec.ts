@@ -4,7 +4,9 @@ import type { useRackStore } from "../../src/store/rackStore";
 test.describe("Organized shell", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem("rack-simulator-new-shell", "1");
+      if (localStorage.getItem("rack-simulator-new-shell") === null) {
+        localStorage.setItem("rack-simulator-new-shell", "1");
+      }
       localStorage.removeItem("homelab-rack-simulator-layout-prefs");
     });
   });
@@ -52,9 +54,10 @@ test.describe("Organized shell", () => {
           page.getByRole("dialog", { name: "Cable list" }),
         ).not.toBeVisible();
         await expect(
-          page.getByRole("dialog", { name: "Inspector" }),
+          page.getByRole("region", { name: "Visual cable connector" }),
         ).toBeVisible();
-        await page.getByRole("button", { name: "Collapse inspector" }).click();
+        await expect(page.getByRole("dialog", { name: "Inspector" })).not.toBeVisible();
+        await page.getByRole("button", { name: "Cancel connection" }).click();
       }
       await page
         .getByRole("button", { name: "File and export options" })

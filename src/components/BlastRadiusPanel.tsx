@@ -15,9 +15,9 @@ const impactConfig: Record<
   ImpactType,
   { label: string; icon: typeof Zap; colorVar: string }
 > = {
-  power: { label: 'Power', icon: Zap, colorVar: '#f59e0b' },
-  network: { label: 'Network', icon: Network, colorVar: '#3b82f6' },
-  boot: { label: 'Boot', icon: Clock, colorVar: '#10b981' }
+  power: { label: 'Supply loss', icon: Zap, colorVar: '#f59e0b' },
+  network: { label: 'Network review', icon: Network, colorVar: '#3b82f6' },
+  boot: { label: 'Restart', icon: Clock, colorVar: '#10b981' }
 };
 
 function getCriticalityColor(score: number): string {
@@ -27,13 +27,15 @@ function getCriticalityColor(score: number): string {
 }
 
 function getCriticalityLabel(score: number): string {
-  if (score <= 30) return 'Low Risk';
-  if (score <= 60) return 'Medium Risk';
-  return 'High Risk';
+  if (score <= 30) return 'Lower recorded impact';
+  if (score <= 60) return 'Moderate recorded impact';
+  return 'Higher recorded impact';
 }
 
 export function BlastRadiusPanel() {
   const layout = useRackStore((state) => state.layout);
+  const workspace = useRackStore(state => state.workspace);
+  const switchRack = useRackStore(state => state.switchRack);
   const selectedDeviceId = useRackStore((state) => state.selectedDeviceId);
   const selectDevice = useRackStore((state) => state.selectDevice);
   const [isOpen, setIsOpen] = useState(true);
@@ -41,11 +43,16 @@ export function BlastRadiusPanel() {
 
   const analysis = useMemo(() => {
     if (!selectedDeviceId) return null;
-    return analyzeBlastRadius(layout, selectedDeviceId);
-  }, [layout, selectedDeviceId]);
+    return analyzeBlastRadius(layout, selectedDeviceId, workspace);
+  }, [layout, selectedDeviceId, workspace]);
+  const openDevice = (id: string, rackId?: string) => {
+    if (rackId && rackId !== layout.id) switchRack(rackId);
+    selectDevice(id);
+  };
 
   return (
     <section
+      aria-label="Blast radius analysis"
       className="rounded-lg border p-4"
       style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}
     >
@@ -107,7 +114,7 @@ export function BlastRadiusPanel() {
                 </div>
                 <div>
                   <div className="text-xs font-medium" style={{ color: 'var(--theme-text-secondary)' }}>
-                    Criticality Score
+                    Review priority (heuristic)
                   </div>
                   <div className="text-sm font-semibold" style={{ color: getCriticalityColor(analysis.criticalityScore) }}>
                     {getCriticalityLabel(analysis.criticalityScore)}
@@ -115,6 +122,10 @@ export function BlastRadiusPanel() {
                 </div>
               </div>
 
+              <p className="text-xs text-content-muted">Supply loss uses recorded wired and PoE paths across racks with remaining root supplies assumed live. Removing a UPS means its output fails, not a mains outage. Network and restart records identify dependencies to review, not confirmed service downtime. The weighted score is not a failure probability; missing records do not establish low risk.</p>
+              {analysis.retainedPower.length > 0 && <p className="text-xs text-content-muted">Retained supply path: {analysis.retainedPower.map(d => d.name).join(', ')}. Capacity and actual operation still need verification.</p>}
+              {analysis.untracedPower.length > 0 && <p className="text-xs text-amber-500">Supply path untraced before failure: {analysis.untracedPower.map(d => d.name).join(', ')}.</p>}
+              {analysis.warnings.length > 0 && <details className="text-xs text-amber-500"><summary>Supply model warnings ({analysis.warnings.length})</summary><ul className="mt-1 space-y-1">{analysis.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details>}
               {/* Impact breakdown */}
               <div className="grid grid-cols-3 gap-2">
                 {(Object.keys(impactConfig) as ImpactType[]).map((type) => {
@@ -144,16 +155,16 @@ export function BlastRadiusPanel() {
                 <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
                   <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400" />
                   <span style={{ color: 'var(--theme-text-primary)' }}>
-                    {analysis.totalAffected} device{analysis.totalAffected === 1 ? '' : 's'} would be affected
+                    {analysis.totalAffected} device{analysis.totalAffected === 1 ? '' : 's'} with recorded impacts to review
                   </span>
                 </div>
               )}
 
-              {/* Directly impacted */}
+              {/* Direct records */}
               {analysis.directlyImpacted.length > 0 && (
                 <div>
                   <div className="mb-1.5 text-xs font-medium" style={{ color: 'var(--theme-text-secondary)' }}>
-                    Directly impacted
+                    Direct records
                   </div>
                   <div className="space-y-1">
                     {analysis.directlyImpacted.map((device) => {
@@ -161,14 +172,14 @@ export function BlastRadiusPanel() {
                       const Icon = config.icon;
                       return (
                         <button
-                          key={device.deviceId}
+                          key={`${device.rackId ?? layout.id}:${device.deviceId}`}
                           type="button"
-                          onClick={() => selectDevice(device.deviceId)}
+                          onClick={() => openDevice(device.deviceId, device.rackId)}
                           className="flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition hover:brightness-110"
                           style={{ borderColor: 'var(--theme-border-light)', backgroundColor: 'var(--theme-bg-input)' }}
                         >
                           <Icon size={12} style={{ color: config.colorVar }} />
-                          <span className="flex-1" style={{ color: 'var(--theme-text-primary)' }}>{device.deviceName}</span>
+                          <span className="flex-1" style={{ color: 'var(--theme-text-primary)' }}>{device.deviceName}<span className="mt-1 block text-content-muted">{device.detail}</span></span>
                           <span className="text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>{config.label}</span>
                         </button>
                       );
@@ -177,7 +188,7 @@ export function BlastRadiusPanel() {
                 </div>
               )}
 
-              {/* Indirectly impacted */}
+              {/* Indirect records */}
               {analysis.indirectlyImpacted.length > 0 && (
                 <div>
                   <button
@@ -186,7 +197,7 @@ export function BlastRadiusPanel() {
                     className="mb-1.5 flex w-full items-center justify-between text-xs font-medium transition"
                     style={{ color: 'var(--theme-text-secondary)' }}
                   >
-                    <span>Indirectly impacted ({analysis.indirectlyImpacted.length})</span>
+                    <span>Indirect records ({analysis.indirectlyImpacted.length})</span>
                     <ChevronDown
                       size={14}
                       className={`transition-transform duration-200 ${showIndirect ? '' : '-rotate-90'}`}
@@ -199,14 +210,14 @@ export function BlastRadiusPanel() {
                         const Icon = config.icon;
                         return (
                           <button
-                            key={device.deviceId}
+                            key={`${device.rackId ?? layout.id}:${device.deviceId}`}
                             type="button"
-                            onClick={() => selectDevice(device.deviceId)}
+                            onClick={() => openDevice(device.deviceId, device.rackId)}
                             className="flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition hover:brightness-110"
                             style={{ borderColor: 'var(--theme-border-light)', backgroundColor: 'var(--theme-bg-input)' }}
                           >
                             <Icon size={12} style={{ color: config.colorVar }} />
-                            <span className="flex-1" style={{ color: 'var(--theme-text-primary)' }}>{device.deviceName}</span>
+                            <span className="flex-1" style={{ color: 'var(--theme-text-primary)' }}>{device.deviceName}<span className="mt-1 block text-content-muted">{device.detail}</span></span>
                             <span className="text-[10px]" style={{ color: 'var(--theme-text-muted)' }}>
                               {config.label} · d{device.distance}
                             </span>
@@ -223,7 +234,7 @@ export function BlastRadiusPanel() {
                 <div>
                   <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--theme-text-secondary)' }}>
                     <ArrowUp size={12} />
-                    This device depends on
+                    Recorded supplies, peers and boot prerequisites
                   </div>
                   <div className="space-y-1">
                     {analysis.upstreamDependencies.map((dep) => {
@@ -231,9 +242,9 @@ export function BlastRadiusPanel() {
                       const Icon = config.icon;
                       return (
                         <button
-                          key={`${dep.deviceId}-${dep.type}`}
+                          key={`${dep.rackId ?? layout.id}:${dep.deviceId}-${dep.type}`}
                           type="button"
-                          onClick={() => selectDevice(dep.deviceId)}
+                          onClick={() => openDevice(dep.deviceId, dep.rackId)}
                           className="flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition hover:brightness-110"
                           style={{ borderColor: 'var(--theme-border-light)', backgroundColor: 'var(--theme-bg-input)' }}
                         >
@@ -249,7 +260,7 @@ export function BlastRadiusPanel() {
 
               {analysis.totalAffected === 0 && analysis.upstreamDependencies.length === 0 && (
                 <div className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>
-                  No dependencies or impact detected for this device.
+                  No dependencies or impacts are recorded for this device. Missing data does not establish safe or uninterrupted operation.
                 </div>
               )}
             </>

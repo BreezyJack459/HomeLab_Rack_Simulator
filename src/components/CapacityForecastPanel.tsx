@@ -67,6 +67,7 @@ function CategoryCard({
   percentUsed,
   headroom,
   estimatedDevicesUntilExhaustion,
+  unverified,
   status,
 }: {
   category: ForecastCategory;
@@ -74,8 +75,9 @@ function CategoryCard({
   max: number;
   percentUsed: number;
   headroom: number;
-  estimatedDevicesUntilExhaustion: number;
+  estimatedDevicesUntilExhaustion: number | null;
   status: ForecastStatus;
+  unverified?: boolean;
 }) {
   const config = categoryConfig[category];
   const Icon = config.icon;
@@ -118,7 +120,7 @@ function CategoryCard({
           {percentUsed.toFixed(0)}% used
         </span>
         <span style={{ color: 'var(--theme-text-secondary)' }}>
-          ~{estimatedDevicesUntilExhaustion} more
+          {unverified ? 'Power estimate unverified' : `~${estimatedDevicesUntilExhaustion} more`}
         </span>
       </div>
     </div>
@@ -129,7 +131,8 @@ export function CapacityForecastPanel() {
   const layout = useRackStore((state) => state.layout);
   const [isOpen, setIsOpen] = useState(true);
 
-  const forecast = useMemo(() => analyzeCapacityForecast(layout), [layout]);
+  const workspace = useRackStore(state => state.workspace);
+  const forecast = useMemo(() => analyzeCapacityForecast(layout, workspace), [layout, workspace]);
 
   const overall = statusConfig[forecast.overallStatus];
   const OverallIcon = overall.icon;
@@ -198,6 +201,7 @@ export function CapacityForecastPanel() {
                 headroom={cat.headroom}
                 estimatedDevicesUntilExhaustion={cat.estimatedDevicesUntilExhaustion}
                 status={cat.status}
+                unverified={cat.unverified}
               />
             ))}
           </div>

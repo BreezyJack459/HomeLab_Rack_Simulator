@@ -12,7 +12,7 @@ import {
   XCircle,
   Zap
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { deviceCatalog } from '../data/deviceCatalog';
 import { useRackStore } from '../store/rackStore';
 import type { DeviceTemplate } from '../types/rack';
@@ -24,6 +24,7 @@ const categoryConfig: Record<
   { label: string; icon: typeof Box }
 > = {
   physical: { label: 'Physical', icon: Ruler },
+  installation: { label: 'Installation', icon: Ruler },
   weight: { label: 'Weight', icon: Weight },
   power: { label: 'Power', icon: Zap },
   heat: { label: 'Heat', icon: Flame },
@@ -53,6 +54,7 @@ function CategoryBadge({ category, status }: { category: FitCheckCategory; statu
 
 export function FitCheckPanel() {
   const layout = useRackStore((state) => state.layout);
+  const workspace = useRackStore(state => state.workspace);
   const addDeviceFromTemplate = useRackStore((state) => state.addDeviceFromTemplate);
 
   const [isOpen, setIsOpen] = useState(true);
@@ -60,6 +62,7 @@ export function FitCheckPanel() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [positionU, setPositionU] = useState<string>('');
   const [result, setResult] = useState<FitCheckResult | null>(null);
+  useEffect(() => setResult(null), [layout, workspace]);
 
   const visibleCatalog = useMemo(() => deviceCatalog.filter((d) => !shouldHideDevice(d)), []);
 
@@ -81,7 +84,7 @@ export function FitCheckPanel() {
   function handleCheck() {
     if (!selectedTemplate) return;
     const pos = positionU.trim() !== '' ? Number(positionU) : undefined;
-    const fitResult = checkDeviceFit(layout, selectedTemplate, pos !== undefined ? { positionU: pos } : undefined);
+    const fitResult = checkDeviceFit(layout, selectedTemplate, pos !== undefined ? { positionU: pos } : undefined, workspace);
     setResult(fitResult);
   }
 
@@ -98,7 +101,7 @@ export function FitCheckPanel() {
 
   return (
     <section
-      className="rounded-lg border p-4"
+      className="rounded-lg border p-4 pb-24 xl:pb-4"
       style={{ backgroundColor: 'var(--theme-bg-secondary)', borderColor: 'var(--theme-border)' }}
     >
       <button
@@ -224,16 +227,16 @@ export function FitCheckPanel() {
               {/* Verdict */}
               <div
                 className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
-                  result.canFit ? statusConfig.pass.bgClass : statusConfig.fail.bgClass
+                  result.canFit ? (result.issues.some(i => i.severity === 'warning') ? statusConfig.warning.bgClass : statusConfig.pass.bgClass) : statusConfig.fail.bgClass
                 }`}
               >
                 {result.canFit ? (
-                  <CheckCircle2 size={16} className={statusConfig.pass.colorClass} />
+                  result.issues.some(i => i.severity === 'warning') ? <AlertTriangle size={16} className={statusConfig.warning.colorClass} /> : <CheckCircle2 size={16} className={statusConfig.pass.colorClass} />
                 ) : (
                   <XCircle size={16} className={statusConfig.fail.colorClass} />
                 )}
                 <span className="text-sm font-medium" style={{ color: 'var(--theme-text-primary)' }}>
-                  {result.canFit ? 'Fits — no blocking issues' : 'Does not fit'}
+                  {result.canFit ? (result.issues.some(i => i.severity === 'warning') ? 'Placement available — review warnings' : 'Recorded fit conditions pass') : 'Does not fit'}
                 </span>
               </div>
 
@@ -248,7 +251,7 @@ export function FitCheckPanel() {
               <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
                 {[
                   { label: 'Weight', before: `${result.before.weightKg.toFixed(1)}`, after: `${result.after.weightKg.toFixed(1)}`, unit: 'kg' },
-                  { label: 'Power', before: `${result.before.powerW}`, after: `${result.after.powerW}`, unit: 'W' },
+                  { label: 'Power', before: result.before.powerInputUnverified ? 'Unverified' : `${Number(result.before.powerW.toFixed(2))}`, after: result.after.powerInputUnverified ? 'Unverified' : `${Number(result.after.powerW.toFixed(2))}`, unit: 'W' },
                   { label: 'U Used', before: `${result.before.occupiedU}`, after: `${result.after.occupiedU}`, unit: '' },
                   { label: 'Heat', before: `${result.before.heatScore}`, after: `${result.after.heatScore}`, unit: '' }
                 ].map((m) => (

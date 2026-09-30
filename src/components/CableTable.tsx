@@ -1,3 +1,4 @@
+import { getCableLengthRequirements, cablePurchaseLengthLabel, cablePurchaseNote } from '../utils/cableLengthRequirements';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import type { CablePath } from './CableMap';
@@ -5,7 +6,6 @@ import type { CableRoutingWarning, CableType, RackLayout } from '../types/rack';
 import { useCableWorkspaceStore } from '../store/cableWorkspaceStore';
 import { DEFAULT_CABLE_COLORS } from '../utils/cableColors';
 import { matchesCableQuery } from '../utils/cableQuery';
-import { formatCableLength } from '../utils/rackMath';
 
 const CABLE_LABELS: Record<CableType, string> = {
   ethernet: 'Ethernet',
@@ -75,6 +75,7 @@ export function CableTable({
   selectedCableId,
   onSelectCable,
 }: CableTableProps) {
+  const purchaseLengths = useMemo(() => getCableLengthRequirements(layout), [layout]);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const focusMode = useCableWorkspaceStore(s => s.focusMode);
@@ -104,7 +105,7 @@ export function CableTable({
     if (!sortKey) return filtered;
     return [...filtered].sort((a, b) => {
       if (sortKey === 'length') {
-        const diff = a.plan.standardLengthMm - b.plan.standardLengthMm;
+        const diff = (purchaseLengths.get(a.cable.id)?.requiredMm ?? Infinity) - (purchaseLengths.get(b.cable.id)?.requiredMm ?? Infinity);
         return sortDir === 'asc' ? diff : -diff;
       }
       if (sortKey === 'warnings') {
@@ -129,7 +130,7 @@ export function CableTable({
       const cmp = av.localeCompare(bv);
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [filtered, sortKey, sortDir, deviceById]);
+  }, [filtered, sortKey, sortDir, deviceById, purchaseLengths]);
 
   function handleSortHeader(key: SortKey) {
     if (sortKey !== key) {
@@ -283,7 +284,7 @@ export function CableTable({
                         {portLabel(cable.toPort)}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-content-secondary">
-                        {formatCableLength(plan.standardLengthMm)}
+                        {cablePurchaseLengthLabel(purchaseLengths.get(cable.id)!)}
                       </td>
                       <td className="px-3 py-2 text-xs text-content-faint">
                         {plan.rail ? plan.rail.toUpperCase() : '—'}
@@ -325,9 +326,9 @@ export function CableTable({
                             <div className="mb-2 text-xs text-content-muted">{plan.pathLabel}</div>
                           )}
 
-                          {/* Segments */}
+                          {/* Schematic 2D segments; purchasing uses the managed 3D route. */}
                           {plan.segments.length > 0 && (
-                            <div className="mb-2 flex flex-wrap gap-1.5">
+                            <div className="mb-2 flex flex-wrap gap-1.5" aria-label="Schematic 2D segments">
                               {plan.segments.map((seg, i) => (
                                 <span
                                   key={i}
@@ -341,7 +342,7 @@ export function CableTable({
 
                           {/* Length summary */}
                           <div className="text-xs text-content-muted">
-                            Estimated {plan.estimatedLengthMm}mm → Standard {formatCableLength(plan.standardLengthMm)} (slack {plan.slackMm}mm)
+                            {cablePurchaseNote(purchaseLengths.get(cable.id)!)}
                           </div>
 
                           {/* Warnings */}

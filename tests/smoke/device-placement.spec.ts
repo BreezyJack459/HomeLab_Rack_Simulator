@@ -38,6 +38,8 @@ test.beforeEach(async ({ page }) => {
     );
   });
   await page.goto('/');
+  // Template mutations below need the lazy catalog to have registered first.
+  await expect(page.getByRole('button', { name: 'Add 24-port patch panel to front', exact: true })).toBeVisible();
 });
 
 async function hoverTemplateAtU(page: Page, name: string, unit: number) {
@@ -63,6 +65,7 @@ async function hoverTemplateAtU(page: Page, name: string, unit: number) {
 test('shows a green preview with correct U and scaled horizontal placement before committing', async ({
   page,
 }) => {
+  await expect(page.getByTestId('rack-device-count')).toHaveText('0 devices');
   await hoverTemplateAtU(page, '12-port patch panel', 4);
   const preview = page.getByTestId('device-placement-preview');
   await expect(preview).toHaveAttribute('data-placement-state', 'valid');
@@ -91,6 +94,7 @@ test('shows the blocking device before rejecting an occupied drop', async ({
       .getState()
       .addDeviceFromTemplate('cat6-patch-24', 4),
   );
+  await expect(page.getByTestId('rack-device-count')).toHaveText('1 devices');
   await hoverTemplateAtU(page, '12-port patch panel', 4);
   await expect(page.getByTestId('device-placement-preview')).toHaveAttribute(
     'data-placement-state',
@@ -107,6 +111,7 @@ test('shows the blocking device before rejecting an occupied drop', async ({
 test('cancels a library drag without creating a device or leaving a preview', async ({
   page,
 }) => {
+  await expect(page.getByTestId('rack-device-count')).toHaveText('0 devices');
   await hoverTemplateAtU(page, '12-port patch panel', 4);
   await page.keyboard.press('Escape');
   await page.mouse.up();

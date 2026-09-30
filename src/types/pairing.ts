@@ -7,6 +7,7 @@ import type { CableType, PortRef, PortType } from './rack';
 
 export type PairingStage =
   | 'idle'
+  | 'review'
   | 'selecting_source_device'
   | 'selecting_source_port'
   | 'selecting_dest_device'

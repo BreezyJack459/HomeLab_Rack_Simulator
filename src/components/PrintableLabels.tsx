@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { RackLayout } from '../types/rack';
 import { isZeroU } from '../utils/rackMath';
 import { getPatchPanelJacks } from '../utils/patchPanel';
-import { calculateCablePlan } from '../utils/routing';
+import { getCableLengthRequirements, cablePurchaseLengthLabel } from '../utils/cableLengthRequirements';
 
 interface PrintableLabelsProps {
   layout: RackLayout;
@@ -163,8 +163,8 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
       const jacks = getPatchPanelJacks(layout, panel.id);
       for (const jack of jacks) {
         if (jack.frontCable && jack.frontPeer) {
-          const plan = calculateCablePlan(jack.frontCable, layout);
-          const length = plan ? `${Math.ceil(plan.standardLengthMm / 100) / 10}m` : undefined;
+          const requirement = getCableLengthRequirements(layout).get(jack.frontCable.id);
+          const length = requirement ? cablePurchaseLengthLabel(requirement) : undefined;
           const frontPort = jack.frontCable.fromDeviceId === panel.id ? jack.frontCable.toPort : jack.frontCable.fromPort;
           labels.push({
             id: `patch-${panel.id}-${jack.index}-front-${jack.frontCable.id}`,
@@ -174,8 +174,8 @@ export function PrintableLabels({ layout }: PrintableLabelsProps) {
           });
         }
         if (jack.rearCable && jack.rearPeer) {
-          const plan = calculateCablePlan(jack.rearCable, layout);
-          const length = plan ? `${Math.ceil(plan.standardLengthMm / 100) / 10}m` : undefined;
+          const requirement = getCableLengthRequirements(layout).get(jack.rearCable.id);
+          const length = requirement ? cablePurchaseLengthLabel(requirement) : undefined;
           const rearPort = jack.rearCable.fromDeviceId === panel.id ? jack.rearCable.toPort : jack.rearCable.fromPort;
           labels.push({
             id: `patch-${panel.id}-${jack.index}-rear-${jack.rearCable.id}`,

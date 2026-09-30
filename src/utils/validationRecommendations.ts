@@ -1,8 +1,17 @@
-export function recommendationForIssue(issue: { id: string }): string {
+export function recommendationForIssue(issue: { id: string; severity?: string }): string {
+  if (issue.id.startsWith('power-ups-backup-')) return 'Open the UPS device → Socket specifications. Select the connected output socket and record whether it is battery-backed or surge-only. Leave unknown until verified against your exact model and outlet markings.';
+  if (issue.id.startsWith('power-poe-')) return 'Open the affected device → Socket specifications. Verify PoE roles, common supported profile, per-port limit, total source budget and receiver allocation at the PSE. Edit device switches to the correct rack for cross-rack supplies. Reduce assigned load or use adequately rated equipment; do not increase a rating just to clear this warning.';
+  if (issue.id.startsWith('connector-')) return 'Record socket specs under device properties → Socket specifications, then record the socket type each installed cable end fits in cable details. Resolve input/output, voltage and polarity conflicts; generic port types do not prove physical compatibility.';
+  if (issue.id.startsWith('installation-')) return 'Open device properties → Installation requirements. Record the required support, rail range and installed kit. In Check → Serviceability → Depth Compatibility, enter measured mounting-post spacing. Recheck cabinet depth after changing clearances.';
+  if (issue.id.startsWith('power-assumption-')) return 'Open device properties → Power & Lifecycle. Set the planning watts and basis, then confirm you reviewed the value for your hardware and workload.';
+  if (issue.id.startsWith('outlet-conflicting-assignment-')) {
+    return 'Review the selected power socket and legacy outlet assignment. Reconnect this cable to the intended free socket to remove the conflicting legacy record.';
+  }
   if (issue.id.startsWith('power-front-')) {
     return 'Move the powered device to the rear side, or mark its power port as rear-facing before routing to the PDU.';
   }
   if (issue.id.startsWith('endpoint-switch-direct-')) {
+    if (issue.severity === 'info') return 'No change is required for a homelab direct link. Optionally add a patch panel to organize permanent cable runs.';
     return 'Replace the direct endpoint-to-switch run with endpoint -> patch panel rear, then patch panel front -> switch.';
   }
   if (issue.id.startsWith('patch-front-endpoint-')) {
@@ -75,10 +84,10 @@ export function recommendationForIssue(issue: { id: string }): string {
     return 'Delete the stale cable route or reconnect it to devices that still exist in the layout.';
   }
   if (issue.id === 'power-limit') {
-    return 'Raise the power budget, reduce device load, or split power across a second feed.';
+    return 'Reduce device load or provide a suitably rated power feed. Change the configured budget only after verifying the actual supply and protection ratings.';
   }
   if (issue.id === 'weight-limit') {
-    return 'Move heavy gear lower, reduce total rack load, or raise the rack weight limit.';
+    return 'Reduce the total installed weight or use a rack with a verified higher load rating. Moving equipment lower improves stability but does not reduce total weight.';
   }
   return 'Select this issue to highlight the related device or cable, then adjust placement, port side, or route type.';
 }

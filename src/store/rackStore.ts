@@ -1,5 +1,9 @@
+import { placedDeviceFromTemplate } from '../utils/placedDeviceFromTemplate';
+import { invalidateChangedPowerReviews } from '../utils/powerReview';
+import { checkConnectorCompatibility } from '../utils/connectorCompatibility';
+import { getPowerReference } from '../utils/powerAssumptions';
 import { create } from 'zustand';
-import { getTemplateById } from '../data/deviceCatalog';
+import { getTemplateById } from '../data/deviceTemplateRegistry';
 import { sampleLayouts } from '../data/sampleLayouts';
 import type { CableRoute, DeviceTemplate, PlacedDevice, RackDebtItem, RackLayout, RackPolicy, RackReservation, RackType, ViewMode, ViewSide, Workspace, InterRackCable } from '../types/rack';
 import type { PairingSource, PairingStage, PortHit3D } from '../types/pairing';
@@ -46,34 +50,7 @@ function historyFor(layout: RackLayout): Pick<RackState, 'history' | 'historyInd
 }
 
 function templateToDevice(template: DeviceTemplate, positionU: number, xMm?: number, mountSide: ViewSide = 'front'): PlacedDevice {
-  return {
-    id: newId('dev'),
-    templateId: template.id,
-    rackMountable: template.rackMountable,
-    category: template.category,
-    name: template.name,
-    mountSide,
-    positionU,
-    xMm,
-    sizeU: template.defaultU,
-    depthMm: template.depthMm,
-    physicalHeightMm: template.physicalHeightMm,
-    widthType: template.widthType,
-    customWidthMm: template.customWidthMm,
-    weightKg: template.weightKg,
-    powerW: template.powerW,
-    heatLevel: template.heatLevel,
-    ports: template.ports,
-    portFaceOverrides: template.portFaceOverrides,
-    portLayouts: template.portLayouts,
-    faceplate: template.faceplate,
-    mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
-    mountSide0U: template.mountSide0U,
-    outletFacing: template.outletFacing,
-    mountEnvelopeMm: template.mountEnvelopeMm,
-    color: template.color,
-    description: template.description
-  };
+  return placedDeviceFromTemplate(template, newId('dev'), positionU, xMm, mountSide);
 }
 
 function createBlankLayout(rackType: RackType = '19in', heightU = 12): RackLayout {
@@ -129,7 +106,8 @@ function touch(layout: RackLayout, changedDeviceIds?: Set<string>): RackLayout {
 }
 
 function normalizeLayout(layout: RackLayout): RackLayout {
-  if (!validateImportedLayout(layout).valid) throw new Error('Invalid layout');
+  const validation = validateImportedLayout(layout);
+  if (!validation.valid) throw new Error(`Invalid layout: ${validation.errors.join('; ')}`);
   const visibleLayout = layout;
   const base = {
     ...createBlankLayout(visibleLayout.rackType, visibleLayout.heightU),
@@ -162,7 +140,10 @@ export function normalizeWorkspace(workspace: Workspace): Workspace {
       (workspace.interRackCables !== undefined && !Array.isArray(workspace.interRackCables))) throw new Error('Invalid workspace');
   return pruneInvalidInterRackCables({
     ...workspace,
-    racks: (workspace.racks ?? []).map((rack) => normalizeLayout(rack)),
+    racks: (workspace.racks ?? []).map((rack, index) => {
+      try { return normalizeLayout(rack); }
+      catch (error) { throw new Error(`racks[${index}]: ${error instanceof Error ? error.message : 'Invalid rack'}`); }
+    }),
     interRackCables: (workspace.interRackCables ?? []).map((cable) => ({
       ...cable,
       type: cable.type ?? 'cat6a',
@@ -543,6 +524,15 @@ export const useRackStore = create<RackState>((set, get) => ({
     const layout = get().layout;
     const device = layout.devices.find((item) => item.id === deviceId);
     if (!device || shouldHideDevice(device)) return false;
+    if (patch.powerW !== undefined && (!Number.isFinite(patch.powerW) || patch.powerW < 0)) return false;
+    const powerChanged = (patch.powerW !== undefined && patch.powerW !== device.powerW) ||
+      (patch.powerBasis !== undefined && patch.powerBasis !== device.powerBasis) ||
+      ('powerPlanningNote' in patch && patch.powerPlanningNote !== device.powerPlanningNote);
+    if (powerChanged) patch = {
+      ...patch,
+      powerReference: device.powerReference ?? getPowerReference(device),
+      powerReviewed: false,
+    };
     const sizeU = device.category === 'pdu-0u' ? 0 : Math.max(0, Math.min(layout.heightU, Number(patch.sizeU ?? device.sizeU)));
     const deviceWithPatch = { ...device, ...patch, sizeU };
     const shouldResetZeroUX = isZeroU(deviceWithPatch) && (patch.mountType !== undefined || patch.mountSide0U !== undefined) && patch.xMm === undefined;
@@ -626,6 +616,11 @@ export const useRackStore = create<RackState>((set, get) => ({
     }
     if (routeUsesInterRackPort(get().workspace, layout.id, route)) {
       set({ statusMessage: 'Endpoint port is already used by an inter-rack cable.' });
+      return;
+    }
+    const compatibility = checkConnectorCompatibility(layout, { ...route, id: 'new-cable' });
+    if (compatibility.status === 'conflict') {
+      set({ statusMessage: `Cable not added: ${compatibility.conflicts.join(' ')}` });
       return;
     }
     const cableId = newId('cable');
@@ -951,8 +946,8 @@ export const useRackStore = create<RackState>((set, get) => ({
         const workspace = { ...createDefaultWorkspace(), racks: [legacyLayout] };
         get().setWorkspace(workspace);
         return true;
-      } catch {
-        set({ persistenceError: 'Saved layout could not be read. Autosave is paused to protect the original. Download the saved data for recovery.', recoverySource: raw, persistenceBlocked: true });
+      } catch (error) {
+        set({ persistenceError: `Saved layout could not be read. ${error instanceof Error ? error.message : 'Invalid saved data'}. Autosave is paused to protect the original. Download the saved data for recovery.`, recoverySource: raw, persistenceBlocked: true });
         return false;
       }
     } catch {
@@ -1048,6 +1043,7 @@ export const useRackStore = create<RackState>((set, get) => ({
         id: newCableId,
         fromDeviceId: idMap.get(cable.fromDeviceId) ?? cable.fromDeviceId,
         toDeviceId: idMap.get(cable.toDeviceId) ?? cable.toDeviceId,
+        powerSourceDeviceId: cable.powerSourceDeviceId ? idMap.get(cable.powerSourceDeviceId) : undefined,
       };
     });
     // Remap device/cable-id-keyed collections through the id maps; drop
@@ -1061,6 +1057,10 @@ export const useRackStore = create<RackState>((set, get) => ({
       .map((service) => ({
         ...service,
         hostDeviceId: service.hostDeviceId ? idMap.get(service.hostDeviceId) : undefined,
+        storageDeviceIds: mapDeviceIds(service.storageDeviceIds),
+        networkDeviceIds: mapDeviceIds(service.networkDeviceIds),
+        powerDeviceIds: mapDeviceIds(service.powerDeviceIds),
+        backupDeviceId: service.backupDeviceId ? idMap.get(service.backupDeviceId) : undefined,
       }));
     const clonedPortReservations = (sourceRack.portReservations ?? [])
       .filter((reservation) => idMap.has(reservation.deviceId))
@@ -1219,8 +1219,8 @@ export const useRackStore = create<RackState>((set, get) => ({
         skipNextHistory: true,
       });
       return true;
-    } catch {
-      set({ persistenceError: 'Saved workspace could not be read. Autosave is paused to protect the original. Download the saved data for recovery.', recoverySource: raw, persistenceBlocked: true });
+    } catch (error) {
+      set({ persistenceError: `Saved workspace could not be read. ${error instanceof Error ? error.message : 'Invalid saved data'}. Autosave is paused to protect the original. Download the saved data for recovery.`, recoverySource: raw, persistenceBlocked: true });
       return false;
     }
   },
@@ -1261,20 +1261,25 @@ function persistWorkspace(workspace: Workspace) {
 useRackStore.subscribe((state, prevState) => {
   try {
     const updates: Partial<RackState> = {};
-    if (!state.skipNextHistory && state.layout !== prevState.layout) {
-      const history = state.history.slice(0, state.historyIndex + 1);
-      history.push(cloneLayout(state.layout));
-      const trimmedHistory = history.length > MAX_HISTORY ? history.slice(1) : history;
-      const historyIndex = trimmedHistory.length - 1;
-      updates.history = trimmedHistory;
-      updates.historyIndex = historyIndex;
-    }
-    if (state.skipNextHistory) {
-      updates.skipNextHistory = false;
-    }
-    const synced = syncWorkspace({ ...state, ...updates });
-    const syncedWorkspace = state.layout !== prevState.layout || state.workspace !== prevState.workspace
+    const synced = syncWorkspace(state);
+    const pruned = state.layout !== prevState.layout || state.workspace !== prevState.workspace
       ? pruneInvalidInterRackCables(synced) : synced;
+    const syncedWorkspace = state.skipNextHistory ? pruned : invalidateChangedPowerReviews(syncWorkspace(prevState), pruned);
+    const effectiveLayout = syncedWorkspace.racks.find(r => r.id === state.layout.id) ?? state.layout;
+    const reviewChangedLayout = effectiveLayout !== state.layout && syncedWorkspace !== pruned;
+    if (reviewChangedLayout) {
+      updates.layout = effectiveLayout;
+      // The history entry below already contains the invalidated review state.
+      updates.skipNextHistory = true;
+    }
+    if (!state.skipNextHistory && (state.layout !== prevState.layout || reviewChangedLayout)) {
+      const history = state.history.slice(0, state.historyIndex + 1);
+      history.push(cloneLayout(reviewChangedLayout ? effectiveLayout : state.layout));
+      const trimmedHistory = history.length > MAX_HISTORY ? history.slice(1) : history;
+      updates.history = trimmedHistory;
+      updates.historyIndex = trimmedHistory.length - 1;
+    }
+    if (state.skipNextHistory) updates.skipNextHistory = false;
     const removedLinks = synced.interRackCables.length - syncedWorkspace.interRackCables.length;
     if (removedLinks > 0) {
       updates.statusMessage = `${state.statusMessage ?? ''} Removed ${removedLinks} invalid inter-rack cable(s).`.trim();

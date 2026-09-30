@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -40,8 +41,24 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Run plugin tests
+        run: npm run test:plugins
+
       - name: Build production bundle
         run: npm run build
+
+      - name: Check eager bundle budget
+        run: node scripts/check-bundle-size.mjs
+
+      - name: Install Chromium
+        if: matrix.node-version == '22.x'
+        run: npx playwright install --with-deps chromium
+
+      - name: Test production browser workflows
+        if: matrix.node-version == '22.x'
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_PRODUCTION: '1'
 
       - name: Upload production bundle
         if: matrix.node-version == '22.x'

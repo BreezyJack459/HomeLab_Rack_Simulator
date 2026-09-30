@@ -41,7 +41,6 @@ export function ModelWorkspaceLayout({
 }: ModelWorkspaceLayoutProps) {
   const deviceLibraryOpen = useLayoutPrefsStore((state) => state.deviceLibraryOpen);
   const deviceLibraryDrawerOpen = useLayoutPrefsStore((state) => state.deviceLibraryDrawerOpen);
-  const setDeviceLibraryOpen = useLayoutPrefsStore((state) => state.setDeviceLibraryOpen);
   const setDeviceLibraryDrawerOpen = useLayoutPrefsStore((state) => state.setDeviceLibraryDrawerOpen);
   const isBelowLg = useIsBelowLg();
   const libraryVisible = isBelowLg ? deviceLibraryDrawerOpen : sidebar != null || deviceLibraryOpen;
@@ -49,6 +48,21 @@ export function ModelWorkspaceLayout({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(libraryVisible);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizeStartRef = useRef<{ x: number; width: number } | null>(null);
+  const [libraryWidth, setLibraryWidth] = useState(280);
+  const [maxLibraryWidth, setMaxLibraryWidth] = useState(400);
+  const effectiveLibraryWidth = Math.min(libraryWidth, maxLibraryWidth);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      setMaxLibraryWidth(Math.max(240, Math.min(400, Math.floor(entry.contentRect.width * 0.4))));
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (libraryVisible && isBelowLg) {
@@ -97,7 +111,9 @@ export function ModelWorkspaceLayout({
 
   return (
     <div
-      className={`grid min-h-0 flex-1 gap-3 ${libraryVisible ? 'grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]' : 'grid-cols-1'}`}
+      ref={containerRef}
+      className="grid min-h-0 flex-1 grid-cols-1 gap-3"
+      style={!isBelowLg && libraryVisible ? { gridTemplateColumns: `${sidebar != null ? 220 : effectiveLibraryWidth}px minmax(0,1fr)` } : undefined}
     >
       {isBelowLg && sidebar && !libraryVisible && <button type="button" onClick={() => setDeviceLibraryDrawerOpen(true)} className="absolute left-6 bottom-4 z-40 rounded-full border border-edge bg-surface px-4 py-2 text-sm shadow-panel">{sidebarLabel}</button>}
       {libraryVisible && (
@@ -125,6 +141,7 @@ export function ModelWorkspaceLayout({
             >
               <X size={16} />
             </button>
+            <div className={`relative h-full min-h-0 ${!isBelowLg && sidebar == null ? 'pr-2' : ''}`}>
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center px-6 text-sm text-content-muted">
@@ -134,6 +151,40 @@ export function ModelWorkspaceLayout({
             >
               {sidebar ?? <ComponentLibrary />}
             </Suspense>
+            {!isBelowLg && sidebar == null && (
+              <div
+                role="separator"
+                tabIndex={0}
+                aria-label="Resize device library"
+                aria-orientation="vertical"
+                aria-valuemin={240}
+                aria-valuemax={maxLibraryWidth}
+                aria-valuenow={effectiveLibraryWidth}
+                title="Drag to resize, or use Left and Right arrow keys"
+                className="absolute inset-y-4 right-0 flex w-2 items-center justify-center cursor-col-resize touch-none rounded-full hover:bg-accent-subtle focus:bg-accent-subtle focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.currentTarget.focus();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  resizeStartRef.current = { x: event.clientX, width: effectiveLibraryWidth };
+                }}
+                onPointerMove={(event) => {
+                  const start = resizeStartRef.current;
+                  if (start) setLibraryWidth(Math.max(240, Math.min(maxLibraryWidth, start.width + event.clientX - start.x)));
+                }}
+                onPointerUp={() => { resizeStartRef.current = null; }}
+                onLostPointerCapture={() => { resizeStartRef.current = null; }}
+                onKeyDown={(event) => {
+                  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                  event.preventDefault();
+                  setLibraryWidth(event.key === 'Home' ? 240 : event.key === 'End' ? maxLibraryWidth
+                    : Math.max(240, Math.min(maxLibraryWidth, effectiveLibraryWidth + (event.key === 'ArrowRight' ? 20 : -20))));
+                }}
+              >
+                <span aria-hidden="true" className="h-10 w-1 rounded-full bg-edge-strong" />
+              </div>
+            )}
+            </div>
           </aside>
         </>
       )}

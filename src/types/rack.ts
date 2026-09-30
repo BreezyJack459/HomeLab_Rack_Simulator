@@ -6,6 +6,7 @@ export type ViewMode =
   | '3d'
   | 'cables'
   | 'port-labels'
+  | 'cable-labels'
   | 'topology'
   // Consumed by FaceplateGallery component
   | 'gallery';
@@ -53,7 +54,46 @@ export interface PortLayout {
   layoutColumns?: number;
 }
 
+export type PowerBasis = 'unspecified' | 'idle' | 'typical' | 'maximum' | 'measured' | 'estimated' | 'passive';
+export type PowerReference = { watts: number; basis: PowerBasis; source?: string };
+export type PowerCapacityReference = { watts: number; model: string; source: string; checkedAt: string };
+
+export type PortConnectionSpec = {
+  /** UPS output behavior when utility input is lost; omitted means unverified. */
+  upsBackup?: 'battery' | 'surge-only';
+  poeRole?: 'none' | 'pse' | 'pd';
+  poeProfile?: string;
+  /** PSE per-port output limit; PD allocation is measured at the PSE, including cable loss. */
+  poeLimitW?: number;
+  poeRequiredW?: number;
+  /** Planned output draw at PSE, including cable loss. Separate from reserved allocation. */
+  poeDrawW?: number;
+  /** Socket identity; cable-end fit declarations use this same name. */
+  connector?: string;
+  role?: 'unknown' | 'input' | 'output' | 'bidirectional' | 'passive';
+  powerKind?: 'ac' | 'dc';
+  /** Configured operating voltage, not the maximum insulation rating. */
+  nominalVoltageV?: number;
+  polarity?: string;
+  source?: string;
+};
+
+export type InstallationRequirements = {
+  support: 'unknown' | 'rails' | 'front-mount' | 'shelf' | 'printed-mount';
+  railMinMm?: number;
+  railMaxMm?: number;
+  rearClearanceMm?: number;
+  source?: string;
+};
+
+export type UpsBatteryAssumptions = {
+  efficiencyPct?: number;
+  usableCapacityPct?: number;
+  chargePct?: number;
+};
+
 export interface DeviceTemplate {
+  batteryWh?: number;
   id: string;
   category: DeviceCategory;
   name: string;
@@ -65,8 +105,23 @@ export interface DeviceTemplate {
   widthType: WidthType;
   customWidthMm?: number;
   weightKg: number;
+  /** Editable planning load used by totals, supply analysis, runtime and energy. */
   powerW: number;
+  installationRequirements?: InstallationRequirements;
+  installationKit?: string;
+  powerReference?: PowerReference;
+  powerBasis?: PowerBasis;
+  powerReviewed?: boolean;
+  powerPlanningNote?: string;
+  /** Explicit continuous output rating in watts; absent means unverified. */
+  powerCapacityW?: number;
+  powerCapacityReference?: PowerCapacityReference;
+  poeBudgetW?: number;
+  poeInputMode?: 'self-only' | 'includes-poe';
+  poeEfficiencyPct?: number;
+  upsBatteryAssumptions?: UpsBatteryAssumptions;
   heatLevel: HeatLevel;
+  portConnectionSpecs?: Record<string, PortConnectionSpec>;
   ports?: PortLayout;
   portFaceOverrides?: Record<string, 'front' | 'rear'>;
   portLayouts?: {
@@ -145,8 +200,23 @@ export interface PlacedDevice {
   widthType: WidthType;
   customWidthMm?: number;
   weightKg: number;
+  /** Editable planning load used by totals, supply analysis, runtime and energy. */
   powerW: number;
+  installationRequirements?: InstallationRequirements;
+  installationKit?: string;
+  powerReference?: PowerReference;
+  powerBasis?: PowerBasis;
+  powerReviewed?: boolean;
+  powerPlanningNote?: string;
+  /** Explicit continuous output rating in watts; absent means unverified. */
+  powerCapacityW?: number;
+  powerCapacityReference?: PowerCapacityReference;
+  poeBudgetW?: number;
+  poeInputMode?: 'self-only' | 'includes-poe';
+  poeEfficiencyPct?: number;
+  upsBatteryAssumptions?: UpsBatteryAssumptions;
   heatLevel: HeatLevel;
+  portConnectionSpecs?: Record<string, PortConnectionSpec>;
   ports?: PortLayout;
   portFaceOverrides?: Record<string, 'front' | 'rear'>;
   portLayouts?: {
@@ -333,6 +403,11 @@ export interface CableRoute {
   bundleId?: string; // Groups cables into a visual bundle
   speed?: PortSpeed;
   mediaType?: MediaType;
+  /** Explicit upstream supply for power connections, especially source-to-source cascades. */
+  powerSourceDeviceId?: string;
+  /** Socket connector identities which the installed cable ends are specified to fit. */
+  socketFit?: { from?: string; to?: string };
+  poe?: boolean;
   outletIndex?: number; // Power cables: which PDU outlet this cable uses (0-based)
 }
 
@@ -401,6 +476,9 @@ export interface RackLayoutSnapshot {
   rearClearanceMm?: number;
   frontDoorClearanceMm?: number;
   rearDoorClearanceMm?: number;
+  /** Actual measured distance between front and rear mounting posts. */
+  mountingPostSpacingMm?: number;
+  /** Legacy chassis-depth advisory; retained for imports, not rail-fit evidence. */
   railMinDepthMm?: number;
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
@@ -488,6 +566,8 @@ export type InterRackCableType = 'fiber' | 'sfp+' | 'cat6a' | 'dac';
 
 export interface InterRackCable {
   id: string;
+  socketFit?: { from?: string; to?: string };
+  poe?: boolean;
   fromRackId: string;
   fromDeviceId: string;
   fromPort: PortRef;
@@ -607,6 +687,9 @@ export interface RackLayout {
   rearClearanceMm?: number;
   frontDoorClearanceMm?: number;
   rearDoorClearanceMm?: number;
+  /** Actual measured distance between front and rear mounting posts. */
+  mountingPostSpacingMm?: number;
+  /** Legacy chassis-depth advisory; retained for imports, not rail-fit evidence. */
   railMinDepthMm?: number;
   railMaxDepthMm?: number;
   electricityRatePerKwh?: number;
@@ -731,6 +814,9 @@ export interface PortReservation {
 export type ValidationSeverity = 'info' | 'warning' | 'critical';
 
 export interface ValidationIssue {
+  /** Explicitly identified missing evidence; absence does not imply verification. */
+  evidence?: 'unverified';
+  editTarget?: { rackId: string; deviceId: string };
   id: string;
   severity: ValidationSeverity;
   title: string;

@@ -76,7 +76,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await expect(deviceCountChip(page, 0)).toBeVisible();
     // No validation issues on an empty rack
     await expect(
-      page.getByRole('button', { name: '0 issues',exact:true }),
+      page.getByRole('button', { name: '0 critical',exact:true }),
     ).toBeVisible();
   });
 
@@ -128,8 +128,10 @@ test.describe('Rack Simulator Smoke Tests', () => {
 
     await page.getByRole('button', {name:'Cable', exact:true}).click();
     await page.getByRole('button', {name:'+ Connect cable', exact:true}).click();
-    // CablePlanner "Add cable" button should be visible in the inspector
-    await expect(page.getByText('Pick a source port', { exact:true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '1 · Pick a source socket' })).toBeVisible();
+    const connector = page.getByRole('region', { name: 'Visual cable connector' });
+    await connector.getByRole('button', { name: /available$/ }).first().click();
+    await expect(connector.getByRole('button', { name: /LAN 1 · front · Available/ })).toBeVisible();
   });
 
   test('exports and imports layout JSON', async ({ page }) => {
@@ -234,11 +236,12 @@ test.describe('Rack Simulator Smoke Tests', () => {
     await page.getByRole('button', {name:/Settings →/}).click();
     await page.getByRole('button', {name:'Rack settings',exact:true}).click();
     await page.getByLabel('Height').selectOption('6');
-
+    await page.getByRole('dialog', { name: 'Review rack height reduction' })
+      .getByRole('button', { name: 'Resize and retain all data' }).click();
     await page.getByRole('dialog').getByRole('button', {name:'Close',exact:true}).click();
     // Verify the alerts button shows a non-zero issue count
     await expect(
-      page.getByRole('button', { name: /^[1-9]\d* issues$/ }),
+      page.getByRole('button', { name: /^[1-9]\d* critical$/ }),
     ).toBeVisible();
   });
 });

@@ -429,7 +429,7 @@ function layoutPortGroup(
     groupY = -availableH / 2 + bottomMargin + groupH / 2;
   } else {
     // Multi-group: stack from top down
-    groupY = (availableH / 2) - topMargin - idx * groupH;
+    groupY = totalGroups === 1 ? availableH / 2 - topMargin : faceHeight / 2 - topMargin - (idx + 0.5) * groupH;
   }
 
   // Port size: fill width, maintain aspect ratio
@@ -472,7 +472,13 @@ function layoutPortGroup(
 
   // Optional per-group scale (portScale) shrinks ports and gaps together so
   // dense rows (e.g. 2x24 on a photo faceplate) fit their real footprint.
-  const scale = portScale !== undefined ? Math.min(1, Math.max(0.2, portScale)) : 1;
+  const requestedScale = portScale !== undefined ? Math.min(1, Math.max(0.2, portScale)) : 1;
+  // Keep multi-row groups inside their allocated band. Without this cap a
+  // compact device's USB row can cover its HDMI/power sockets in every viewer.
+  const unscaledSlotH = (isVertical ? finalPortW : finalPortH) * 0.9;
+  const unscaledPitch = (isVertical ? unscaledSlotH : finalPortH) + finalGapW * 0.5;
+  const bandScale = (groupH * 0.8) / Math.max(unscaledSlotH + (rows - 1) * unscaledPitch, 0.0001);
+  const scale = isZeroUPduPower ? requestedScale : requestedScale * Math.min(1, bandScale);
   const scaledPortW = finalPortW * scale;
   const scaledPortH = finalPortH * scale;
   const scaledGapW = finalGapW * scale;
@@ -497,7 +503,7 @@ function layoutPortGroup(
   // Stack rows from top of group area downward
   const startY = isZeroUPduPower
     ? Math.min(availableH / 2 - scaledPortH / 2, ((rows - 1) * rowPitch) / 2)
-    : groupY + (rows * rowPitch) / 2 - slotH / 2;
+    : groupY + ((rows - 1) * rowPitch) / 2;
 
   const slots: PortSlot[] = [];
   const baseIndex = startIndex ?? 0;

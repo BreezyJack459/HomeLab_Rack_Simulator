@@ -1,4 +1,6 @@
-import type { DeviceTemplate, PlacedDevice, RackLayout, ValidationIssue, ValidationSeverity, ViewSide } from '../types/rack';
+import { placedDeviceFromTemplate } from './placedDeviceFromTemplate';
+import { getInstallationChecks } from './installationChecks';
+import type { DeviceTemplate, PlacedDevice, RackLayout, ValidationIssue, ValidationSeverity, ViewSide, Workspace } from '../types/rack';
 import {
   clampDevicePosition,
   clampDeviceX,
@@ -13,7 +15,7 @@ import {
 import { deviceOverlapsReservations } from './reservations';
 import { getRackTotals, validateRackLayout } from './validation';
 
-export type FitCheckCategory = 'physical' | 'weight' | 'power' | 'heat' | 'stability' | 'reservation';
+export type FitCheckCategory = 'physical' | 'installation' | 'weight' | 'power' | 'heat' | 'stability' | 'reservation';
 
 export interface FitCheckIssue {
   category: FitCheckCategory;
@@ -45,36 +47,13 @@ function templateToProposedDevice(
   xMm: number | undefined,
   mountSide: ViewSide
 ): PlacedDevice {
-  return {
-    id: PROPOSED_ID,
-    templateId: template.id,
-    category: template.category,
-    name: template.name,
-    mountSide,
-    positionU,
-    xMm,
-    sizeU: template.defaultU,
-    depthMm: template.depthMm,
-    widthType: template.widthType,
-    customWidthMm: template.customWidthMm,
-    weightKg: template.weightKg,
-    powerW: template.powerW,
-    heatLevel: template.heatLevel,
-    ports: template.ports,
-    portFaceOverrides: template.portFaceOverrides,
-    portLayouts: template.portLayouts,
-    mountType: template.category === 'pdu-0u' ? (template.mountType ?? 'rear-rail') : template.mountType,
-    mountSide0U: template.mountSide0U,
-    outletFacing: template.outletFacing,
-    color: template.color,
-    description: template.description
-  };
+  return placedDeviceFromTemplate(template, PROPOSED_ID, positionU, xMm, mountSide);
 }
 
 function categorizeIssue(issue: ValidationIssue): FitCheckCategory | null {
   const id = issue.id;
 
-  if (id.startsWith('bounds-') || id.startsWith('zone-0u-') || id.startsWith('overlap-') ||
+  if (id.startsWith('physical-height-') || id.startsWith('bounds-') || id.startsWith('zone-0u-') || id.startsWith('overlap-') ||
       id.startsWith('width-') || id.startsWith('depth-') || id.startsWith('shelf-')) {
     return 'physical';
   }
@@ -84,7 +63,7 @@ function categorizeIssue(issue: ValidationIssue): FitCheckCategory | null {
   if (id === 'weight-limit' || id === 'weight-near-limit') {
     return 'weight';
   }
-  if (id === 'power-limit' || id === 'power-near-limit' || id.startsWith('circuit-overload-')) {
+  if (id === 'power-input-topology' || id.startsWith('power-assumption-') || id.startsWith('power-poe-') || id === 'power-limit' || id === 'power-near-limit' || id.startsWith('circuit-overload-')) {
     return 'power';
   }
   if (id === 'center-of-gravity-high' || id.startsWith('ups-high-') || id.startsWith('heavy-high-')) {
@@ -112,7 +91,7 @@ function isGlobalLimitIssue(issue: ValidationIssue): boolean {
     'center-of-gravity-high',
     'cable-clutter'
   ];
-  return globalIds.includes(issue.id) || issue.id.startsWith('circuit-overload-');
+  return issue.id === 'power-input-topology' || issue.id.startsWith('power-poe-') || globalIds.includes(issue.id) || issue.id.startsWith('circuit-overload-');
 }
 
 export function checkDeviceFit(
@@ -122,7 +101,8 @@ export function checkDeviceFit(
     positionU?: number;
     mountSide?: ViewSide;
     xMm?: number;
-  }
+  },
+  workspace?: Workspace
 ): FitCheckResult | null {
   const mountSide = options?.mountSide ?? layout.viewSide;
 
@@ -201,11 +181,15 @@ export function checkDeviceFit(
     devices: [...layout.devices, proposedDevice]
   };
 
-  const before = getRackTotals(layout);
-  const after = getRackTotals(simulatedLayout);
+  const before = getRackTotals(layout, workspace);
+  const after = getRackTotals(simulatedLayout, workspace);
+
+  for (const check of getInstallationChecks(simulatedLayout, proposedDevice)) {
+    if (check.status !== 'passed') physicalPreChecks.push({ category: 'installation', severity: check.status === 'failed' ? 'critical' : 'warning', title: check.status === 'failed' ? 'Installation requirement not met' : 'Installation data needs review', detail: check.detail });
+  }
 
   // Run full validation on simulated layout
-  const allIssues = validateRackLayout(simulatedLayout);
+  const allIssues = validateRackLayout(simulatedLayout, workspace);
 
   // Filter to issues relevant to the proposed device or global limits
   const relevantIssues = allIssues.filter(
@@ -241,6 +225,7 @@ export function checkDeviceFit(
   // Determine per-category status
   const checks: Record<FitCheckCategory, 'pass' | 'fail' | 'warning'> = {
     physical: 'pass',
+    installation: 'pass',
     weight: 'pass',
     power: 'pass',
     heat: 'pass',

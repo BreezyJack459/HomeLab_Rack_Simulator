@@ -1,3 +1,4 @@
+import { getProcurementChecklist } from '../utils/procurement';
 import { planningPackManifest } from './builtInPluginManifests';
 import { lazy, Suspense, useMemo } from 'react';
 import type { ReactNode } from 'react';
@@ -246,10 +247,10 @@ function PlanInspector({
   );
   const buildItemsRemaining = useMemo(
     () =>
-      (layout.procurementItems ?? []).filter(
-        (item) => item.status === 'need-to-buy' || item.status === 'ordered',
+      getProcurementChecklist(layout).filter(
+        (item) => !item.reviewReason && (item.status === 'need-to-buy' || item.status === 'ordered'),
       ).length,
-    [layout.procurementItems],
+    [layout],
   );
   const reservationCount = layout.reservations?.length ?? 0;
 

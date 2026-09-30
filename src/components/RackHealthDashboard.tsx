@@ -1,3 +1,4 @@
+import { useRackStore } from '../store/rackStore';
 import type { RackLayout } from '../types/rack';
 import { getRackTotals, validateRackLayout } from '../utils/validation';
 
@@ -29,8 +30,9 @@ const STATUS_COLORS: Record<HealthStatus, { bg: string; text: string; bar: strin
 };
 
 export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
-  const totals = getRackTotals(layout);
-  const issues = validateRackLayout(layout);
+  const workspace = useRackStore(state => state.workspace);
+  const totals = getRackTotals(layout, workspace);
+  const issues = validateRackLayout(layout, workspace);
   const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
   const warningIssues = issues.filter((i) => i.severity === 'warning').length;
 
@@ -55,7 +57,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
       max: layout.powerBudgetW,
       unit: 'W',
       percent: Math.round(powerPct),
-      status: statusForPercent(powerPct),
+      status: powerPct >= 100 || issues.some(i => i.id.startsWith('power-poe-') && i.severity === 'critical') ? 'critical' : totals.powerInputUnverified ? 'warning' : statusForPercent(powerPct),
     },
     {
       label: 'Weight',
@@ -109,7 +111,7 @@ export function RackHealthDashboard({ layout }: RackHealthDashboardProps) {
               <div className="flex items-center justify-between text-xs">
                 <span style={{ color: 'var(--theme-text-secondary)' }}>{metric.label}</span>
                 <span style={{ color: 'var(--theme-text-primary)' }}>
-                  {metric.value}
+                  {Number(metric.value.toFixed(2))}
                   {metric.unit ? `${metric.unit}` : ''} / {metric.max}
                   {metric.unit ? `${metric.unit}` : ''}
                 </span>

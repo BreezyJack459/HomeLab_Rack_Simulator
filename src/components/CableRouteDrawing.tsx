@@ -1,3 +1,4 @@
+import { getCableLengthRequirements, cablePurchaseLengthLabel } from '../utils/cableLengthRequirements';
 import { Html, Line } from "@react-three/drei";
 import { useEffect, useMemo, useState } from "react";
 import { useRackStore } from "../store/rackStore";
@@ -319,6 +320,9 @@ export function useCableRouteDrawing(
     hovered && !hovered.error && "cable" in hovered && hovered.cable
       ? calculateCablePlan(hovered.cable, layout)
       : null;
+  const completionPurchase = hovered && !hovered.error && "cable" in hovered && hovered.cable
+    ? getCableLengthRequirements({ ...layout, cables: [...layout.cables.filter(cable => cable.id !== hovered.cable!.id), hovered.cable] }).get(hovered.cable.id)
+    : undefined;
   const reachablePorts = source
     ? dots.filter((dot) => dot.port && !evaluate(dot).error).length
     : null;
@@ -330,6 +334,7 @@ export function useCableRouteDrawing(
     path: previewPoints,
     lengthMm: routeLengthMm(previewPoints, layout),
     completionPlan,
+    completionPurchase,
     reachablePorts,
     continueFrom,
     message: message || hovered?.error,
@@ -651,10 +656,10 @@ export function CableDrawingControls({ drawing }: { drawing: Drawing }) {
           {drawing.completionPlan && (
             <div className="text-content-secondary">
               With slack ·{" "}
-              {(drawing.completionPlan.estimatedLengthMm / 1000).toFixed(2)} m
+              {drawing.completionPurchase?.requiredMm != null ? `${(drawing.completionPurchase.requiredMm / 1000).toFixed(2)} m` : 'Not estimated'}
               <br />
               Suggested cable ·{" "}
-              {(drawing.completionPlan.standardLengthMm / 1000).toFixed(2)} m
+              {drawing.completionPurchase ? cablePurchaseLengthLabel(drawing.completionPurchase) : 'Not estimated'}
             </div>
           )}
           <div className="text-content-muted">

@@ -622,8 +622,7 @@ function planWarnings(
   discipline: CableRoutingDiscipline,
   from: PlacedDevice,
   to: PlacedDevice,
-  rail: 'left' | 'right' | null,
-  estimatedLengthMm: number
+  rail: 'left' | 'right' | null
 ): CableRoutingWarning[] {
   const warnings: CableRoutingWarning[] = [];
   const managerCount = layout.devices.filter((device) => device.category === 'cable-management').length;
@@ -653,15 +652,6 @@ function planWarnings(
       code: 'tray-density',
       severity: 'warning',
       message: `${rail ?? 'front'} cable path is dense. Add lacing bars or another manager before stacking more cables.`,
-      deviceIds: [from.id, to.id]
-    });
-  }
-
-  if (cable.lengthMm && cable.lengthMm > 0 && cable.lengthMm < estimatedLengthMm) {
-    warnings.push({
-      code: 'bend-radius-risk',
-      severity: 'warning',
-      message: 'Manual cable length is shorter than the technician route with service slack.',
       deviceIds: [from.id, to.id]
     });
   }
@@ -741,7 +731,7 @@ export function calculateCablePlan(cable: CableRoute, layout: RackLayout): Cable
     standardLengthMm,
     slackMm,
     render: renderHints(cable, discipline, rail),
-    warnings: manualPoints ? (manualPoints.length ? [] : [{ code: 'manual-route', severity: 'warning', message: 'A custom routing point or port is missing. Redraw this cable.' }]) : planWarnings(layout, cable, discipline, from, to, rail, estimatedLengthMm),
+    warnings: manualPoints ? (manualPoints.length ? [] : [{ code: 'manual-route', severity: 'warning', message: 'A custom routing point or port is missing. Redraw this cable.' }]) : planWarnings(layout, cable, discipline, from, to, rail),
     pathLabel: waypoints.map((item) => item.label).join(' -> ')
   };
 }

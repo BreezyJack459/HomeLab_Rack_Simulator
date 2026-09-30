@@ -1,6 +1,7 @@
-import type { PlacedDevice, RackLayout } from '../types/rack';
+import type { PlacedDevice, RackLayout, Workspace } from '../types/rack';
 import { calculateEnergySummary } from './energyCalc';
 import { getRackTotals, validateRackLayout } from './validation';
+import { checkPowerRedundancy } from './powerChain';
 
 export interface PortfolioExportOptions {
   includeOverview: boolean;
@@ -66,27 +67,15 @@ function categorizeDevices(devices: PlacedDevice[]): Record<string, PlacedDevice
 
 function redundancySummary(layout: RackLayout): {
   upsCount: number;
-  dualPsuCount: number;
+  modeledABCount: number;
   circuitSplitCount: number;
-  hasRedundantNetwork: boolean;
 } {
   const upsCount = layout.devices.filter((d) => d.category === 'ups').length;
-  // Devices with bootDependsOn or multiple power connections suggest dual PSU
-  const dualPsuCount = layout.devices.filter(
-    (d) => d.bootDependsOn && d.bootDependsOn.length > 0
-  ).length;
+  const modeledABCount = checkPowerRedundancy(layout).filter(result => result.isRedundant).length;
   const circuitSplitCount = layout.devices.filter(
-    (d) => d.circuit != null
+    (d) => d.circuit === 'A' || d.circuit === 'B'
   ).length;
-  // Check if any device has multiple cable connections (redundant network)
-  const deviceCableCounts = new Map<string, number>();
-  for (const c of layout.cables) {
-    deviceCableCounts.set(c.fromDeviceId, (deviceCableCounts.get(c.fromDeviceId) ?? 0) + 1);
-    deviceCableCounts.set(c.toDeviceId, (deviceCableCounts.get(c.toDeviceId) ?? 0) + 1);
-  }
-  const hasRedundantNetwork = Array.from(deviceCableCounts.values()).some((count) => count > 2);
-
-  return { upsCount, dualPsuCount, circuitSplitCount, hasRedundantNetwork };
+  return { upsCount, modeledABCount, circuitSplitCount };
 }
 
 function backupSummary(layout: RackLayout): {
@@ -178,10 +167,11 @@ function detectSkills(layout: RackLayout): string[] {
 
 export function generatePortfolioMarkdown(
   layout: RackLayout,
-  options: PortfolioExportOptions = DEFAULT_PORTFOLIO_OPTIONS
+  options: PortfolioExportOptions = DEFAULT_PORTFOLIO_OPTIONS,
+  workspace?: Workspace
 ): string {
-  const totals = getRackTotals(layout);
-  const energy = calculateEnergySummary(layout);
+  const totals = getRackTotals(layout, workspace);
+  const energy = calculateEnergySummary(layout, workspace);
   const redundancy = redundancySummary(layout);
   const backup = backupSummary(layout);
   const cableCounts = cableTypeSummary(layout);
@@ -208,10 +198,10 @@ export function generatePortfolioMarkdown(
       `| Height | ${layout.heightU}U |`,
       `| Devices | ${layout.devices.length} |`,
       `| Space Used | ${totals.occupiedU}/${layout.heightU}U (${Math.round((totals.occupiedU / layout.heightU) * 100)}%) |`,
-      `| Power Draw | ${totals.powerW}W / ${layout.powerBudgetW}W budget |`,
+      `| Attributed Input | ${Number(totals.powerW.toFixed(2))}W${totals.powerInputUnverified ? " (unverified)" : ""} / ${layout.powerBudgetW}W budget |`,
       `| Weight | ${totals.weightKg.toFixed(1)} kg / ${layout.weightLimitKg} kg limit |`,
       `| Cables | ${layout.cables.length} |`,
-      `| Validation Issues | ${validateRackLayout(layout).length} |`,
+      `| Validation Issues | ${validateRackLayout(layout, workspace).length} |`,
       ''
     );
   }
@@ -259,13 +249,15 @@ export function generatePortfolioMarkdown(
     lines.push(
       '## Power & Energy',
       '',
+      'Constant-load estimate at 730 hours/month. PoE input is attributed to its supply rack, not counted again at receivers. Attributed input is not local heat; PoE heat is unestimated. These are recorded planning assumptions, not measured operation.',
+      '',
       `| Metric | Value |`,
       `|--------|-------|`,
-      `| Total Draw | ${energy.totalPowerW}W |`,
-      `| Monthly kWh | ${energy.monthlyKwh.toFixed(1)} |`,
-      `| Monthly Cost | $${energy.monthlyCost.toFixed(2)} |`,
-      `| Heat Output | ${formatBtu(energy.heatBtuPerHour)} BTU/h |`,
-      `| Budget Utilization | ${energy.utilizationPercent}% |`,
+      `| Attributed Input | ${Number(energy.totalPowerW.toFixed(2))}W${energy.inputUnverified ? " (unverified)" : ""} |`,
+      `| Monthly kWh | ${energy.inputUnverified ? "Not estimated" : energy.monthlyKwh.toFixed(1)} |`,
+      `| Monthly Cost | ${energy.inputUnverified || layout.electricityRatePerKwh === undefined ? "Not estimated" : `$${energy.monthlyCost.toFixed(2)}`} |`,
+      `| Heat Output | ${energy.heatUnverified ? "Not estimated for PoE layouts" : `${formatBtu(energy.heatBtuPerHour)} BTU/h`} |`,
+      `| Budget Utilization | ${energy.inputUnverified ? "Unverified" : `${energy.utilizationPercent}%`} |`,
       ''
     );
   }
@@ -278,9 +270,11 @@ export function generatePortfolioMarkdown(
       `| Component | Status |`,
       `|-----------|--------|`,
       `| UPS Units | ${redundancy.upsCount} |`,
-      `| Dual-PSU Devices | ${redundancy.dualPsuCount} |`,
-      `| Circuit Split (A/B) | ${redundancy.circuitSplitCount} devices |`,
-      `| Redundant Network | ${redundancy.hasRedundantNetwork ? 'Yes' : 'No'} |`,
+      `| Devices with modeled A/B power paths | ${redundancy.modeledABCount} |`,
+      `| Devices labeled circuit A or B | ${redundancy.circuitSplitCount} |`,
+      '| Network redundancy | Not verified |',
+      '',
+      'A/B counts use recorded local wired paths, distinct inlets and single-source-loss reachability. They do not verify surviving supply capacity, transfer behavior or actual operation. Cable counts and boot dependencies do not establish redundancy.',
       ''
     );
   }
@@ -313,7 +307,7 @@ export function generatePortfolioMarkdown(
 
   // Skills
   if (options.includeSkills) {
-    lines.push('## Skills Demonstrated', '');
+    lines.push('## Planning Topics', '', 'Suggested topics based on recorded equipment and connections; not evidence of configured features or demonstrated skills.', '');
     for (const skill of skills) {
       lines.push(`- ${skill}`);
     }
@@ -339,7 +333,8 @@ function formatBtu(btu: number): string {
 
 export function exportPortfolioMarkdown(
   layout: RackLayout,
-  options: PortfolioExportOptions = DEFAULT_PORTFOLIO_OPTIONS
+  options: PortfolioExportOptions = DEFAULT_PORTFOLIO_OPTIONS,
+  workspace?: Workspace
 ): string {
-  return generatePortfolioMarkdown(layout, options);
+  return generatePortfolioMarkdown(layout, options, workspace);
 }

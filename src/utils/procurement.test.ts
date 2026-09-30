@@ -74,6 +74,42 @@ const layout: RackLayout = {
 };
 
 describe('getProcurementChecklist', () => {
+  it('preserves obsolete purchases separately when a cable group gains members', () => {
+    const recorded = { ...layout, procurementItems: updateProcurementItem(layout, getProcurementChecklist(layout).find(item => item.sourceKind === 'cable')!.id, { status: 'ordered', notes: 'PO "123"' }) };
+    const changed: RackLayout = { ...recorded, cables: [...recorded.cables, { ...recorded.cables[0], id: 'c2' }] };
+    const items = getProcurementChecklist(changed);
+    const previous = items.find(item => item.sourceKind === 'cable' && item.reviewReason)!;
+    expect(previous.status).toBe('ordered');
+    expect(previous.quantity).toBe(1);
+    expect(previous.notes).toBe('PO "123"');
+    const current = items.filter(item => item.sourceKind === 'cable' && !item.reviewReason);
+    expect(current.reduce((sum, item) => sum + item.quantity, 0)).toBe(2);
+    expect(current.every(item => item.status === 'need-to-buy')).toBe(true);
+    expect(procurementSummary(items).ordered).toBe(0);
+    const saved = updateProcurementItem(changed, current[0].id, { status: 'owned', notes: 'Replacement' });
+    expect(saved.every(item => !('reviewReason' in item) && !('calculationNote' in item))).toBe(true);
+    const reloaded = getProcurementChecklist({ ...changed, procurementItems: JSON.parse(JSON.stringify(saved)) });
+    expect(reloaded.find(item => item.id === previous.id)?.reviewReason).toBeTruthy();
+    expect(reloaded.find(item => item.id === current[0].id)?.status).toBe('owned');
+    expect(new Set(reloaded.map(item => item.id)).size).toBe(reloaded.length);
+  });
+
+  it('migrates a matching legacy group and keeps recalculation separate from user notes', () => {
+    const generated = getProcurementChecklist(layout).find(item => item.sourceKind === 'cable')!;
+    const { calculationNote: _calculation, requiredMm: _required, ...record } = generated;
+    const legacy = { ...record, id: record.id.split('-routes-')[0], status: 'ordered' as const, notes: 'Old estimate; vendor reference' };
+    const restored = { ...layout, procurementItems: [legacy] };
+    const items = getProcurementChecklist(restored);
+    const cable = items.find(item => item.sourceKind === 'cable')!;
+    expect(items.filter(item => item.sourceKind === 'cable')).toHaveLength(1);
+    expect(cable.status).toBe('ordered');
+    expect(cable.notes).toBe(legacy.notes);
+    expect(cable.calculationNote).toContain('3D centreline');
+    const removed = getProcurementChecklist({ ...restored, cables: [] });
+    expect(removed.find(item => item.id === legacy.id)?.reviewReason).toBeTruthy();
+    expect(restored.procurementItems[0]).toEqual(legacy);
+  });
+
   it('derives device, cable, and generated planning items', () => {
     const items = getProcurementChecklist(layout);
 

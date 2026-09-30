@@ -7,9 +7,10 @@ import type {
   RackLayout
 } from '../types/rack';
 import { DEFAULT_CABLE_COLORS, getCableDisplayColor } from './cableColors';
-import { CHANNEL_X_OFFSET, CHANNEL_Z_OFFSET, manualRoutePoints } from './manualCableRoute';
+import { CHANNEL_X_OFFSET, CHANNEL_Z_OFFSET, manualRoutePoints, routeLengthMm } from './manualCableRoute';
 export { CHANNEL_X_OFFSET, CHANNEL_Z_OFFSET } from './manualCableRoute';
 import { calculateCablePlan } from './routing';
+import { managedRouteCurve, sampleManagedRouteCurve } from './managedRouteCurve';
 import { getZeroUEarSide } from './rackMath';
 import { getRouteObstacles, overlapsObstacle, routeIsClear, routeLength } from './routeFeasibility';
 import {
@@ -89,6 +90,8 @@ export type ManagedRoute = {
   fromPort: WorldPoint;
   toPort: WorldPoint;
   points: WorldPoint[];
+  /** Rendered centreline estimate, excluding extra installation slack; null when blocked. */
+  renderedLengthMm: number | null;
   color: string;
   radiusMm: number;
   separation: 'data' | 'power';
@@ -976,6 +979,7 @@ function buildManagedRoute(
     fromPort: fromEndpoint.port,
     toPort: toEndpoint.port,
     points,
+    renderedLengthMm: routingDecision.kind === 'blocked' ? null : routeLengthMm(sampleManagedRouteCurve(managedRouteCurve(points)), layout),
     color: getCableDisplayColor(cable.type, cable.color || DEFAULT_CABLE_COLORS[cable.type]),
     radiusMm: Math.max(CABLE_RADIUS_MM[cable.type], plan.render.cableRadiusMm),
     separation: plan.separation,

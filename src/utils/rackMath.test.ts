@@ -306,7 +306,7 @@ describe('getRequiredRearBendMm', () => {
 });
 
 describe('getDepthCompatibilityIssues', () => {
-  it('flags rail and door-adjusted usable-depth issues', () => {
+  it('does not confuse legacy rail limits with chassis depth', () => {
     const layout: RackLayout = {
       ...baseLayout,
       rackDepthMm: 600,
@@ -323,8 +323,8 @@ describe('getDepthCompatibilityIssues', () => {
 
     const issues = getDepthCompatibilityIssues(layout);
 
-    expect(issues.find((issue) => issue.device.id === 'too-deep')?.reasons).toEqual(['too-deep', 'rail-max']);
-    expect(issues.find((issue) => issue.device.id === 'too-shallow')?.reasons).toEqual(['rail-min']);
+    expect(issues.find((issue) => issue.device.id === 'too-deep')?.reasons).toEqual(['too-deep']);
+    expect(issues.find((issue) => issue.device.id === 'too-shallow')).toBeUndefined();
   });
 
   it('flags rear bend when configured rear clearance is smaller than cable bend need', () => {

@@ -101,3 +101,9 @@ describe('baseline metrics', () => {
     expect(getBaselineMetrics(changedLayout).deviceCount).toBe(3);
   });
 });
+
+
+it('preserves measured mounting-post spacing in baseline snapshots', () => {
+  const baseline = captureGoldenBaseline({ ...baseLayout, mountingPostSpacingMm: 500 }, 'Measured');
+  expect(baseline.snapshot.mountingPostSpacingMm).toBe(500);
+});

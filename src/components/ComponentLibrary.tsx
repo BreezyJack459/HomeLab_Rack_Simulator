@@ -1,9 +1,12 @@
+import { getPowerReference, POWER_BASIS_LABELS } from '../utils/powerAssumptions';
 import { Plus, Search, Package, GripVertical } from "lucide-react";
 import { create } from "zustand";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { DeviceComparison } from "./DeviceComparison";
 import { deviceCatalog } from "../data/deviceCatalog";
 import { useDeviceDragStore } from "../store/deviceDragStore";
 import { getDeviceDimensionProblems } from "../utils/devicePlacement";
+import { getDeviceSearchRank } from "../utils/deviceSearch";
 import { useRackStore } from "../store/rackStore";
 import type { DeviceCategory } from "../types/rack";
 import { ENABLE_ZERO_U_PDU, shouldHideDevice } from "../utils/featureFlags";
@@ -46,6 +49,10 @@ const useLibraryFilters = create<{
 
 export function ComponentLibrary() {
   const { tab, query, category, compatibleOnly } = useLibraryFilters();
+  const [specs, setSpecs] = useState({ maxU: '', maxDepth: '', maxPower: '', minPorts: '' });
+  const [comparedIds, setComparedIds] = useState<string[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const compared = deviceCatalog.filter(d => comparedIds.includes(d.id));
   const setTab = (tab: "library" | "inventory") =>
     useLibraryFilters.setState({ tab });
   const setQuery = (query: string) => useLibraryFilters.setState({ query });
@@ -62,17 +69,24 @@ export function ComponentLibrary() {
   } = useRackStore();
   const filtered = useMemo(
     () =>
-      deviceCatalog.filter(
-        (d) =>
+      deviceCatalog.map(d => ({
+        device: d,
+        rank: getDeviceSearchRank(d, query, categories.find(c => c.id === d.category)?.label),
+      })).filter(
+        ({ device: d, rank }) =>
           !shouldHideDevice(d) &&
           (!compatibleOnly ||
             getDeviceDimensionProblems(layout, d).length === 0) &&
           (category === "all" || d.category === category) &&
-          `${d.name} ${d.description} ${d.category}`
-            .toLowerCase()
-            .includes(query.trim().toLowerCase()),
-      ),
-    [category, query, compatibleOnly, layout],
+          (!specs.maxU || d.defaultU <= Number(specs.maxU)) &&
+          (!specs.maxDepth || d.depthMm <= Number(specs.maxDepth)) &&
+          (!specs.maxPower || d.powerW <= Number(specs.maxPower)) &&
+          (!specs.minPorts || (d.ports?.ethernet ?? 0) >= Number(specs.minPorts)) &&
+          rank !== null,
+      ).sort((a, b) => query.trim()
+        ? (a.rank ?? 0) - (b.rank ?? 0) || Number(getDeviceDimensionProblems(layout, a.device).length > 0) - Number(getDeviceDimensionProblems(layout, b.device).length > 0)
+        : 0).map(({ device }) => device),
+    [category, query, compatibleOnly, layout, specs],
   );
   const inventory = (layout.unplacedDevices ?? []).filter(
     (d) =>
@@ -84,7 +98,8 @@ export function ComponentLibrary() {
   );
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="space-y-3 border-b border-edge p-3">
+      {comparisonOpen && <DeviceComparison devices={compared} layout={layout} onClose={() => setComparisonOpen(false)} />}
+      <div className="max-h-[60%] shrink-0 space-y-3 overflow-y-auto border-b border-edge p-3">
         <div className="flex gap-1" role="tablist" aria-label="Device source">
           <button
             type="button"
@@ -131,6 +146,23 @@ export function ComponentLibrary() {
               ))}
           </select>
         )}
+        {tab === "library" && <details>
+          <summary className="cursor-pointer text-xs font-medium">Specification filters{Object.values(specs).some(Boolean) ? ' · active' : ''}</summary>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {([['maxU', 'Maximum U'], ['maxDepth', 'Maximum depth (mm)'], ['maxPower', 'Maximum initial load (W)'], ['minPorts', 'Minimum Ethernet ports']] as const).map(([key, label]) => <label key={key} className="text-xs text-content-secondary">{label}
+              <input type="number" min="0" step="any" value={specs[key]} onChange={e => setSpecs(current => ({ ...current, [key]: e.target.value }))} className="mt-1 w-full rounded border border-edge bg-surface p-1.5" />
+            </label>)}
+          </div>
+          <p className="mt-2 text-xs text-content-muted">Uses catalog dimensions and initial planning watts, not rated output or verified peak consumption.</p>
+        </details>}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span aria-live="polite">{tab === 'library' ? filtered.length : inventory.length} matches</span>
+          <button type="button" onClick={() => { useLibraryFilters.setState({ query: '', category: 'all', compatibleOnly: false }); setSpecs({ maxU: '', maxDepth: '', maxPower: '', minPorts: '' }); }} className="rounded border border-edge px-2 py-1">Clear filters</button>
+        </div>
+        {tab === 'library' && <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={!compared.length} onClick={() => setComparisonOpen(true)} className="rounded border border-edge px-2 py-1 text-xs disabled:opacity-40">Compare selected ({compared.length}/3)</button>
+          {compared.length > 0 && <button type="button" onClick={() => setComparedIds([])} className="text-xs text-content-muted">Clear comparison</button>}
+        </div>}
         <label className="flex items-center gap-2 text-xs text-content-secondary">
           <input
             type="checkbox"
@@ -141,12 +173,15 @@ export function ComponentLibrary() {
           />
           Fits rack dimensions
         </label>
+        {tab === "library" && query.trim() && !compatibleOnly && (
+          <p className="text-xs leading-4 text-content-muted">Best matches first; similar matches that fit rack dimensions appear first. All matching devices are shown.</p>
+        )}
         {compatibleOnly && (
-          <p className="text-[10px] leading-4 text-content-muted">
+          <p className="text-xs leading-4 text-content-muted">
             Width, height and usable depth. Free space is checked when placing.
           </p>
         )}
-        <p className="text-[11px] leading-4 text-content-muted">
+        <p className="text-xs leading-4 text-content-muted">
           {viewMode !== "2d"
             ? "Use Add or Place in 3D. Switch to 2D layout to drag devices."
             : tab === "library"
@@ -174,7 +209,7 @@ export function ComponentLibrary() {
                 e.dataTransfer.setData("application/x-rack-template", d.id);
               }}
               className="rounded-lg border border-edge bg-surface-raised p-2.5 hover:border-accent"
-              title={d.description}
+              title={`${d.name}${d.description ? ` — ${d.description}` : ""}`}
             >
               <div className="flex items-start gap-2">
                 <GripVertical
@@ -185,28 +220,32 @@ export function ComponentLibrary() {
                   className="mt-1 h-3 w-3 shrink-0 rounded"
                   style={{ backgroundColor: d.color }}
                 />
-                <h3 className="min-w-0 flex-1 text-xs font-semibold leading-4">
+                <h3 className="min-w-0 flex-1 break-words text-sm font-semibold leading-5">
                   {d.name}
                 </h3>
-                <span className="shrink-0 text-[10px] text-content-muted">
+                <span className="shrink-0 text-xs text-content-muted">
                   {d.rackMountable === false ? "Ext" : `${d.defaultU}U`}
                 </span>
               </div>
-              <p className="mt-2 text-[10px] text-content-muted">
-                {d.defaultU === 0 ? `${d.physicalHeightMm} mm long · rear rail` : `${d.widthType} · ${d.depthMm} mm`} · {d.powerW} W
+              <p className="mt-2 text-xs text-content-muted">
+                {d.defaultU === 0 ? `${d.physicalHeightMm} mm long · rear rail` : `${d.widthType} · ${d.depthMm} mm`} · {d.powerW} W ({POWER_BASIS_LABELS[getPowerReference(d).basis]})
               </p>
               {getDeviceDimensionProblems(layout, d)[0] && (
-                <p className="mt-1 text-[10px] leading-4 text-amber-600 dark:text-amber-300">
+                <p className="mt-1 text-xs leading-4 text-amber-600 dark:text-amber-300">
                   {getDeviceDimensionProblems(layout, d)[0].message}
                 </p>
               )}
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={comparedIds.includes(d.id)} disabled={!comparedIds.includes(d.id) && comparedIds.length >= 3} onChange={e => setComparedIds(current => e.target.checked ? [...current, d.id] : current.filter(id => id !== d.id))} />
+                Compare {d.name}
+              </label>
               <div className="mt-2 flex gap-1">
                 <button
                   type="button"
                   onClick={() => addDeviceFromTemplate(d.id)}
                   disabled={d.rackMountable === false}
                   aria-label={`Add ${d.name} to ${d.defaultU === 0 ? 'rear rail' : layout.viewSide}`}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded border border-edge py-1.5 text-[11px] hover:bg-fill disabled:opacity-40"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded border border-edge py-1.5 text-xs hover:bg-fill disabled:opacity-40"
                 >
                   <Plus size={12} />
                   {d.rackMountable === false ? "External only" : "Add to rack"}
@@ -239,12 +278,12 @@ export function ComponentLibrary() {
                 }}
                 className="rounded-lg border border-edge p-2.5"
               >
-                <h3 className="text-xs font-semibold">{d.label || d.name}</h3>
-                <p className="mt-1 text-[11px] text-content-muted">
+                <h3 className="break-words text-sm font-semibold leading-5">{d.label || d.name}</h3>
+                <p className="mt-1 text-xs text-content-muted">
                   {d.sizeU}U · {d.widthType}
                 </p>
                 {getDeviceDimensionProblems(layout, d)[0] && (
-                  <p className="mt-1 text-[10px] leading-4 text-amber-600 dark:text-amber-300">
+                  <p className="mt-1 text-xs leading-4 text-amber-600 dark:text-amber-300">
                     {getDeviceDimensionProblems(layout, d)[0].message}
                   </p>
                 )}
@@ -272,7 +311,7 @@ export function ComponentLibrary() {
             {inventory.length === 0 && (
               <p className="p-2 text-xs leading-5 text-content-muted">
                 {query || compatibleOnly
-                  ? "No matching devices. Try changing the search or dimension filter."
+                  ? "No matching devices. Try changing or clearing the filters."
                   : "No unplaced devices. Use the save icon in Library to add equipment you own."}
               </p>
             )}
@@ -297,7 +336,7 @@ export function ComponentLibrary() {
         )}
         {tab === "library" && filtered.length === 0 && (
           <p className="p-2 text-xs text-content-muted">
-            No matching devices. Try changing the search or dimension filter.
+            No matching devices. Try changing or clearing the filters.
           </p>
         )}
       </div>

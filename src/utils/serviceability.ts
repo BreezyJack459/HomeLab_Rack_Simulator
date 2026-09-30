@@ -1,6 +1,6 @@
 import type { RackLayout, ValidationIssue } from '../types/rack';
 import { getDeviceMountSide, getDeviceSpatialZone, isZeroU, rangesOverlap } from './rackMath';
-import { estimateCableLength } from './routing';
+import { getCableLengthRequirements } from './cableLengthRequirements';
 
 const SERVICE_SLACK_MM = 300;
 
@@ -8,8 +8,10 @@ export interface CableStrainRisk {
   cableId: string;
   deviceId: string;
   deviceName: string;
-  cableLengthMm: number;
-  requiredLengthMm: number;
+  cableLengthMm: number | null;
+  requiredLengthMm: number | null;
+  status: 'short' | 'unverified';
+  detail: string;
 }
 
 export interface FrontRearCollision {
@@ -44,22 +46,24 @@ export function getCableStrainRisks(layout: RackLayout): CableStrainRisk[] {
   const risks: CableStrainRisk[] = [];
 
   for (const cable of layout.cables) {
-    const lengthMm = estimateCableLength(layout, cable);
-    const fromDevice = layout.devices.find((d) => d.id === cable.fromDeviceId);
-    const toDevice = layout.devices.find((d) => d.id === cable.toDeviceId);
-    if (!fromDevice || !toDevice) continue;
-
-    // Check both ends: the cable must be long enough for either device to be pulled out
-    for (const device of [fromDevice, toDevice]) {
-      const requiredLengthMm = device.depthMm + SERVICE_SLACK_MM;
-      if (lengthMm < requiredLengthMm) {
-        risks.push({
-          cableId: cable.id,
-          deviceId: device.id,
-          deviceName: device.name,
-          cableLengthMm: lengthMm,
-          requiredLengthMm,
-        });
+    const requirement = getCableLengthRequirements(layout).get(cable.id);
+    const lengthMm = cable.lengthMm && cable.lengthMm > 0 ? cable.lengthMm : null;
+    const devices = layout.devices.filter(device => device.id === cable.fromDeviceId || device.id === cable.toDeviceId);
+    // Conservative one-device travel allowance, not a moving cable-arm simulation.
+    for (const device of devices) {
+      const allowanceMm = Math.max(SERVICE_SLACK_MM, requirement?.slackMm ?? 0);
+      const requiredLengthMm = requirement?.centrelineMm != null && device.depthMm > 0
+        ? Math.ceil(requirement.centrelineMm + device.depthMm + allowanceMm) : null;
+      if (lengthMm === null || requiredLengthMm === null || lengthMm < requiredLengthMm) {
+        const unverified = lengthMm === null || requiredLengthMm === null;
+        const detail = [
+          lengthMm === null ? 'Actual cable length is not recorded.' : `Recorded cable: ${lengthMm}mm.`,
+          requiredLengthMm === null ? 'Route or device depth is unresolved; maintenance length is not estimated.'
+            : `Assumed maintenance requirement: ${requiredLengthMm}mm (3D centreline ${Math.ceil(requirement!.centrelineMm!)}mm + chassis-depth travel ${device.depthMm}mm + ${allowanceMm}mm allowance).`,
+          'Assumes one device moves by its chassis depth; cable arms, release points and moving clearances are not verified.',
+        ].join(' ');
+        risks.push({ cableId: cable.id, deviceId: device.id, deviceName: device.name,
+          cableLengthMm: lengthMm, requiredLengthMm, status: unverified ? 'unverified' : 'short', detail });
       }
     }
   }
@@ -142,9 +146,10 @@ export function getServiceabilityIssues(layout: RackLayout): ValidationIssue[] {
   for (const risk of strainRisks) {
     issues.push({
       id: `cable-strain-${risk.cableId}-${risk.deviceId}`,
+      evidence: risk.status === 'unverified' ? 'unverified' : undefined,
       severity: 'warning',
-      title: `${risk.deviceName} cable may be too short for service`,
-      detail: `Cable length is ${risk.cableLengthMm}mm but ${risk.deviceName} needs ${risk.requiredLengthMm}mm (${risk.deviceName} depth ${risk.deviceName}mm + ${SERVICE_SLACK_MM}mm service slack) to pull out for maintenance.`,
+      title: risk.status === 'unverified' ? `${risk.deviceName} service cable needs review` : `${risk.deviceName} cable may be too short for service`,
+      detail: risk.detail,
       deviceIds: [risk.deviceId],
       cableIds: [risk.cableId],
     });
@@ -309,15 +314,17 @@ export function getDeviceMaintenanceChecklist(layout: RackLayout, deviceId: stri
       id: `${deviceId}-strain-clear`,
       severity: 'ok',
       title: 'Service slack',
-      detail: 'Attached cables appear long enough for pull-out service.',
+      detail: layout.cables.some(cable => cable.fromDeviceId === deviceId || cable.toDeviceId === deviceId)
+        ? 'Recorded lengths cover the 3D route plus assumed chassis-depth travel and allowance. Cable arms, release points and moving clearances remain unverified.'
+        : 'No attached cables to assess.',
     });
   } else {
     for (const risk of strainRisks) {
       items.push({
         id: `strain-${risk.cableId}-${risk.deviceId}`,
         severity: 'warning',
-        title: 'Lengthen service cable',
-        detail: `Cable is ${risk.cableLengthMm}mm but ${risk.requiredLengthMm}mm is recommended for maintenance travel.`,
+        title: risk.status === 'unverified' ? 'Review service cable' : 'Lengthen service cable',
+        detail: risk.detail,
       });
     }
   }

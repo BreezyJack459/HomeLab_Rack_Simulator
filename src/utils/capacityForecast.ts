@@ -1,4 +1,4 @@
-import type { RackLayout } from '../types/rack';
+import type { RackLayout, Workspace } from '../types/rack';
 import { getRackTotals } from './validation';
 import { calculateNoiseSummary, suitabilityLabel } from './noiseCalc';
 
@@ -22,8 +22,9 @@ export interface CategoryForecast {
   unit: string;
   percentUsed: number;
   headroom: number;
-  estimatedDevicesUntilExhaustion: number;
+  estimatedDevicesUntilExhaustion: number | null;
   status: ForecastStatus;
+  unverified?: boolean;
 }
 
 export interface CapacityForecast {
@@ -89,8 +90,8 @@ function makeForecast(
   };
 }
 
-export function analyzeCapacityForecast(layout: RackLayout): CapacityForecast {
-  const totals = getRackTotals(layout);
+export function analyzeCapacityForecast(layout: RackLayout, workspace?: Workspace): CapacityForecast {
+  const totals = getRackTotals(layout, workspace);
   const avg = TYPICAL_DEVICE;
   const noise = calculateNoiseSummary(layout);
   const switchPorts = countSwitchPorts(layout);
@@ -108,6 +109,13 @@ export function analyzeCapacityForecast(layout: RackLayout): CapacityForecast {
   categories.push(
     makeForecast('power', 'Power Budget', totals.powerW, layout.powerBudgetW, 'W', avg.powerW)
   );
+
+  if (totals.powerInputUnverified) {
+    const power = categories.find(c => c.category === 'power')!;
+    power.unverified = true;
+    power.estimatedDevicesUntilExhaustion = null;
+    if (power.status !== 'critical') power.status = 'warning';
+  }
 
   // Weight
   categories.push(
@@ -218,7 +226,8 @@ function generateRecommendations(
   if (space && space.status !== 'good' && freeU <= 2) {
     recs.push('Consider a taller rack or consolidating devices onto shared shelves.');
   }
-  if (power && power.status !== 'good' && power.headroom < 200) {
+  if (power?.unverified) recs.push('Power headroom is unverified. Resolve PoE input assumptions before estimating how many devices can be added.');
+  if (power && !power.unverified && power.status !== 'good' && power.headroom < 200) {
     recs.push('Add a PDU circuit or upgrade UPS capacity before adding high-draw devices.');
   }
   if (weight && weight.status !== 'good') {

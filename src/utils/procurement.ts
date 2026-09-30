@@ -1,5 +1,7 @@
 import type { CableRoute, LifecycleStatus, ProcurementItem, ProcurementItemCategory, ProcurementStatus, RackLayout } from '../types/rack';
-import { calculateCablePlan, estimateCableLength } from './routing';
+import { getCableLengthRequirements, cablePurchaseLengthLabel, cablePurchaseNote } from './cableLengthRequirements';
+
+export type ProcurementChecklistItem = ProcurementItem & { reviewReason?: string; calculationNote?: string; requiredMm?: number | null };
 
 const STATUS_ORDER: ProcurementStatus[] = ['need-to-buy', 'ordered', 'printed', 'owned', 'installed'];
 
@@ -29,7 +31,7 @@ function inferredStatus(lifecycleStatus: LifecycleStatus | undefined): Procureme
   }
 }
 
-function upsert(map: Map<string, ProcurementItem>, item: ProcurementItem) {
+function upsert(map: Map<string, ProcurementChecklistItem>, item: ProcurementChecklistItem) {
   const existing = map.get(item.id);
   if (!existing) {
     map.set(item.id, item);
@@ -38,29 +40,29 @@ function upsert(map: Map<string, ProcurementItem>, item: ProcurementItem) {
   map.set(item.id, {
     ...existing,
     quantity: existing.quantity + item.quantity,
+    ...((item.requiredMm ?? 0) > (existing.requiredMm ?? 0) ? { requiredMm: item.requiredMm, calculationNote: item.calculationNote } : {}),
     sourceIds: Array.from(new Set([...(existing.sourceIds ?? []), ...(item.sourceIds ?? [])]))
   });
 }
 
-function groupedCableItem(layout: RackLayout, cable: CableRoute): ProcurementItem {
-  const plan = calculateCablePlan(cable, layout);
-  const lengthMm = plan?.standardLengthMm ?? estimateCableLength(layout, cable);
-  const serviceLoopMm = plan?.render.serviceLoopMm ?? 0;
-  const bendRadiusMm = plan?.render.bendRadiusMm ?? 0;
+function groupedCableItem(layout: RackLayout, cable: CableRoute): ProcurementChecklistItem {
+  const requirement = getCableLengthRequirements(layout).get(cable.id)!;
+  const lengthMm = requirement.stockedMm ?? (requirement.requiredMm === null ? 'review' : `custom-${requirement.requiredMm}`);
+  const { serviceLoopMm, bendRadiusMm } = requirement;
   const status = inferredStatus(cable.lifecycleStatus);
-  const noteParts = [
-    plan ? `Route ${Math.ceil(plan.baseLengthMm / 10) * 10}mm + slack ${plan.slackMm}mm` : undefined,
-    serviceLoopMm > 0 ? `service loop ${serviceLoopMm}mm` : undefined,
-    bendRadiusMm > 0 ? `min bend radius ${bendRadiusMm}mm` : undefined
+  const noteParts = [cablePurchaseNote(requirement),
+    serviceLoopMm > 0 ? `service loop allowance ${serviceLoopMm}mm` : undefined,
+    bendRadiusMm > 0 ? `planning bend radius ${bendRadiusMm}mm` : undefined
   ].filter(Boolean);
   return {
     id: `proc-cable-${cable.type}-${lengthMm}-${status}-${serviceLoopMm}-${bendRadiusMm}`,
     label: `${cable.type.charAt(0).toUpperCase() + cable.type.slice(1)} cable`,
     category: cable.type === 'power' ? 'power' : 'cable',
     quantity: 1,
-    unit: `${lengthMm}mm`,
+    unit: cablePurchaseLengthLabel(requirement),
     status,
-    notes: noteParts.join(' / '),
+    calculationNote: noteParts.join(' / '),
+    requiredMm: requirement.requiredMm,
     sourceKind: 'cable',
     sourceIds: [cable.id]
   };
@@ -194,8 +196,8 @@ export function getProcurementStatusLabel(status: ProcurementStatus) {
   }
 }
 
-export function getProcurementChecklist(layout: RackLayout): ProcurementItem[] {
-  const derived = new Map<string, ProcurementItem>();
+export function getProcurementChecklist(layout: RackLayout): ProcurementChecklistItem[] {
+  const derived = new Map<string, ProcurementChecklistItem>();
 
   for (const device of layout.devices) {
     const category: ProcurementItemCategory =
@@ -242,18 +244,22 @@ export function getProcurementChecklist(layout: RackLayout): ProcurementItem[] {
   }
 
   const persisted = new Map((layout.procurementItems ?? []).map((item) => [item.id, item]));
-  const merged = Array.from(derived.values()).map((item) => {
-    const saved = persisted.get(item.id);
-    return saved
-      ? {
-          ...item,
-          status: saved.status,
-          notes: saved.notes ?? item.notes
-        }
-      : item;
+  const consumed = new Set<string>();
+  const signature = (item: ProcurementItem) => JSON.stringify([...(item.sourceIds ?? [])].sort());
+  const merged = Array.from(derived.values()).map((derivedItem) => {
+    const isCable = derivedItem.sourceKind === 'cable';
+    const item = isCable ? { ...derivedItem, id: `${derivedItem.id}-routes-${encodeURIComponent(signature(derivedItem))}` } : derivedItem;
+    const candidate = persisted.get(item.id) ?? persisted.get(derivedItem.id);
+    const saved = candidate && (!isCable || (candidate.quantity === item.quantity && signature(candidate) === signature(item))) ? candidate : undefined;
+    if (saved) consumed.add(saved.id);
+    return saved ? { ...item, status: saved.status, notes: saved.notes ?? item.notes } : item;
   });
 
-  const manualItems = (layout.procurementItems ?? []).filter((item) => !derived.has(item.id));
+  const manualItems: ProcurementChecklistItem[] = (layout.procurementItems ?? []).filter(item => !consumed.has(item.id)).map(item => {
+    // Preserve earlier purchases, but do not carry fulfillment to a changed route group.
+    const wasCable = item.sourceKind === 'cable' || item.id.startsWith('proc-cable-');
+    return wasCable ? { ...item, reviewReason: 'Previous cable requirement: length, quantity or connected routes have changed. Kept for reconciliation; excluded from current requirement totals. Check whether this purchase can be reused.' } : item;
+  });
 
   return [...merged, ...manualItems].sort((a, b) => {
     if (a.category !== b.category) return a.category.localeCompare(b.category);
@@ -263,10 +269,10 @@ export function getProcurementChecklist(layout: RackLayout): ProcurementItem[] {
   });
 }
 
-export function procurementSummary(items: ProcurementItem[]) {
+export function procurementSummary(items: ProcurementChecklistItem[]) {
   return items.reduce<Record<ProcurementStatus, number>>(
     (summary, item) => {
-      summary[item.status] += item.quantity;
+      if (!item.reviewReason) summary[item.status] += item.quantity;
       return summary;
     },
     {
@@ -280,5 +286,7 @@ export function procurementSummary(items: ProcurementItem[]) {
 }
 
 export function updateProcurementItem(layout: RackLayout, itemId: string, patch: Partial<ProcurementItem>): ProcurementItem[] {
-  return getProcurementChecklist(layout).map((item) => (item.id === itemId ? { ...item, ...patch } : item));
+  return getProcurementChecklist(layout).map(({ reviewReason: _review, calculationNote: _calculation, requiredMm: _required, ...item }) =>
+    item.id === itemId ? { ...item, ...patch } : item);
+
 }

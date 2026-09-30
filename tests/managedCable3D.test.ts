@@ -4,6 +4,7 @@ import { sampleLayouts } from '../src/data/sampleLayouts';
 import { buildRackSceneModel } from '../src/utils/rackSceneModel';
 import { getCableManagerBodyParts, getDevicePortSurfaces } from '../src/utils/rackGeometry';
 import { buildRouteCurve } from '../src/components/three/rack-scene/ManagedCable3D';
+import { routeLengthMm } from '../src/utils/manualCableRoute';
 import type { RackLayout } from '../src/types/rack';
 import dense60 from './fixtures/dense-42u-60.json';
 import dense100 from './fixtures/dense-42u-100.json';
@@ -16,6 +17,8 @@ describe('rendered cable curves', () => {
       for (const route of model.routes) {
         const curve = buildRouteCurve(route.points)!;
         expect(curve).not.toBeNull();
+        const measuredMm = routeLengthMm(curve.curves.flatMap(segment => segment.getPoints(128)), layout);
+        expect(Math.abs(route.renderedLengthMm! - measuredMm), `${route.cableId}: rendered length in physical axes`).toBeLessThan(0.1);
         for (const [deviceId, portRef, endpoint, t] of [
           [route.cable.fromDeviceId, route.cable.fromPort, route.fromPort, 0],
           [route.cable.toDeviceId, route.cable.toPort, route.toPort, 1],
