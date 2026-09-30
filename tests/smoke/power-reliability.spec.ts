@@ -5,6 +5,8 @@ test('output reference remains visible while current rating is edited and cleare
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
   await expect(page.getByTestId('toggle-device-library')).toBeVisible();
+  // Catalog registration happens when the lazy library loads, after shell chrome.
+  await expect(page.getByPlaceholder('Search devices')).toBeVisible();
   await page.evaluate(() => {
     const store = (window as unknown as { __rackStore: typeof useRackStore }).__rackStore.getState();
     store.loadLayout({ ...store.layout, rackType: '19in', rackDepthMm: 1000, heightU: 42, devices: [], cables: [] });
