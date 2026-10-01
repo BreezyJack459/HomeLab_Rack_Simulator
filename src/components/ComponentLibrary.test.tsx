@@ -54,3 +54,15 @@ it('combines specification filters and restores results with clear filters', () 
   expect(within(panel).queryAllByRole('heading')).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 });
+
+it('keeps compact comparison labels accessible by full device name and separates add from owned inventory actions', () => {
+  render(<ComponentLibrary />);
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+  const compare = screen.getByRole('checkbox', { name: 'Compare Test wide switch' });
+  expect(compare.parentElement).toHaveTextContent('Compare');
+  expect(compare.parentElement).not.toHaveTextContent('Test wide switch');
+  fireEvent.click(compare);
+  expect(screen.getByRole('button', { name: 'Compare selected (1/3)' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: /Add Test wide switch to/ })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Save Test wide switch to My devices' })).toBeVisible();
+});

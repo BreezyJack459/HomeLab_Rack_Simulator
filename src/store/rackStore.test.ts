@@ -599,3 +599,26 @@ describe('rackStore store operations', () => {
     expect(newRack.sensorReadings![0].deviceId).toBe(newDevA.id);
   });
 });
+
+
+describe('rack import identity', () => {
+  it('imports a sibling rack backup as an independent replacement and preserves the sibling after edits and save', () => {
+    const sibling = { ...testLayout, id: 'sibling-rack', name: 'Keep this rack' };
+    const target = { ...testLayout, id: 'target-rack', name: 'Replace this rack' };
+    useRackStore.getState().setWorkspace({ id: 'import-test', name: 'Import test', racks: [target, sibling], interRackCables: [], updatedAt: '' });
+    const preserved = JSON.parse(JSON.stringify(useRackStore.getState().workspace.racks[1]));
+    useRackStore.getState().loadLayout(sibling);
+    const importedId = useRackStore.getState().layout.id;
+    expect(importedId).not.toBe(sibling.id);
+    expect(useRackStore.getState().currentRackId).toBe(importedId);
+    expect(new Set(useRackStore.getState().workspace.racks.map(rack => rack.id)).size).toBe(2);
+    useRackStore.getState().updateDevice('dev-a', { name: 'Edited imported switch' });
+    expect(useRackStore.getState().workspace.racks.find(rack => rack.id === sibling.id)).toEqual(preserved);
+    useRackStore.getState().saveLocal();
+    const saved = JSON.parse(localStorage.getItem('homelab-rack-simulator-workspace')!);
+    expect(saved.racks.find((rack: RackLayout) => rack.id === sibling.id)).toEqual(preserved);
+    useRackStore.getState().switchRack(sibling.id);
+    expect(useRackStore.getState().layout).toEqual(preserved);
+    expect(sibling.id).toBe('sibling-rack');
+  });
+});

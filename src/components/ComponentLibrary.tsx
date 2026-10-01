@@ -97,16 +97,20 @@ export function ComponentLibrary() {
         .includes(query.trim().toLowerCase()),
   );
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col bg-surface">
       {comparisonOpen && <DeviceComparison devices={compared} layout={layout} onClose={() => setComparisonOpen(false)} />}
-      <div className="max-h-[60%] shrink-0 space-y-3 overflow-y-auto border-b border-edge p-3">
-        <div className="flex gap-1" role="tablist" aria-label="Device source">
+      <div className="max-h-[52%] shrink-0 space-y-2 overflow-y-auto border-b border-edge bg-surface px-4 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-muted">Equipment</div>
+          <span className="text-xs tabular-nums text-content-muted">{layout.rackType} · {layout.heightU}U rack</span>
+        </div>
+        <div className="flex gap-1 rounded-lg bg-fill p-1" role="tablist" aria-label="Device source">
           <button
             type="button"
             role="tab"
             aria-selected={tab === "library"}
             onClick={() => setTab("library")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold ${tab === "library" ? "bg-accent-subtle text-accent-fg" : "text-content-muted"}`}
+            className={`min-h-10 flex-1 rounded-md px-2 text-xs font-semibold transition-colors ${tab === "library" ? "bg-surface text-content shadow-sm" : "text-content-muted hover:text-content"}`}
           >
             Library
           </button>
@@ -115,12 +119,12 @@ export function ComponentLibrary() {
             role="tab"
             aria-selected={tab === "inventory"}
             onClick={() => setTab("inventory")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold ${tab === "inventory" ? "bg-accent-subtle text-accent-fg" : "text-content-muted"}`}
+            className={`min-h-10 flex-1 rounded-md px-2 text-xs font-semibold transition-colors ${tab === "inventory" ? "bg-surface text-content shadow-sm" : "text-content-muted hover:text-content"}`}
           >
             My devices ({layout.unplacedDevices?.length ?? 0})
           </button>
         </div>
-        <label className="flex h-9 items-center gap-2 rounded-lg border border-edge bg-fill px-2 text-xs">
+        <label className="flex h-11 items-center gap-2 rounded-lg border border-edge-strong bg-fill px-3 text-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
           <Search size={14} />
           <input
             aria-label="Search devices"
@@ -135,7 +139,7 @@ export function ComponentLibrary() {
             aria-label="Device category"
             value={category}
             onChange={(e) => setCategory(e.target.value as typeof category)}
-            className="h-8 w-full rounded-lg border border-edge bg-surface px-2 text-xs"
+            className="h-11 w-full rounded-lg border border-edge bg-surface px-3 text-sm"
           >
             {categories
               .filter((c) => ENABLE_ZERO_U_PDU || c.id !== "pdu-0u")
@@ -146,24 +150,24 @@ export function ComponentLibrary() {
               ))}
           </select>
         )}
-        {tab === "library" && <details>
-          <summary className="cursor-pointer text-xs font-medium">Specification filters{Object.values(specs).some(Boolean) ? ' · active' : ''}</summary>
+        {tab === "library" && <details className="border-t border-edge pt-2">
+          <summary className="min-h-9 cursor-pointer py-2 text-xs font-medium text-content-secondary">Specification filters{Object.values(specs).some(Boolean) ? ' · active' : ''}</summary>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {([['maxU', 'Maximum U'], ['maxDepth', 'Maximum depth (mm)'], ['maxPower', 'Maximum initial load (W)'], ['minPorts', 'Minimum Ethernet ports']] as const).map(([key, label]) => <label key={key} className="text-xs text-content-secondary">{label}
-              <input type="number" min="0" step="any" value={specs[key]} onChange={e => setSpecs(current => ({ ...current, [key]: e.target.value }))} className="mt-1 w-full rounded border border-edge bg-surface p-1.5" />
+              <input type="number" min="0" step="any" value={specs[key]} onChange={e => setSpecs(current => ({ ...current, [key]: e.target.value }))} className="mt-1 h-10 w-full rounded-md border border-edge bg-fill px-2 text-sm" />
             </label>)}
           </div>
           <p className="mt-2 text-xs text-content-muted">Uses catalog dimensions and initial planning watts, not rated output or verified peak consumption.</p>
         </details>}
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span aria-live="polite">{tab === 'library' ? filtered.length : inventory.length} matches</span>
-          <button type="button" onClick={() => { useLibraryFilters.setState({ query: '', category: 'all', compatibleOnly: false }); setSpecs({ maxU: '', maxDepth: '', maxPower: '', minPorts: '' }); }} className="rounded border border-edge px-2 py-1">Clear filters</button>
+          <button type="button" onClick={() => { useLibraryFilters.setState({ query: '', category: 'all', compatibleOnly: false }); setSpecs({ maxU: '', maxDepth: '', maxPower: '', minPorts: '' }); }} className="min-h-9 rounded-md px-2 text-content-muted hover:bg-fill hover:text-content">Clear filters</button>
         </div>
         {tab === 'library' && <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={!compared.length} onClick={() => setComparisonOpen(true)} className="rounded border border-edge px-2 py-1 text-xs disabled:opacity-40">Compare selected ({compared.length}/3)</button>
-          {compared.length > 0 && <button type="button" onClick={() => setComparedIds([])} className="text-xs text-content-muted">Clear comparison</button>}
+          <button type="button" disabled={!compared.length} onClick={() => setComparisonOpen(true)} className="min-h-9 rounded-md border border-edge px-3 text-xs font-medium hover:bg-fill disabled:opacity-40">Compare selected ({compared.length}/3)</button>
+          {compared.length > 0 && <button type="button" onClick={() => setComparedIds([])} className="min-h-9 px-2 text-xs text-content-muted hover:text-content">Clear comparison</button>}
         </div>}
-        <label className="flex items-center gap-2 text-xs text-content-secondary">
+        <label className="flex min-h-9 items-center gap-2 text-xs text-content-secondary">
           <input
             type="checkbox"
             checked={compatibleOnly}
@@ -190,7 +194,7 @@ export function ComponentLibrary() {
         </p>
       </div>
       <div
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2"
+        className="min-h-0 flex-1 divide-y divide-edge overflow-y-auto px-4"
         role="tabpanel"
         aria-label={tab === "library" ? "Library" : "My devices"}
       >
@@ -208,7 +212,7 @@ export function ComponentLibrary() {
                 e.dataTransfer.effectAllowed = "copy";
                 e.dataTransfer.setData("application/x-rack-template", d.id);
               }}
-              className="rounded-lg border border-edge bg-surface-raised p-2.5 hover:border-accent"
+              className="group py-4 transition-colors"
               title={`${d.name}${d.description ? ` — ${d.description}` : ""}`}
             >
               <div className="flex items-start gap-2">
@@ -235,9 +239,9 @@ export function ComponentLibrary() {
                   {getDeviceDimensionProblems(layout, d)[0].message}
                 </p>
               )}
-              <label className="mt-2 flex items-center gap-2 text-xs">
-                <input type="checkbox" checked={comparedIds.includes(d.id)} disabled={!comparedIds.includes(d.id) && comparedIds.length >= 3} onChange={e => setComparedIds(current => e.target.checked ? [...current, d.id] : current.filter(id => id !== d.id))} />
-                Compare {d.name}
+              <label className="mt-2 flex min-h-9 items-center gap-2 text-xs text-content-muted">
+                <input type="checkbox" aria-label={`Compare ${d.name}`} checked={comparedIds.includes(d.id)} disabled={!comparedIds.includes(d.id) && comparedIds.length >= 3} onChange={e => setComparedIds(current => e.target.checked ? [...current, d.id] : current.filter(id => id !== d.id))} />
+                Compare
               </label>
               <div className="mt-2 flex gap-1">
                 <button
@@ -245,7 +249,7 @@ export function ComponentLibrary() {
                   onClick={() => addDeviceFromTemplate(d.id)}
                   disabled={d.rackMountable === false}
                   aria-label={`Add ${d.name} to ${d.defaultU === 0 ? 'rear rail' : layout.viewSide}`}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded border border-edge py-1.5 text-xs hover:bg-fill disabled:opacity-40"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-accent-solid px-3 text-xs font-semibold text-accent-on transition hover:bg-accent-solid-hover disabled:opacity-40"
                 >
                   <Plus size={12} />
                   {d.rackMountable === false ? "External only" : "Add to rack"}
@@ -255,7 +259,7 @@ export function ComponentLibrary() {
                   aria-label={`Save ${d.name} to My devices`}
                   title="Save to My devices"
                   onClick={() => addDeviceToInventory(d.id)}
-                  className="rounded border border-edge p-1.5 hover:bg-fill"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-edge text-content-secondary transition-colors hover:bg-fill hover:text-content"
                 >
                   <Package size={13} />
                 </button>
@@ -276,7 +280,7 @@ export function ComponentLibrary() {
                   e.dataTransfer.effectAllowed = "move";
                   e.dataTransfer.setData("application/x-rack-inventory", d.id);
                 }}
-                className="rounded-lg border border-edge p-2.5"
+                className="py-4"
               >
                 <h3 className="break-words text-sm font-semibold leading-5">{d.label || d.name}</h3>
                 <p className="mt-1 text-xs text-content-muted">
@@ -293,7 +297,7 @@ export function ComponentLibrary() {
                     aria-label={`Place ${d.name}`}
                     disabled={d.rackMountable === false}
                     onClick={() => placeInventoryDevice(d.id)}
-                    className="flex-1 rounded bg-accent-subtle py-1.5 text-xs text-accent-fg disabled:opacity-40"
+                    className="min-h-11 flex-1 rounded-lg bg-accent-solid px-3 text-xs font-semibold text-accent-on hover:bg-accent-solid-hover disabled:opacity-40"
                   >
                     {d.rackMountable === false ? "External only" : "Place"}
                   </button>
@@ -301,7 +305,7 @@ export function ComponentLibrary() {
                     type="button"
                     aria-label={`Remove ${d.name} from inventory`}
                     onClick={() => removeInventoryDevice(d.id)}
-                    className="rounded border border-edge px-2 text-xs"
+                    className="min-h-11 rounded-lg border border-edge px-3 text-xs text-content-muted hover:bg-fill hover:text-content"
                   >
                     Remove
                   </button>
@@ -315,8 +319,8 @@ export function ComponentLibrary() {
                   : "No unplaced devices. Use the save icon in Library to add equipment you own."}
               </p>
             )}
-            <details className="rounded-lg border border-edge p-2">
-              <summary className="cursor-pointer text-xs font-semibold">
+            <details className="py-4">
+              <summary className="min-h-11 cursor-pointer py-3 text-xs font-semibold text-content-secondary">
                 Placed in this rack ({layout.devices.length})
               </summary>
               <div className="mt-2 space-y-1">
@@ -325,7 +329,7 @@ export function ComponentLibrary() {
                     type="button"
                     key={d.id}
                     onClick={() => selectDevice(d.id)}
-                    className="block w-full rounded p-2 text-left text-xs hover:bg-fill"
+                    className="block min-h-11 w-full rounded-lg px-2 py-3 text-left text-xs hover:bg-fill"
                   >
                     U{d.positionU} · {d.label || d.name}
                   </button>

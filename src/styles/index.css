@@ -59,7 +59,7 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #0c0f14;
+  background: rgb(var(--c-fill-subtle));
 }
 
 body {
@@ -67,9 +67,7 @@ body {
   min-width: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0b0d12 0%, #131821 48%, #0d1016 100%);
+  background: rgb(var(--c-fill-subtle));
 }
 
 #root {
@@ -271,4 +269,48 @@ textarea {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+}
+
+/* Rack Studio: shared interaction and workspace rhythm. */
+:where(button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--c-accent));
+  outline-offset: 3px;
+}
+button, summary { -webkit-tap-highlight-color: transparent; }
+.studio-workspace { height: 100dvh; }
+.studio-canvas { background: rgb(var(--c-fill-subtle)); }
+.studio-canvas > section { border-radius: 12px; }
+.studio-status { font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) {
+  .studio-topbar { gap: 6px; padding: 6px 10px; }
+  .studio-workflows { flex: 0 0 auto; justify-content: space-between; gap: 0; }
+  .studio-workflows button { gap: 4px; padding-inline: 6px; font-size: 11px; }
+  .studio-utilities { gap: 5px; margin-left: 0; }
+  .studio-utilities > button { width: 38px; padding-inline: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+.studio-project-name { height: 44px; }
+@media (min-width: 1280px) {
+  .studio-canvas-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: center; }
+  .studio-canvas-header > div:first-child { grid-column: 1; }
+  .studio-canvas-header [data-testid="workflow-view-controls"] { grid-column: 2; margin-top: 0; padding-top: 0; border-top: 0; gap: 20px; }
+  .studio-canvas-header .studio-planning-summary { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) {
+  .studio-example-guide:not(:has(details[open])) { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: center; gap: 12px; }
+  .studio-example-guide:not(:has(details[open])) > div:last-child { margin-top: 0; }
+}
+[data-theme="light"] .text-red-500 { color: #b91c1c; }
+[data-theme="light"] .text-amber-500 { color: #92400e; }
+[data-theme="light"] .text-amber-400,
+[data-theme="light"] .text-amber-600 { color: #92400e; }
+@media (max-width: 639px) { .studio-project-name { height: 52px; line-height: 18px; } .studio-finding-summary { width: 100%; } }
+/* At browser zoom and in landscape, the document becomes the escape hatch
+   instead of squeezing the working canvas below the viewport. */
+@media (max-height: 600px) {
+  .studio-workspace { height: auto; min-height: 100dvh; overflow: visible; }
+  .studio-workspace main { height: 480px; min-height: 480px; }
 }

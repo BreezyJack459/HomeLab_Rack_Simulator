@@ -44,14 +44,15 @@ export function CheckSidebar({
   const sectionTitles = findingSectionLabels;
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 max-h-[55%] shrink-0 space-y-3 overflow-y-auto border-b border-edge p-3">
-        <h2 className="text-sm font-semibold">
+      <div className="min-h-0 max-h-[55%] shrink-0 space-y-3 overflow-y-auto overscroll-contain border-b border-edge bg-surface p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-muted">Review desk · 檢查</p>
+        <h2 className="text-base font-semibold tracking-tight">
           Check · {visibleGroups.length} of {summary.counts.roots} root causes
         </h2>
-        <FindingSummaryBadges counts={summary.counts} />
-        <label className="block text-xs text-content-muted">
+        <div className="space-y-3">
+        <label className="block min-w-0 text-xs text-content-secondary">
           Show
-          <select aria-label="Issue severity" value={severity} onChange={(event) => onSeverity(event.target.value as typeof severity)} className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs">
+          <select aria-label="Issue severity" value={severity} onChange={(event) => onSeverity(event.target.value as typeof severity)} className="mt-1 h-10 w-full min-w-0 rounded-[10px] border border-edge bg-fill px-2 text-xs text-content">
             <option value="attention">Action & verification</option>
             {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => <option key={section} value={section}>{findingSectionLabels[section]}</option>)}
             <option value="critical">Raw critical severity</option>
@@ -62,7 +63,7 @@ export function CheckSidebar({
         </label>
         <label className="block text-xs text-content-muted">
           Issue topic
-          <select aria-label="Issue topic" value={category} onChange={(event) => onCategory(event.target.value as typeof category)} className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs">
+          <select aria-label="Issue topic" value={category} onChange={(event) => onCategory(event.target.value as typeof category)} className="mt-1 h-10 w-full min-w-0 rounded-[10px] border border-edge bg-fill px-2 text-xs text-content">
             <option value="overview">All topics</option>
             <option value="thermal">Thermal & airflow</option>
             <option value="power">Power</option>
@@ -71,23 +72,13 @@ export function CheckSidebar({
             <option value="cable">Cables & ports</option>
           </select>
         </label>
-        <details className="rounded-lg border border-edge p-2">
-          <summary className="cursor-pointer text-xs font-semibold">Cabling rules</summary>
-          <label className="mt-2 block text-xs text-content-muted">
-          Direct switch connections
-          <select aria-label="Direct switch connections" value={strictCabling ? 'strict' : 'homelab'} onChange={(event) => onStrictCabling(event.target.value === 'strict')} className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs">
-            <option value="homelab">Homelab — allowed</option>
-            <option value="strict">Structured cabling — flag direct links</option>
-          </select>
-          </label>
-        </details>
         <label className="block text-xs text-content-muted">
           Inspection view
           <select
             aria-label="Check category"
             value={lens}
             onChange={(e) => onLens(e.target.value as AuditLens)}
-            className="mt-1 h-9 w-full rounded-lg border border-edge bg-fill px-2 text-xs"
+            className="mt-1 h-10 w-full min-w-0 rounded-[10px] border border-edge bg-fill px-2 text-xs text-content"
           >
             {Object.entries({
               overview: "Rack overview",
@@ -103,6 +94,18 @@ export function CheckSidebar({
             ))}
           </select>
         </label>
+        <details className="rounded-[10px] border border-edge bg-fill/40 px-3 py-1">
+          <summary className="cursor-pointer py-2 text-xs font-semibold">Summary & cabling rules</summary>
+          <FindingSummaryBadges counts={summary.counts} />
+          <label className="mt-2 block text-xs text-content-muted">
+          Direct switch connections
+          <select aria-label="Direct switch connections" value={strictCabling ? 'strict' : 'homelab'} onChange={(event) => onStrictCabling(event.target.value === 'strict')} className="mt-1 h-10 w-full min-w-0 rounded-[10px] border border-edge bg-fill px-2 text-xs text-content">
+            <option value="homelab">Homelab — allowed</option>
+            <option value="strict">Structured cabling — flag direct links</option>
+          </select>
+          </label>
+        </details>
+        </div>
         {(severity !== 'attention' || category !== 'overview') && (
           <div className="text-xs text-content-secondary">
             <p>Filtered by: {category === 'overview' ? 'all topics' : category} · {severity}</p>
@@ -110,18 +113,18 @@ export function CheckSidebar({
           </div>
         )}
       </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
         {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => {
           const sectionGroups = visibleGroups.filter(group => group.section === section);
           if (!sectionGroups.length) return null;
           return <section key={section} aria-label={sectionTitles[section]} className="space-y-2">
-            <h3 className="px-1 pt-2 text-xs font-semibold">{sectionTitles[section]} · {sectionGroups.length}</h3>
+            <h3 className="px-1 pt-2 text-sm font-semibold">{sectionTitles[section]} · {sectionGroups.length}</h3>
             {section === 'verification' && <p className="px-1 text-xs leading-5 text-content-muted">Missing or unreviewed evidence. Unknown checks do not confirm either a conflict or a pass.</p>}
             {section === 'accepted' && <p className="px-1 text-xs leading-5 text-content-muted">Recorded exceptions remain inspectable. Acceptance does not verify the installation or resolve a conflict.</p>}
             {sectionGroups.map(group => <details key={group.key}
               open={group.issues.some(issue => issue.id === selectedId) || group.issues.length === 1}
-              className="rounded-lg border border-edge p-2">
-              <summary className="cursor-pointer text-xs font-semibold">
+              className="rounded-[10px] border border-edge bg-surface p-3">
+              <summary className="cursor-pointer text-xs font-semibold leading-5">
                 <span className={group.severity === 'critical' ? 'text-red-500' : group.status === 'unknown' ? 'text-content-secondary' : group.severity === 'warning' ? 'text-amber-500' : 'text-content-muted'}>{group.status === 'unknown' ? 'unverified' : group.severity}</span>
                 {' · '}{issueGroupTitle(group.representative)}{' '}
                 <span className="text-content-muted">({group.issues.length} {group.issues.length === 1 ? 'check' : 'checks'})</span>
@@ -133,7 +136,7 @@ export function CheckSidebar({
                 ref={issue.id === selectedId ? selectedButton : undefined}
                 type="button" aria-pressed={issue.id === selectedId}
                 onClick={() => onSelect(issue)}
-                className={`w-full rounded p-2 text-left text-xs leading-5 ${issue.id === selectedId ? 'bg-accent-subtle text-accent-fg' : 'hover:bg-fill text-content-secondary'}`}>
+                className={`min-h-11 w-full rounded-lg border border-transparent p-2.5 text-left text-xs leading-5 ${issue.id === selectedId ? 'border-accent/40 bg-accent-subtle text-accent-fg' : 'hover:bg-fill text-content-secondary'}`}>
                 <span className="mb-1 block font-semibold">{issue.title}</span>
                 {!!issue.cableIds?.length && <span className="mb-1 block text-content-muted">Cable: {issue.cableIds.join(', ')}</span>}
                 {!!issue.deviceIds?.length && <span className="mb-1 block text-content-muted">Device: {issue.deviceIds.join(', ')}</span>}

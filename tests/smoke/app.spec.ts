@@ -29,17 +29,11 @@ function deviceCountChip(page: import('@playwright/test').Page, count: number | 
 }
 
 async function clearLayout(page: any) {
-  const hasContents = await page.evaluate(() => {
-    const { layout } = (window as unknown as { __rackStore: { getState: () => { layout: { devices: unknown[]; cables: unknown[] } } } }).__rackStore.getState();
-    return layout.devices.length > 0 || layout.cables.length > 0;
-  });
   await openCreateMenu(page);
   await page.getByRole('button', { name: 'New rack layout' }).click();
-  if (hasContents) {
-    const dialog = page.getByRole('dialog', { name: 'Start a new layout?', exact: true });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: 'Confirm', exact: true }).click();
-  }
+  const dialog = page.getByRole('dialog', { name: 'Start a new layout?', exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(deviceCountChip(page, 0)).toBeVisible();
 }
 
@@ -168,6 +162,7 @@ test.describe('Rack Simulator Smoke Tests', () => {
       })(),
     ]);
     await fileChooser.setFiles(downloadPath!);
+    await page.getByRole('dialog', { name: 'Import rack layout?', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
 
     // Verify layout restored
     await expect(deviceCountChip(page, 1)).toBeVisible();

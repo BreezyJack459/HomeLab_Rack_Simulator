@@ -1,5 +1,6 @@
+import { installationRoleError } from './cableInstallation';
 import { isCableRouteAnchor } from './manualCableRoute';
-import type { RackLayout } from '../types/rack';
+import type { CableRoute, RackLayout } from '../types/rack';
 
 export type LayoutValidationResult =
   | { valid: true; layout: RackLayout }
@@ -157,6 +158,8 @@ function validateCable(cable: unknown, index: number): string[] {
   if (!isNonEmptyString(cable.toDeviceId)) errors.push(`${prefix}.toDeviceId missing or invalid`);
   if (!isNonEmptyString(cable.type)) errors.push(`${prefix}.type missing or invalid`);
   if (!isNonEmptyString(cable.color)) errors.push(`${prefix}.color missing or invalid`);
+  if (cable.installationRole !== undefined && !['patch-cord', 'permanent-link'].includes(cable.installationRole as string)) errors.push(`${prefix}.installationRole is invalid`);
+  if (cable.routingOrigin !== undefined && cable.routingOrigin !== 'panel-tidy') errors.push(`${prefix}.routingOrigin is invalid`);
   if (cable.poe !== undefined && typeof cable.poe !== 'boolean') errors.push(`${prefix}.poe must be boolean`);
   if (cable.socketFit !== undefined && (!isPlainObject(cable.socketFit) ||
     ['from', 'to'].some(key => cable.socketFit && isPlainObject(cable.socketFit) && cable.socketFit[key] !== undefined && typeof cable.socketFit[key] !== 'string'))) {
@@ -298,6 +301,12 @@ export function validateImportedLayout(data: unknown): LayoutValidationResult {
   });
   if (Array.isArray(data.unplacedDevices)) data.unplacedDevices.forEach((device, index) => errors.push(...validateDevice(device, index, 'unplacedDevices')));
 
+  if (errors.length === 0 && Array.isArray(data.cables)) {
+    for (const cable of data.cables) {
+      const reason = installationRoleError(data as unknown as RackLayout, cable as CableRoute);
+      if (reason) errors.push(reason);
+    }
+  }
   if (errors.length > 0) {
     return { valid: false, errors };
   }

@@ -1,3 +1,4 @@
+import { installationRoleError } from './cableInstallation';
 import { getPlanningGoals, requiresIndependentPower } from './planningGoals';
 import { annotateFinding } from './findingMetadata';
 import { getRackPowerSummary } from './rackPower';
@@ -537,6 +538,9 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
       }
     }
 
+    const roleError = installationRoleError(layout, cable);
+    if (roleError) issues.push({ id: `installation-role-${cable.id}`, severity: 'critical', title: 'Invalid cable installation role', detail: roleError, cableIds: [cable.id] });
+
     // Network cables should go through patch panel (no direct device-to-device)
     const isPatchPanel = (d: PlacedDevice) => d.category === 'patch-panel';
     const isSwitch = (d: PlacedDevice) => d.category === 'switch';
@@ -565,7 +569,7 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     }
 
     // 2. Endpoint → patch-panel front connection ban
-    if (fromIsEndpoint && toIsPatch && cable.toPort?.side === 'front') {
+    if (fromIsEndpoint && toIsPatch && cable.toPort?.side === 'front' && cable.installationRole !== 'patch-cord') {
       issues.push({
         id: `patch-front-endpoint-${cable.id}`,
         severity: 'critical',
@@ -575,7 +579,7 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
         cableIds: [cable.id]
       });
     }
-    if (toIsEndpoint && fromIsPatch && cable.fromPort?.side === 'front') {
+    if (toIsEndpoint && fromIsPatch && cable.fromPort?.side === 'front' && cable.installationRole !== 'patch-cord') {
       issues.push({
         id: `patch-front-endpoint-${cable.id}`,
         severity: 'critical',
@@ -643,7 +647,7 @@ export function validateRackLayout(layout: RackLayout, workspace?: Workspace): V
     }
 
     if (cable.type === 'patch') {
-      if (!((fromIsPatch && toIsSwitch) || (fromIsSwitch && toIsPatch))) {
+      if (!((fromIsPatch && toIsSwitch) || (fromIsSwitch && toIsPatch)) && cable.installationRole !== 'patch-cord') {
         issues.push({
           id: `patch-invalid-pair-${cable.id}`,
           severity: 'critical',

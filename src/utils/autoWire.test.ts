@@ -95,3 +95,20 @@ describe('autoWireLayout', () => {
     expect(autoWireLayout(layout, { connectNetwork: false }).created).toBe(1);
   });
 });
+
+describe('batch socket reservation', () => {
+  it('allocates distinct switch ports and PDU outlets for pending servers', () => {
+    const layout = layoutWith([makeDevice('pdu', 'pdu', 1, { power: 2 }), makeDevice('sw', 'switch', 3, { ethernet: 2 }), makeDevice('a', 'server', 5, { power: 1, ethernet: 1 }), makeDevice('b', 'server', 7, { power: 1, ethernet: 1 }), makeDevice('c', 'server', 9, { power: 1, ethernet: 1 })]);
+    const result = autoWireLayout(layout);
+    expect(result.cables.filter(c => c.type === 'power').map(c => c.toPort?.index)).toEqual([0, 1]);
+    expect(result.cables.filter(c => c.type === 'ethernet').map(c => c.toPort?.index)).toEqual([0, 1]);
+    expect(layout.cables).toEqual([]);
+  });
+});
+
+describe('pending infrastructure allocation', () => {
+  it('reserves panel sockets between multiple switch proposals', () => {
+    const layout = layoutWith([makeDevice('sw1', 'switch', 2, { ethernet: 1 }), makeDevice('sw2', 'switch', 3, { ethernet: 1 }), makeDevice('panel', 'patch-panel', 5, { ethernet: 2 })]);
+    expect(autoWireLayout(layout).cables.map(c => c.toPort?.index)).toEqual([0, 1]);
+  });
+});

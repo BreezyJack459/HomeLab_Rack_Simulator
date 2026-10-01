@@ -98,7 +98,7 @@ describe('RightInspectorShell', () => {
     const reopenControls = screen.getAllByRole('button', { name: 'Open inspector' });
 
     expect(reopenControls).toHaveLength(2);
-    expect(reopenControls[0]).toHaveClass('fixed', 'xl:hidden');
+    expect(reopenControls[0]).toHaveClass('absolute', 'xl:hidden');
     expect(screen.getByRole('complementary', { name: 'Inspector' })).toHaveClass(
       'hidden',
       'xl:flex',

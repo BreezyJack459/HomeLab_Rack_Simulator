@@ -70,7 +70,7 @@ export function WorkspaceToolsMenu({
           setOpen(!open);
           setSettings(false);
         }}
-        className="h-8 rounded-lg border border-edge bg-surface px-3 text-xs text-content-secondary"
+        className="h-11 rounded-lg border border-edge bg-surface px-2.5 text-xs font-medium text-content-secondary hover:bg-fill"
         data-testid="workspace-tools-trigger"
       >
         Tools ▾

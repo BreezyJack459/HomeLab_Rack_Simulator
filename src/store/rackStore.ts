@@ -1,3 +1,7 @@
+import type { ChainPlan } from '../utils/patchChain';
+import { installationRoleError } from '../utils/cableInstallation';
+import { validateABPlan, abFingerprint, toABPlan, type ABPlan } from '../utils/abCablePlanner';
+import { tidyPanelCables } from '../utils/panelCableTidy';
 import { placedDeviceFromTemplate } from '../utils/placedDeviceFromTemplate';
 import { invalidateChangedPowerReviews } from '../utils/powerReview';
 import { checkConnectorCompatibility } from '../utils/connectorCompatibility';
@@ -30,6 +34,8 @@ import { pruneInvalidInterRackCables, routeUsesInterRackPort, validateInterRackC
 import { validateImportedLayout } from '../utils/layoutValidation';
 import type { FindingIdentity } from '../utils/findingExceptions';
 import { normalizePlanningGoals } from '../utils/planningGoals';
+
+let lastABApplication: { plan: ABPlan; fingerprint: string } | null = null;
 
 const MAX_SAVED_JSON_LENGTH = 10 * 1024 * 1024;
 const STORAGE_KEY = 'homelab-rack-simulator-workspace';
@@ -216,6 +222,9 @@ interface RackState {
   selectCable: (cableId: string | null) => void;
   selectInterRackCable: (cableId: string | null) => void;
   addCable: (route: Omit<CableRoute, 'id'>) => void;
+  applyPatchChain: (plan: ChainPlan) => boolean;
+  applyABPlan: (plan: ABPlan) => boolean;
+  tidyPatchPanel: (panelId: string) => void;
   addCables: (routes: Omit<CableRoute, 'id'>[]) => void;
   updateCable: (cableId: string, patch: Partial<CableRoute>) => void;
   removeCable: (cableId: string) => void;
@@ -628,6 +637,8 @@ export const useRackStore = create<RackState>((set, get) => ({
       set({ statusMessage: 'Endpoint port is already used by an inter-rack cable.' });
       return;
     }
+    const roleError = installationRoleError(layout, { ...route, id: 'new-cable' });
+    if (roleError) { set({ statusMessage: roleError }); return; }
     const compatibility = checkConnectorCompatibility(layout, { ...route, id: 'new-cable' });
     if (compatibility.status === 'conflict') {
       set({ statusMessage: `Cable not added: ${compatibility.conflicts.join(' ')}` });
@@ -644,6 +655,40 @@ export const useRackStore = create<RackState>((set, get) => ({
     });
   },
 
+  applyPatchChain: (plan) => get().applyABPlan(toABPlan(plan)),
+
+  applyABPlan: (plan) => {
+    const state = get();
+    // Repeated clicks are harmless only when the entire resulting layout matches.
+    if (lastABApplication?.plan === plan && lastABApplication.fingerprint === abFingerprint(state.layout, state.workspace)) {
+      set({ statusMessage: 'A–B connection is already present. No duplicate cables added.' });
+      return true;
+    }
+    const validated = validateABPlan(state.layout, state.workspace, plan);
+    if (!validated) {
+      set({ statusMessage: 'A–B preview is stale or invalid. Refresh the preview; no cables were added.' });
+      return false;
+    }
+    const added = validated.steps.filter(step => step.kind === 'new').map(step => ({ ...step.cable!, id: newId('cable') }));
+    if (!added.length) {
+      set({ statusMessage: 'A–B connection is already present. No duplicate cables added.' });
+      return true;
+    }
+    // All checks finish before a single store mutation. Existing physical records retain their identity.
+    const layout = { ...state.layout, cables: [...state.layout.cables, ...added] };
+    const next = { ...layout, cables: layout.cables.map(c => added.includes(c) ? { ...c, nodes: calculateCableNodes(c, layout) } : c), updatedAt: new Date().toISOString() };
+    set({ layout: next, selectedCableId: added[added.length - 1].id, selectedDeviceId: null, statusMessage: `A–B connected: ${added.length} planned segment(s) added, ${validated.reusedCount} existing cable(s) reused. One Undo removes all added segments.` });
+    lastABApplication = { plan, fingerprint: abFingerprint(get().layout, get().workspace) };
+    return true;
+  },
+
+  tidyPatchPanel: (panelId) => {
+    const state = get();
+    const result = tidyPanelCables(state.layout, panelId);
+    if (result.changed) set({ layout: { ...state.layout, cables: result.cables, updatedAt: new Date().toISOString() }, statusMessage: result.message });
+    else set({ statusMessage: result.message });
+  },
+
   addCables: (routes) => {
     const layout = get().layout;
     const newCables: CableRoute[] = [];
@@ -654,6 +699,7 @@ export const useRackStore = create<RackState>((set, get) => ({
       const from = layout.devices.find((d) => d.id === route.fromDeviceId);
       const to = layout.devices.find((d) => d.id === route.toDeviceId);
       if (!from || !to || shouldHideDevice(from) || shouldHideDevice(to)) continue;
+      if (installationRoleError(layout, { ...route, id: 'new-cable' })) continue;
       const cableId = newId('cable');
       const cable: CableRoute = {
         ...route,
@@ -683,7 +729,9 @@ export const useRackStore = create<RackState>((set, get) => ({
     const current = layout.cables.find((cable) => cable.id === cableId);
     if (!current) return;
     if (layout.devices.some(d => shouldHideDevice(d) && (d.id === current.fromDeviceId || d.id === current.toDeviceId))) return;
-    const nextCable = { ...current, ...patch, id: cableId };
+    const nextCable = { ...current, ...patch, ...(Object.prototype.hasOwnProperty.call(patch, 'manualPath') ? { routingOrigin: undefined } : {}), id: cableId };
+    const roleError = installationRoleError(layout, nextCable);
+    if (roleError) { set({ statusMessage: roleError }); return; }
     if (routeUsesInterRackPort(get().workspace, layout.id, nextCable)) {
       set({ statusMessage: 'Endpoint port is already used by an inter-rack cable.' });
       return;
@@ -950,6 +998,12 @@ export const useRackStore = create<RackState>((set, get) => ({
 
   loadLayout: (layout) => {
     const normalized = normalizeLayout(layout);
+    const { workspace, currentRackId } = get();
+    // An imported file can originate from another rack in this workspace.
+    // Give the replacement its own identity so edits cannot alias that rack.
+    if (workspace.racks.some(rack => rack.id !== currentRackId && rack.id === normalized.id)) {
+      normalized.id = newId('layout');
+    }
     set({
       layout: normalized,
       selectedDeviceId: normalized.devices.find(d => !shouldHideDevice(d))?.id ?? null,

@@ -16,7 +16,8 @@ export function WorkspaceDialog({
     dialog?.showModal();
     return () => {
       dialog?.close();
-      if (previousFocus?.isConnected) previousFocus.focus();
+      if (previousFocus?.isConnected && previousFocus !== document.body && previousFocus !== document.documentElement && previousFocus.getClientRects().length > 0) previousFocus.focus();
+      else document.querySelector<HTMLElement>('[data-testid="more-dropdown"] summary')?.focus();
     };
   }, []);
   return (
@@ -35,7 +36,7 @@ export function WorkspaceDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-edge px-3 py-1.5 text-sm"
+          className="min-h-11 shrink-0 rounded-lg border border-edge px-3 py-2 text-sm"
         >
           Close
         </button>

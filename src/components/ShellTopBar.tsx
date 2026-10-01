@@ -1,4 +1,4 @@
-import { Cable, CheckCircle2, Monitor, Search } from "lucide-react";
+import { Cable, CheckCircle2, Monitor, Search, Server } from "lucide-react";
 import type { ReactNode } from "react";
 import type {
   ToolbarActionDefinition,
@@ -62,13 +62,14 @@ export function ShellTopBar({
   ] as const;
   return (
     <div
-      className="relative z-[70] flex shrink-0 flex-wrap items-center gap-2 border-b border-edge bg-surface px-3 py-2 sm:gap-3 sm:px-4"
+      className="studio-topbar relative z-[70] flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-edge bg-surface px-3 py-2 sm:px-5"
       data-testid="shell-top-bar"
     >
-      <span className="hidden text-sm font-semibold tracking-tight text-content lg:inline">
-        Homelab
-      </span>
-      <nav className="flex shrink-0 items-center gap-1" aria-label="Workspaces">
+      <div className="hidden shrink-0 items-center gap-2.5 sm:flex" aria-label="Homelab Rack Studio">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-accent/35 bg-accent-subtle text-accent-fg"><Server size={18} aria-hidden /></span>
+        <span className="text-sm font-semibold tracking-tight">Rack Studio<span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-content-muted">Homelab planning</span></span>
+      </div>
+      <nav className="studio-workflows flex shrink-0 items-center gap-1 rounded-lg bg-fill-subtle p-1" aria-label="Workspaces">
         {nav.map((item) => (
           <button
             key={item.id}
@@ -79,14 +80,14 @@ export function ShellTopBar({
               if (onSelectWorkflow) onSelectWorkflow(item.id);
               else onSelectWorkspace(item.id === "check" ? "audit" : "model");
             }}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${workflow === item.id ? "bg-accent-solid text-content" : "text-content-secondary hover:bg-fill"}`}
+            className={`inline-flex h-10 items-center gap-2 rounded-md px-3 text-xs font-semibold ${workflow === item.id ? "bg-accent-solid text-accent-on shadow-sm" : "text-content-secondary hover:bg-fill"}`}
           >
             {item.icon}
             {item.label}
           </button>
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="studio-utilities ml-auto flex items-center gap-2">
         <WorkspaceToolsMenu
           currentWorkspace={currentWorkspace}
           workspaces={pluginWorkspaces}
@@ -103,10 +104,10 @@ export function ShellTopBar({
           type="button"
           onClick={onOpenCommand}
           aria-label="Search commands"
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-edge px-2 text-xs text-content-secondary hover:bg-fill"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-edge px-3 text-xs text-content-secondary hover:bg-fill"
         >
           <Search size={14} />
-          <span className="hidden sm:inline">Search ⌘K</span>
+          <span className="hidden lg:inline">Search <kbd className="ml-2 text-content-muted">⌘K</kbd></span>
         </button>
       </div>
     </div>

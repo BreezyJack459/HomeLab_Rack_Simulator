@@ -182,7 +182,7 @@ export function CableViewer3D({ fitAvailableHeight = false }: { fitAvailableHeig
         <button className={sceneButtonClass} aria-pressed={drawingActive} onClick={() => { setEditingCableId(null); setDrawingActive(v => !v); selectCable(null); }}>Draw route</button>
         {selectedCableId && !drawingActive && <button className={sceneButtonClass} onClick={() => { setEditingCableId(selectedCableId); setDrawingActive(true); }}>Redraw route</button>}
         <details className="relative" onKeyDown={(event) => {
-          if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
         }}>
           <summary className={`${sceneButtonClass} cursor-pointer list-none`}>Display</summary>
           <div className="absolute right-0 top-10 z-20 w-56 space-y-3 rounded-lg border border-edge bg-surface p-3 shadow-lg">
@@ -190,12 +190,12 @@ export function CableViewer3D({ fitAvailableHeight = false }: { fitAvailableHeig
               <legend className="mb-1 text-xs font-semibold text-content">Routing style</legend>
               {(['clean', 'realistic'] as const).map((mode) => <button key={mode} type="button"
                 className={`${sceneButtonClass} mr-1 capitalize`} aria-pressed={cableRoutingMode === mode}
-                onClick={() => setCableRoutingMode(mode)}>{mode}</button>)}
+                onClick={(event) => { event.currentTarget.focus(); setCableRoutingMode(mode); }}>{mode}</button>)}
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="mb-1 text-xs font-semibold text-content">Visible layers</legend>
               {(['rack', 'devices', 'cables'] as CableLayer[]).map((layer) => <label key={layer} className="flex items-center gap-2 text-xs capitalize text-content">
-                <input type="checkbox" checked={layers[layer]} onChange={() => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} />{layer}
+                <input type="checkbox" checked={layers[layer]} onChange={(event) => { event.currentTarget.focus(); const checked = event.currentTarget.checked; setLayers((current) => ({ ...current, [layer]: checked })); }} />{layer}
               </label>)}
             </fieldset>
           </div>

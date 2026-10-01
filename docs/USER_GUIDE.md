@@ -95,6 +95,20 @@ Saved anchors refer to channels/managers rather than fixed world coordinates. Th
 
 On desktop, drag the device-library divider or focus it and use the Left/Right arrow keys to adjust its width. Search recognizes category names and spacing variants such as **mini pc**, **mini-pc**, and **minipc**. Exact names/models and category matches rank ahead of incidental description matches; similarly relevant devices that fit the rack dimensions appear first. The explicit **Fits rack dimensions** filter still excludes incompatible results.
 
+### Connect final devices through patch panels
+
+Use **Connect A–B · 經配線架** in Cable. Choose the final Ethernet devices and numbered sockets, then preview a direct path or a path through one or two existing panels. Candidates show each **new planned cable**, **reused physical cable**, and **internal front ↔ rear jack hop**. Internal hops are not cables and never add BOM purchases. Existing trunks keep their socket numbers, including a Panel 1 rear #3 → Panel 2 rear #7 connection.
+
+New segments explicitly declare patch-cord (panel front) or permanent-link (panel rear) intent. A server may use an explicit front patch cord, enabling Server → Panel 1 front #3 → existing rear #3/#7 backbone → Panel 2 front #7 → Switch. Old cables retain inferred roles and findings. Contradictory or malformed explicit roles are rejected; the planner never joins different switch ports internally. Occupied sockets can only follow their existing cable. Reserved sockets, inter-rack claims, missing sockets and known connector/media conflicts are excluded. Unspecified connector information remains unverified; speed differences alone do not mean a physical mismatch. This plans physical connections, not Ethernet operation, VLAN configuration or routing.
+
+Confirm adds all missing segments atomically as **planned**, with one Undo for the whole connection. Repeated confirmation and saved/reloaded existing paths do not add duplicate cables. A changed preview must be refreshed before confirmation. Estimates are per physical segment and never overwrite recorded measured or purchased lengths. Search is deterministic and bounded to two panels, 16,000 topologies per path mode, 128 jacks per panel and a shortlist of 24 paths before clearance checks; at most five candidates are displayed. A limit message means the result is not exhaustive.
+
+### Tidy panel routing without rewiring
+
+Choose the panel and press **整理走線 · Tidy routes**. The shared route engine looks for clear direct or side-channel routes that reduce projected crossings or shorten an equal-crossing route. Only that panel's cables are considered. Device/socket IDs, port indices, faces, cable IDs, labels, lifecycle status and recorded physical lengths stay fixed. User-drawn manual routes remain untouched; generated tidy anchors are tracked separately.
+
+Clearance is checked in both Clean and Realistic modes. The result settles before a single store update, so repeat clicks are stable and one Undo restores all routing changes. Computed length requirements and BOM recommendations follow the changed route. If no improvement is found or a route is blocked, the result says so and retains the original route. Tidy is bounded to 128 panel cables and 32 settling passes; a limit failure applies no routing changes. Crossing and clearance checks are approximate planning geometry, not verification of the actual installation.
+
 ## Checks and optional tools
 
 **Check** presents a queue of root causes for capacity, weight, power, heat, depth, support and serviceability. The header, summary popover and health chips use the same grouping. **Issues to address** contains recorded conflicts; **Needs verification** contains missing evidence for applicable checks. **Information & optional checks** and **Accepted exceptions** remain available under **All checks & accepted exceptions**. One cause can contain several raw checks: expand it to inspect each result, assumption and affected device or cable. Severity describes impact; unknown means the evidence cannot establish a pass or a conflict. A real recorded conflict remains actionable even when an optional planning mode is selected.
@@ -192,6 +206,13 @@ After connecting, select the cable and use its details to record the **socket id
 In **Device library → Library → Specification filters**, combine maximum U, chassis depth, initial planning watts and minimum Ethernet port count. These filter catalog values; the watt filter is not a maximum-consumption or supply-output guarantee. **Fits rack dimensions** remains a separate check against your current rack. **Clear filters** restores all visible catalog matches.
 
 Tick **Compare** on up to three device cards, then choose **Compare selected**. Selections stay available while you change searches/filters. The comparison shows dimensions, weight, initial planning load, preserved power reference/source, supply output rating, recorded ports/speeds, installation requirements and current rack dimension problems. Missing specifications are shown as unknown or not recorded. Dimension fit does not prove rail/shelf support, free placement space or connector compatibility. On narrow screens, scroll the table horizontally. Close or Escape returns keyboard focus to the comparison button without closing the device library.
+
+
+### Start a new rack or import a single rack
+
+**File → New rack layout** asks before replacing the active rack, even when it has only settings, unplaced inventory or planning records. **File → Import rack** validates the JSON and previews the incoming rack name and device/cable counts before replacement. Cancel, Close or Escape preserves the current workspace. Other racks remain unchanged; an imported rack receives a fresh identity if its ID belongs to another rack in the workspace. If the current rack changes while an import is being reviewed, the import is cancelled.
+
+Confirmed replacement resets that rack’s undo history and may remove connections to replaced devices. Download a backup first to retain the previous plan. Use full workspace restore for a backup containing multiple racks. Import failures appear in the bottom status area, including on small screens.
 
 
 ### Full workspace backup and restore

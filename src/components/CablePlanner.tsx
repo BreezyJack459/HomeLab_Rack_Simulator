@@ -1,3 +1,4 @@
+import { PatchPanelTidyControl } from './PatchPanelTidyControl';
 import { getCableLengthRequirements, cablePurchaseLengthLabel, cablePurchaseNote } from '../utils/cableLengthRequirements';
 import { ConnectorCompatibilityDetails } from './ConnectorCompatibilityDetails';
 import { isPowerSource } from '../utils/powerChain';
@@ -76,11 +77,12 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
   }, [compact, layout.cables, cableFilter, deviceMap, focusMode, hiddenTypes, selectedCableId, selectedCableIds]);
 
   return (
-    <section className="rounded-2xl border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
+    <section className="rounded-[10px] border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
       <button
         type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
+        className="mb-2.5 flex w-full items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
       >
         <div className="flex items-center gap-2">
           <Cable size={15} />
@@ -88,24 +90,26 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded bg-fill px-2 py-1 text-xs text-content-secondary dark:bg-surface dark:text-content-secondary">{layout.cables.length} routes</span>
-          <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+          <ChevronDown size={16} className={`transition-transform duration-200 motion-reduce:transition-none ${isOpen ? '' : '-rotate-90'}`} />
         </div>
       </button>
 
       <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        className="grid transition-[grid-template-rows] duration-200 motion-reduce:transition-none ease-out"
         style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden space-y-3">
-          <button type="button" onClick={() => { useRackStore.getState().setViewMode('cables'); useCableWorkspaceStore.getState().requestConnection(); }} className="w-full rounded-lg bg-accent-solid px-3 py-2 text-sm font-semibold text-accent-on">Connect on device diagram</button>
-          {!compact && <button type="button" onClick={() => addCables(autoWireLayout(layout).cables)} className="w-full rounded-lg border border-edge px-3 py-2 text-sm">Auto-wire</button>}
+          <button type="button" onClick={() => { useRackStore.getState().setViewMode('cables'); useCableWorkspaceStore.getState().requestConnection(); }} className="min-h-11 w-full rounded-[10px] bg-accent-solid px-3 py-2 text-sm font-semibold text-accent-on hover:bg-accent-solid-hover">Connect on device diagram</button>
+          {!compact && <button type="button" onClick={(event) => { event.currentTarget.focus(); useRackStore.getState().setViewMode('cables'); useCableWorkspaceStore.getState().setABRequested(true); }} className="min-h-11 w-full rounded-[10px] border border-accent px-3 text-sm font-semibold text-accent-fg">Connect A–B · 經配線架</button>}
+          {!compact && <PatchPanelTidyControl />}
+          {!compact && <button type="button" onClick={() => addCables(autoWireLayout(layout, { workspace: useRackStore.getState().workspace }).cables)} className="min-h-11 w-full rounded-[10px] border border-edge px-3 py-2 text-sm hover:bg-fill">Auto-wire</button>}
 
           {layout.cables.length > 0 && (
-            <details open={!compact} className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+            <details open={!compact} className="rounded-[10px] border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
               <summary className="mb-2 cursor-pointer text-xs font-semibold text-content-muted">Export cable BOM</summary>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
                   onClick={() => exportBomCsv(layout)}
                   type="button"
                 >
@@ -113,7 +117,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                   BOM CSV
                 </button>
                 <button
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-edge-strong bg-fill text-xs font-medium text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary dark:hover:bg-fill"
                   onClick={() => exportBomText(layout)}
                   type="button"
                 >
@@ -121,7 +125,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                   BOM Text
                 </button>
               </div>
-              <div className="mt-2 text-[10px] leading-5 text-content-faint">
+              <div className="mt-2 text-xs leading-5 text-content-faint">
                 BOM lengths include slack, service-loop allowance and bend-radius notes.
               </div>
             </details>
@@ -129,23 +133,24 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
 
           {/* ── Cable filter bar ── */}
           {!compact && layout.cables.length > 0 && (
-            <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-faint">
+            <div className="rounded-[10px] border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-content-faint">
                 Route library
               </div>
               <div className="flex gap-1.5">
               <input
-                type="text"
+                type="search"
+                aria-label="Filter cable planner routes"
                 placeholder="Filter cables…"
                 value={cableFilter}
                 onChange={(e) => setCableFilter(e.target.value)}
-                className="h-8 min-w-0 flex-1 rounded-xl border border-edge-strong bg-fill px-2.5 text-[11px] text-content-secondary placeholder-content-faint outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content dark:placeholder-content-muted"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-edge-strong bg-fill px-2.5 text-xs text-content-secondary placeholder-content-faint outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content dark:placeholder-content-muted"
               />
               {hiddenTypes.length > 0 && (
                 <button
                   type="button"
                   onClick={showAllTypes}
-                  className="h-8 rounded-xl border border-edge-strong bg-fill px-2 text-[11px] text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                  className="h-10 rounded-lg border border-edge-strong bg-fill px-2 text-xs text-content-secondary hover:bg-fill-strong dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
                 >
                   Show all types
                 </button>
@@ -157,7 +162,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
           {/* ── Grouped compact cable list ── */}
           <div className="space-y-1.5">
             {!compact && filteredCables.length === 0 && layout.cables.length > 0 && (
-              <div className="rounded-2xl border border-dashed border-edge bg-fill/60 p-3 text-center text-[11px] text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
+              <div className="rounded-[10px] border border-dashed border-edge bg-fill/60 p-3 text-center text-xs text-content-faint dark:border-edge dark:bg-surface/60 dark:text-content-muted dark:text-content-faint">
                 No cables match the filter.
               </div>
             )}
@@ -176,18 +181,20 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                 const groupColor = getCableDisplayColor(type as CableType, undefined);
 
                 return (
-                  <div key={type} className="rounded-2xl border border-edge bg-surface/70 dark:border-edge dark:bg-surface/70">
+                  <div key={type} className="rounded-[10px] border border-edge bg-surface/70 dark:border-edge dark:bg-surface/70">
                     {/* Group header */}
                     <button
                       type="button"
+                      aria-label={`${type} · ${routes.length} routes`}
+                      aria-expanded={isGroupOpen}
                       onClick={toggleGroup}
                       className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-fill-strong/50 dark:hover:bg-fill/50"
                     >
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: groupColor }} />
-                      <span className="flex-1 text-[11px] font-semibold capitalize tracking-[0.1em] text-content-muted">
+                      <span className="flex-1 text-xs font-semibold capitalize tracking-[0.1em] text-content-muted">
                         {type}
                       </span>
-                      <span className="text-[10px] text-content-faint">{routes.length}</span>
+                      <span className="text-xs text-content-faint">{' '}{routes.length}</span>
                       <ChevronDown
                         size={12}
                         className={`shrink-0 text-content-faint transition-transform duration-150 dark:text-content-faint ${isGroupOpen ? '' : '-rotate-90'}`}
@@ -213,7 +220,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                           return (
                             <div
                               key={route.id}
-                              className={`group cursor-pointer rounded-xl px-2 py-1.5 text-[11px] transition ${
+                              className={`group rounded-lg px-2 py-1.5 text-xs transition ${
                                 selected
                                   ? 'bg-accent/10 text-accent-fg-strong'
                                   : muted
@@ -221,9 +228,9 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                     : 'text-content-secondary hover:bg-fill-strong/60 dark:text-content-secondary dark:hover:bg-fill/60'
                               }`}
                               data-cable-planner-route-state={selected ? 'selected' : muted ? 'muted' : 'normal'}
-                              onClick={() => selectCable(route.id)}
                             >
                               <div className="flex w-full items-center gap-2">
+                                <button type="button" aria-pressed={selected} aria-label={`Inspect ${route.label || `${from?.name ?? 'Unknown'} to ${to?.name ?? 'Unknown'}`} cable`} onClick={() => selectCable(route.id)} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md text-left">
                                 {/* Color pip */}
                                 <span
                                   className="h-2 w-2 shrink-0 rounded-full"
@@ -236,11 +243,13 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                   {to?.name ?? '?'}
                                 </span>
                                 {/* Length */}
-                                <span className="shrink-0 text-[10px] text-content-faint">{lengthStr}</span>
+                                <span className="shrink-0 text-xs text-content-faint">{lengthStr}</span>
+                                </button>
                                 {/* Delete */}
                                 <button
                                   type="button"
-                                  className="shrink-0 rounded p-0.5 text-content-faint opacity-40 transition group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 dark:text-content-faint"
+                                  aria-label={`Delete ${route.label || `${from?.name ?? 'Unknown'} to ${to?.name ?? 'Unknown'}`} cable`}
+                                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-content-muted transition hover:bg-red-500/10 hover:text-red-500"
                                   onClick={(e) => { e.stopPropagation(); removeCable(route.id); }}
                                 >
                                   <Trash2 size={12} />
@@ -249,7 +258,8 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
 
                               {/* Expanded detail when selected */}
                               {selected && (
-                                <div className="mt-1 pl-4 text-[10px] text-content-faint">
+                                <div className="mt-1 pl-4 text-xs text-content-faint">
+                                  {route.installationRole && <p className="text-xs text-content-secondary">Installation: {route.installationRole} · {route.lifecycleStatus ?? 'active'}</p>}
                                   <ConnectorCompatibilityDetails layout={layout} cable={route} onChange={patch => updateCable(route.id, patch)} />
                                   <div className="mb-1.5 grid gap-1.5">
                                     {route.type === 'power' && (
@@ -259,7 +269,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                           value={route.powerSourceDeviceId ?? ''}
                                           onClick={event => event.stopPropagation()}
                                           onChange={event => updateCable(route.id, { powerSourceDeviceId: event.target.value || undefined })}
-                                          className="h-8 rounded border border-edge-strong bg-surface px-2 text-content"
+                                          className="h-10 rounded border border-edge-strong bg-surface px-2 text-content"
                                         >
                                           <option value="">Automatic / unconfirmed cascade</option>
                                           {[route.fromDeviceId, route.toDeviceId].map(id => deviceMap.get(id)).filter(d => d && isPowerSource(d)).map(d => (
@@ -275,7 +285,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                         placeholder={route.id}
                                         onClick={(event) => event.stopPropagation()}
                                         onChange={(event) => updateCable(route.id, { label: event.target.value || undefined })}
-                                        className="h-7 rounded border border-edge-strong bg-fill px-2 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                                        className="h-10 rounded border border-edge-strong bg-fill px-2 text-xs text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
                                       />
                                     </label>
                                     <label className="grid gap-1">
@@ -286,7 +296,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                         rows={2}
                                         onClick={(event) => event.stopPropagation()}
                                         onChange={(event) => updateCable(route.id, { notes: event.target.value || undefined })}
-                                        className="resize-none rounded border border-edge-strong bg-fill px-2 py-1.5 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                                        className="resize-none rounded border border-edge-strong bg-fill px-2 py-1.5 text-xs text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
                                       />
                                     </label>
                                   </div>
@@ -296,7 +306,7 @@ export function CablePlanner({ compact = false }: { compact?: boolean }) {
                                       value={route.lifecycleStatus ?? 'active'}
                                       onClick={(event) => event.stopPropagation()}
                                       onChange={(event) => updateCable(route.id, { lifecycleStatus: event.target.value as LifecycleStatus })}
-                                      className="h-6 rounded border border-edge-strong bg-fill px-1.5 text-[10px] text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
+                                      className="h-10 rounded border border-edge-strong bg-fill px-1.5 text-xs text-content-secondary outline-none focus:border-accent dark:border-edge-strong dark:bg-surface dark:text-content-secondary"
                                     >
                                       <option value="active">Active</option>
                                       <option value="planned">Planned</option>

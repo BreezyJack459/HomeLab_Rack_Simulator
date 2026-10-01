@@ -51,7 +51,7 @@ function NumberField({
     <label className="space-y-1 text-xs text-content-muted">
       {label}
       <input
-        className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+        className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
         type="number"
         min={min}
         max={max}
@@ -91,17 +91,17 @@ function PropertySection({
   }, [focusTarget, isOpen]);
 
   return (
-    <section ref={sectionRef} className={`rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70 ${focusTarget ? 'ring-2 ring-accent/40' : ''}`}>
+    <section ref={sectionRef} className={`border-t border-edge py-3 ${focusTarget ? 'ring-2 ring-accent/40' : ''}`}>
       <button
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-content-faint">
+        <span className="text-xs font-semibold text-content-secondary">
           {title}
         </span>
-        <ChevronDown size={14} className={`transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={14} className={`motion-safe:transition-transform ${isOpen ? '' : '-rotate-90'}`} />
       </button>
       {isOpen && <div className="mt-3 space-y-3">{children}</div>}
     </section>
@@ -129,7 +129,7 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
 
   const defaults = getPortFaceMap(device.category);
   return (
-    <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+    <div className="border-t border-edge py-3">
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
         Port placement
       </div>
@@ -144,7 +144,8 @@ function renderPortPlacement(device: PlacedDevice, patch: (patchValue: Partial<P
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="text-[10px] text-content-faint">default {defaultFace}</span>
                 <select
-                  className="h-7 min-w-0 flex-1 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                  className="h-10 min-w-0 flex-1 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+                  aria-label={`${pt.label} port face`}
                   value={override ?? ''}
                   onChange={(event) => {
                     const value = event.target.value as 'front' | 'rear' | '';
@@ -204,7 +205,7 @@ function renderPortAliases(
   const aliases = device.portAliases ?? {};
 
   return (
-    <div className="rounded-2xl border border-edge bg-surface/70 p-3 dark:border-edge dark:bg-surface/70">
+    <div className="border-t border-edge py-3">
       <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
         Port aliases
       </div>
@@ -221,7 +222,8 @@ function renderPortAliases(
                   <span className="min-w-0 flex-1 break-words text-xs text-content-secondary dark:text-content">{alias}</span>
                   <button
                     type="button"
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-content-faint hover:text-red-500 dark:text-content-faint dark:hover:text-red-400"
+                    aria-label={`Remove alias for ${key}`}
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-content-faint hover:text-red-500 dark:text-content-faint dark:hover:text-red-400"
                     onClick={() => {
                       const next = { ...aliases };
                       delete next[key];
@@ -236,7 +238,8 @@ function renderPortAliases(
           )}
           <div className="grid gap-2">
             <select
-              className="h-8 min-w-0 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+              className="h-10 min-w-0 rounded-md border border-edge-strong bg-fill px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface-raised dark:text-content"
+              aria-label="Port to alias"
               value={selectedAliasKey}
               onChange={(event) => setSelectedAliasKey(event.target.value)}
             >
@@ -251,14 +254,15 @@ function renderPortAliases(
             </select>
             <input
               type="text"
-              className="h-8 min-w-0 rounded-md border border-edge-strong bg-surface px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
+              className="h-10 min-w-0 rounded-md border border-edge-strong bg-surface px-2 text-xs text-content outline-none dark:border-edge-strong dark:bg-surface dark:text-content"
+              aria-label="Port alias name"
               placeholder="Alias name"
               value={aliasInput}
               onChange={(event) => setAliasInput(event.target.value)}
             />
             <button
               type="button"
-              className="inline-flex h-8 items-center justify-center rounded-md border border-edge-strong bg-fill-strong px-2 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-edge-strong bg-fill-strong px-2 text-xs font-medium text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
               onClick={() => {
                 if (!selectedAliasKey || !aliasInput.trim()) return;
                 patch({
@@ -330,7 +334,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
       if (poweredDevice) powerBudget += poweredDevice.powerW;
     });
     const zone = getDeviceSpatialZone(device);
-    const feed = zone.includes('left') ? 'A' : zone.includes('right') ? 'B' : '-';
+    const feed = device.circuit;
     return { outlets, used, powerBudget, location: zone, feed };
   }, [device, layout.cables, layout.devices]);
 
@@ -340,25 +344,24 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
   const [aliasInput, setAliasInput] = useState('');
 
   return (
-    <section className="rounded-2xl border border-edge bg-fill/78 p-3.5 dark:border-edge dark:bg-surface-raised/78">
+    <section className="min-w-0">
       <button
         type="button"
+        aria-expanded={isOpen}
+        aria-controls="device-properties-content"
         onClick={() => setIsOpen((v) => !v)}
-        className="mb-2.5 flex w-full items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-content-muted transition hover:text-content-secondary dark:text-content-muted dark:hover:text-content"
+        className="mb-3 flex min-h-11 w-full items-center justify-between gap-2 border-b border-edge pb-2 text-xs font-semibold text-content-secondary hover:text-content"
       >
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={15} />
           Properties
         </div>
-        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={16} className={`motion-safe:transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
       </button>
-      <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
-      >
-        <div className="overflow-hidden">
+      <div id="device-properties-content" hidden={!isOpen}>
+        <div className="min-w-0">
           {!device ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-edge-strong bg-surface/60 p-4 text-sm dark:border-edge-strong dark:bg-surface/60">
+            <div className="space-y-3 py-4 text-sm">
               <div className="font-medium text-content-secondary dark:text-content">No component selected</div>
               <div className="text-content-muted">
                 Select a device in the rack canvas to edit identity, physical fit, power and ports.
@@ -367,7 +370,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                 {layout.devices.length > 0 && (
                   <button
                     type="button"
-                    className="inline-flex h-8 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
+                    className="inline-flex min-h-11 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
                     onClick={() => {
                       selectDevice(layout.devices[0].id);
                       setViewMode('2d');
@@ -379,7 +382,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                 {layout.cables.length > 0 && (
                   <button
                     type="button"
-                    className="inline-flex h-8 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-slate-300 dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
+                    className="inline-flex min-h-11 items-center rounded-md border border-edge-strong bg-fill-strong px-3 text-xs font-medium text-content-secondary hover:bg-fill dark:border-edge-strong dark:bg-fill dark:text-content dark:hover:bg-fill-strong"
                     onClick={() => setViewMode('cables')}
                   >
                     Open cable map
@@ -389,10 +392,10 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/10 via-white/70 to-white/30 p-3 shadow-sm dark:from-accent/10 dark:via-surface/70 dark:to-surface/50">
+              <div className="border-l-2 border-accent pl-3 py-1">
                 <div className="flex flex-col gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-base font-semibold text-content">
+                    <div className="break-words text-base font-semibold leading-6 text-content">
                       {device.name}
                     </div>
                   </div>
@@ -400,17 +403,17 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                     data-testid="property-selection-meta"
                     className="flex flex-wrap gap-1 text-[10px] text-content-secondary"
                   >
-                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
+                    <span className="rounded-md bg-fill px-2 py-1 text-center">
                       {device.category}
                     </span>
-                    {device.mountingSupport === 'printed-mount' && <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-accent">3D-printed mount</span>}
-                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
+                    {device.mountingSupport === 'printed-mount' && <span className="rounded-md bg-accent-subtle px-2 py-1 text-accent-fg">3D-printed mount</span>}
+                    <span className="rounded-md bg-fill px-2 py-1 text-center">
                       {device.sizeU === 0 ? '0U' : `U${device.positionU}`}{device.sizeU > 1 ? `-${device.positionU + device.sizeU - 1}` : ''}
                     </span>
-                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
+                    <span className="rounded-md bg-fill px-2 py-1 text-center">
                       {device.widthType === 'shelf' && device.mountingSupport === 'printed-mount' ? 'compact' : device.widthType}
                     </span>
-                    <span className="rounded-full border border-edge bg-surface/80 px-2.5 py-1 text-center shadow-sm dark:border-edge dark:bg-surface/70">
+                    <span className="rounded-md bg-fill px-2 py-1 text-center">
                       {getDeviceMountSide(device)}
                     </span>
                   </div>
@@ -420,7 +423,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
               <label className="block text-xs text-content-muted">
                   Name
                   <input
-                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                    className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.name}
                     onChange={(event) => patch({ name: event.target.value })}
                   />
@@ -428,7 +431,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                 {device.sizeU !== 0 && <><label className="block text-xs text-content-muted">
                   Mount side
                   <select
-                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                    className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={getDeviceMountSide(device)}
                     onChange={(event) => patch({ mountSide: event.target.value as ViewSide })}
                   >
@@ -444,7 +447,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                 <label className="text-xs text-content-muted">
                   Label
                   <input
-                    className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                    className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.label ?? ''}
                     onChange={(event) => patch({ label: event.target.value })}
                     placeholder="Optional front label"
@@ -467,7 +470,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   {device.category === 'shelf' && <div className="space-y-3 rounded-xl border border-edge p-3">
                     <label className="block space-y-1 text-xs text-content-muted">
                       <span>Shelf placement</span>
-                      <select className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content" value={device.shelfStyle ?? 'solid'} onChange={event => patch({ shelfStyle: event.target.value as 'solid' | 'tray' })}>
+                      <select className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content" value={device.shelfStyle ?? 'solid'} onChange={event => patch({ shelfStyle: event.target.value as 'solid' | 'tray' })}>
                         <option value="solid">Separate U (existing shelf)</option>
                         <option value="tray">Thin tray — share U with devices</option>
                       </select>
@@ -488,7 +491,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
 
 
                 {ENABLE_ZERO_U_PDU && device.sizeU === 0 && (
-                  <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
+                  <div className="rounded-lg bg-fill-subtle p-3">
                     <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                       0U Mount
                     </div>
@@ -501,7 +504,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       <label className="text-xs text-content-muted">
                         Mount type
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                          className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.mountType ?? 'rear-rail'}
                           onChange={(event) => patch({ mountType: event.target.value as ZeroUMountType })}
                         >
@@ -512,7 +515,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       <label className="text-xs text-content-muted">
                         Side
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                          className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.mountSide0U ?? 'left'}
                           onChange={(event) => patch({ mountSide0U: event.target.value as ZeroUMountSide })}
                         >
@@ -523,7 +526,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       <label className="text-xs text-content-muted">
                         Outlet facing
                         <select
-                          className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                          className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                           value={device.outletFacing ?? 'forward'}
                           onChange={(event) => patch({ outletFacing: event.target.value as OutletFacing })}
                         >
@@ -543,7 +546,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       <label className="block space-y-1 text-xs text-content-muted">
                         <span>Mounting support</span>
                         <select
-                          className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                          className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
                           value={device.mountingSupport ?? 'shelf'}
                           onChange={event => patch({ mountingSupport: event.target.value as 'shelf' | 'printed-mount' })}
                         >
@@ -556,7 +559,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                         <label className="block space-y-1 text-xs text-content-muted">
                           <span>Printed mount model URL</span>
                           <input type="url" value={device.printedMountUrl ?? ''} placeholder="https://www.printables.com/model/…"
-                            className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                            className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
                             onChange={event => patch({ printedMountUrl: event.target.value })} />
                         </label>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-accent">
@@ -584,7 +587,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   <label className="text-xs text-content-muted">
                     Width type
                     <select
-                      className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                      className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.widthType}
                       disabled={device.sizeU === 0}
                       onChange={(event) => patch({ widthType: event.target.value as WidthType })}
@@ -598,7 +601,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   <label className="text-xs text-content-muted">
                     Color
                     <input
-                      className="mt-1 h-9 w-full rounded-lg border border-edge-strong bg-surface p-1 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface"
+                      className="mt-1 h-10 w-full rounded-lg border border-edge-strong bg-surface p-1 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface"
                       type="color"
                       value={device.color}
                       onChange={(event) => patch({ color: event.target.value })}
@@ -635,7 +638,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   </p>
                   <label className="space-y-1 text-xs text-content-muted">
                     Planning power basis
-                    <select className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
+                    <select className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
                       value={planningPowerBasis(device)} onChange={event => patch({ powerBasis: event.target.value as PowerBasis })}>
                       {Object.entries(POWER_BASIS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
@@ -644,7 +647,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                     Planning load notes / measurement source
                     <input type="text" value={device.powerPlanningNote ?? ''}
                       placeholder="Workload, installed drives, meter reading or specification source"
-                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
+                      className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2 text-content"
                       onChange={event => patch({ powerPlanningNote: event.target.value || undefined })} />
                   </label>
                   <label className="flex items-start gap-2 text-xs text-content-muted">
@@ -657,7 +660,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       Rated output capacity (W)
                       <input
                         type="number" min="1" step="any"
-                        className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
+                        className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content"
                         placeholder="Unknown — check equipment rating"
                         value={device.powerCapacityW ?? ''}
                         onChange={(event) => {
@@ -701,7 +704,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   <label className="space-y-1 text-xs text-content-muted">
                     Heat
                     <select
-                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                      className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.heatLevel}
                       onChange={(event) => patch({ heatLevel: Number(event.target.value) as HeatLevel })}
                     >
@@ -716,7 +719,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                 <label className="space-y-1 text-xs text-content-muted">
                   Status
                   <select
-                    className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                    className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                     value={device.lifecycleStatus ?? 'active'}
                     onChange={(event) => patch({ lifecycleStatus: event.target.value as LifecycleStatus })}
                   >
@@ -730,7 +733,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   <label className="space-y-1 text-xs text-content-muted">
                     Outage priority
                     <select
-                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                      className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.shutdownPriority ?? 'non-critical'}
                       onChange={(event) => patch({ shutdownPriority: event.target.value as ShutdownPriority })}
                     >
@@ -783,7 +786,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                   <label className="space-y-1 text-xs text-content-muted">
                     Circuit
                     <select
-                      className="h-9 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
+                      className="h-10 w-full rounded-lg border border-edge-strong bg-surface px-2.5 text-sm text-content outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 dark:border-edge-strong dark:bg-surface dark:text-content"
                       value={device.circuit ?? ''}
                       onChange={(event) => patch({ circuit: event.target.value ? (event.target.value as 'A' | 'B') : undefined })}
                     >
@@ -796,7 +799,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
               </PropertySection>
 
               <PropertySection title="Ports & Connectivity" defaultOpen={false}>
-                <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
+                <div className="rounded-lg bg-fill-subtle p-3">
                   <div className="grid grid-cols-2 gap-2">
                     <NumberField label="ETH" min={0} value={device.ports?.ethernet ?? 0} onChange={(value) => patchPort('ethernet', value)} />
                     <NumberField label="Fiber" min={0} value={device.ports?.fiber ?? 0} onChange={(value) => patchPort('fiber', value)} />
@@ -833,7 +836,7 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
               </PropertySection>
 
               {pdu0uMeta && (
-                <div className="rounded-2xl border border-edge bg-fill p-3 dark:border-edge dark:bg-surface">
+                <div className="rounded-lg bg-fill-subtle p-3">
                   <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-faint">
                     <Zap size={13} />
                     0U PDU Status
@@ -850,24 +853,28 @@ export function PropertyPanel({ focusTarget }: { focusTarget?: IssuePropertyTarg
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-content-faint">Power budget</span>
-                      <span>{pdu0uMeta.powerBudget}W / 2400W</span>
+                      <span className="text-content-faint">Connected planning load</span>
+                      <span>{pdu0uMeta.powerBudget} W</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-content-faint">Output rating</span>
+                      <span>{device.powerCapacityW === undefined ? 'Unverified' : `${device.powerCapacityW} W`}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-content-faint">Location</span>
                       <span className="capitalize">{pdu0uMeta.location.replace('-', ' ')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-content-faint">Feed</span>
-                      <span>Feed {pdu0uMeta.feed}</span>
+                      <span className="text-content-faint">Recorded circuit</span>
+                      <span>{pdu0uMeta.feed ?? 'Unspecified'}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              <button type="button" onClick={() => useRackStore.getState().moveDeviceToInventory(device.id)} className="w-full rounded-lg border border-edge px-3 py-2 text-xs text-content-secondary hover:bg-fill">Move to My devices</button>
+              <button type="button" onClick={() => useRackStore.getState().moveDeviceToInventory(device.id)} className="min-h-11 w-full rounded-lg border border-edge px-3 py-2 text-xs text-content-secondary hover:bg-fill">Move to My devices</button>
               <button
-                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 hover:bg-red-500/20 dark:text-red-100"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 text-sm font-medium text-red-800 hover:bg-red-500/20 dark:text-red-100"
                 onClick={() => removeDevice(device.id)}
                 type="button"
               >

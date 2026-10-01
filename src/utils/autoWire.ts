@@ -1,7 +1,8 @@
-import type { CableRoute, PlacedDevice, RackLayout } from '../types/rack';
+import type { CableRoute, PlacedDevice, RackLayout, Workspace } from '../types/rack';
 import { autoResolveCable, inferCableType } from './portSelection';
 
 export interface AutoWireOptions {
+  workspace?: Workspace;
   connectPower?: boolean;
   connectNetwork?: boolean;
 }
@@ -61,7 +62,20 @@ export function autoWireLayout(
   options: AutoWireOptions = {}
 ): AutoWireResult {
   const { connectPower = true, connectNetwork = true } = options;
+  const working = { ...layout, cables: [...layout.cables] };
+  // External claims and reservations are occupied in the working allocator too.
+  for (const cable of options.workspace?.interRackCables ?? []) {
+    for (const end of ['from', 'to'] as const) {
+      if (cable[`${end}RackId`] !== layout.id || !cable[`${end}Port`]) continue;
+      working.cables.push({ id: `claim-${cable.id}-${end}`, fromDeviceId: cable[`${end}DeviceId`], fromPort: cable[`${end}Port`], toDeviceId: '__external-claim', type: cable.type === 'cat6a' ? 'ethernet' : 'fiber', color: '#000' });
+    }
+  }
+  for (const reservation of layout.portReservations ?? []) working.cables.push({ id: `reserved-${reservation.id}`, fromDeviceId: reservation.deviceId, fromPort: { type: reservation.portType, index: reservation.portIndex }, toDeviceId: '__reserved-claim', type: reservation.portType, color: '#000' });
   const cables: Omit<CableRoute, 'id'>[] = [];
+  const append = (route: Omit<CableRoute, 'id'>) => {
+    cables.push(route);
+    working.cables.push({ ...route, id: `pending-${cables.length}` });
+  };
   let skipped = 0;
 
   const pdus = layout.devices.filter((d) => d.category === 'pdu');
@@ -73,12 +87,12 @@ export function autoWireLayout(
     if (connectPower && pdus.length > 0 && (endpoint.ports?.power ?? 0) > 0) {
       const target = nearestDevice(endpoint, pdus);
       if (target) {
-        if (hasExistingCable(layout, endpoint.id, target.id, 'power')) {
+        if (hasExistingCable(working, endpoint.id, target.id, 'power')) {
           skipped++;
         } else {
-          const resolved = autoResolveCable(endpoint, target, layout);
+          const resolved = autoResolveCable(endpoint, target, working);
           if (resolved && resolved.cableType === 'power') {
-            cables.push({
+            append({
               fromDeviceId: endpoint.id,
               fromPort: resolved.fromPort,
               toDeviceId: target.id,
@@ -104,13 +118,13 @@ export function autoWireLayout(
           const cableType = inferCableType(endpoint, target);
           if (
             !cableType ||
-            hasExistingCable(layout, endpoint.id, target.id, cableType)
+            hasExistingCable(working, endpoint.id, target.id, cableType)
           ) {
             skipped++;
           } else {
-            const resolved = autoResolveCable(endpoint, target, layout);
+            const resolved = autoResolveCable(endpoint, target, working);
             if (resolved) {
-              cables.push({
+              append({
                 fromDeviceId: endpoint.id,
                 fromPort: resolved.fromPort,
                 toDeviceId: target.id,
@@ -135,14 +149,14 @@ export function autoWireLayout(
       const cableType = inferCableType(sw, target);
       if (
         !cableType ||
-        hasExistingCable(layout, sw.id, target.id, cableType)
+        hasExistingCable(working, sw.id, target.id, cableType)
       ) {
         skipped++;
         continue;
       }
-      const resolved = autoResolveCable(sw, target, layout);
+      const resolved = autoResolveCable(sw, target, working);
       if (resolved) {
-        cables.push({
+        append({
           fromDeviceId: sw.id,
           fromPort: resolved.fromPort,
           toDeviceId: target.id,

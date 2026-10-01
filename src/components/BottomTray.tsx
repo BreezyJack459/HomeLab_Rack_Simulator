@@ -31,48 +31,50 @@ export function BottomTray({
   const activityPreview = statusMessage ?? 'Workspace ready';
 
   return (
-    <div className="shrink-0 border-t border-edge bg-fill-subtle/95 dark:border-edge dark:bg-surface/95">
+    <div className="shrink-0 border-t border-edge bg-surface">
       <button
         type="button"
         data-testid="toggle-bottom-tray"
         aria-expanded={bottomTrayOpen}
+        aria-controls="rack-activity-tray"
         onClick={toggleBottomTray}
-        className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left transition hover:bg-fill/80 dark:hover:bg-surface-raised/80"
+        className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-2 text-left transition-colors hover:bg-fill"
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-content-secondary">
             <AlertTriangle size={12} />
-            Issues & activity
+            Checks & activity
           </span>
           {!bottomTrayOpen && (
             <>
-              <span className="rounded-full bg-fill-strong/80 px-2 py-0.5 text-xs text-content-secondary dark:bg-fill dark:text-content-secondary">
-                {summary.counts.attention} root causes need attention
+              <span className={`border-l border-edge pl-2 text-xs ${summary.counts.confirmed ? 'text-red-500' : summary.counts.verification ? 'text-amber-600' : 'text-content-secondary'}`}>
+                {summary.counts.attention ? `${summary.counts.confirmed} confirmed · ${summary.counts.verification} to verify` : 'No confirmed issues or verification tasks'}
               </span>
-              <span className="max-w-[min(24rem,50vw)] truncate text-xs text-content-muted">
+              <span className="hidden max-w-[min(24rem,50vw)] truncate border-l border-edge pl-2 text-xs text-content-muted sm:inline">
                 {activityPreview}
               </span>
             </>
           )}
         </div>
-        <ChevronDown size={16} className={`shrink-0 text-content-faint transition ${bottomTrayOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`shrink-0 text-content-muted transition-transform motion-reduce:transition-none ${bottomTrayOpen ? 'rotate-180' : ''}`} />
       </button>
 
+      <div id="rack-activity-tray" hidden={!bottomTrayOpen}>
       {bottomTrayOpen && (
-        <div className="grid gap-3 border-t border-edge px-4 py-3 dark:border-edge lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid max-h-[40dvh] gap-4 overflow-y-auto border-t border-edge px-4 py-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-content-secondary">
               <AlertTriangle size={12} />
-              Issue Tray
+              Findings
             </div>
             <IssueBar layout={layout} issues={issues} selectedIssueId={selectedIssueId} onIssueSelect={onIssueSelect} className="mt-0" />
           </div>
-          <div className="rounded-2xl border border-edge bg-surface/80 p-3 dark:border-edge dark:bg-surface-raised/70">
-            <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-content-faint">
+          <div className="min-w-0 border-t border-edge pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-content-secondary">
               <Activity size={12} />
               Activity
             </div>
-            <div className="text-sm text-content-secondary">{activityPreview}</div>
+            <div role="status" className="break-words text-sm leading-6 text-content-secondary">{activityPreview}</div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <FindingSummaryBadges counts={summary.counts} />
             </div>
@@ -80,7 +82,7 @@ export function BottomTray({
               <button
                 type="button"
                 onClick={onOpenAudit}
-                className="mt-3 inline-flex h-8 items-center rounded-full border border-accent/30 bg-accent-solid/10 px-3 text-xs font-medium text-accent-fg hover:bg-accent-solid-hover/15 dark:text-accent-fg"
+                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-accent bg-accent-subtle px-3 text-xs font-semibold text-accent-fg hover:bg-fill-strong"
               >
                 Open audit workspace
               </button>
@@ -88,6 +90,7 @@ export function BottomTray({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

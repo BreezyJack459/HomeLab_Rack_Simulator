@@ -93,3 +93,30 @@ describe('PropertyPanel selection summary', () => {
     expect(useRackStore.getState().layout.devices[0].mountingSupport).toBe('shelf');
   });
 });
+
+it('keeps the full selected name readable and removes collapsed properties from keyboard navigation', () => {
+  useRackStore.setState({ layout, selectedDeviceId: 'dev-selection' });
+  render(<PropertyPanel />);
+  expect(screen.getByText(layout.devices[0].name)).toHaveClass('break-words');
+  const disclosure = screen.getByRole('button', { name: 'Properties' });
+  expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+  fireEvent.click(disclosure);
+  expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument();
+  fireEvent.click(disclosure);
+  expect(screen.getByRole('textbox', { name: 'Name' })).toBeVisible();
+});
+
+it('shows only recorded circuit and rating for a 0U PDU instead of inferring them from mounting position', () => {
+  const pdu = { ...layout.devices[0], id: 'pdu', category: 'pdu-0u' as const, name: 'Vertical PDU', sizeU: 0, physicalHeightMm: 800, ports: { power: 8 }, mountSide0U: 'left' as const };
+  useRackStore.setState({ layout: { ...layout, devices: [pdu] }, selectedDeviceId: pdu.id });
+  const { rerender } = render(<PropertyPanel />);
+  expect(screen.getByText('Unspecified')).toBeVisible();
+  expect(screen.getByText('Unverified')).toBeVisible();
+  expect(screen.queryByText(/2400W/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Feed A')).not.toBeInTheDocument();
+  useRackStore.setState({ layout: { ...layout, devices: [{ ...pdu, circuit: 'B', powerCapacityW: 900 }] } });
+  rerender(<PropertyPanel />);
+  expect(screen.getByText('B')).toBeVisible();
+  expect(screen.getByText('900 W')).toBeVisible();
+});

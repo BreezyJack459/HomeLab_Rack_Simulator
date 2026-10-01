@@ -12,7 +12,7 @@ test('lazy packs enable and open without reload, and disappear when disabled', a
   page.on('request', (request) => { if (request.isNavigationRequest()) documents += 1; });
   let releasePack!: () => void;
   const packDownload = new Promise<void>((resolve) => { releasePack = resolve; });
-  await page.route('**/src/plugins/fleetPackPlugin.tsx*', async (route) => {
+  await page.route(/\/(?:src\/plugins\/fleetPackPlugin\.tsx|assets\/fleetPackPlugin-[^/]+\.js)(?:\?.*)?$/, async (route) => {
     await packDownload;
     await route.continue();
   });
@@ -31,7 +31,7 @@ test('lazy packs enable and open without reload, and disappear when disabled', a
   await tools.click();
   const fleet = page.getByRole('button', { name: /^Fleet/ });
   await expect(fleet).toContainText('Enable & open');
-  expect(requests.some((url) => /\/(operationsPack|planningPack|fleetPack|portDocumentation)Plugin\./.test(url))).toBe(false);
+  expect(requests.some((url) => /\/(operationsPack|planningPack|fleetPack|portDocumentation)Plugin[.-]/.test(url))).toBe(false);
 
   await fleet.click();
   await expect(page.getByRole('status').filter({ hasText: 'Loading workspace…' })).toBeVisible();

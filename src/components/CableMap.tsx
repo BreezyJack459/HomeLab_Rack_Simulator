@@ -1,3 +1,4 @@
+import { ABCableConnector } from './ABCableConnector';
 import { withoutHiddenZeroUPdu } from '../utils/featureFlags';
 import { Box, Eye, EyeOff, Map as MapIcon, Network, Table2, X } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
@@ -269,6 +270,7 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
   const focusMode = useCableWorkspaceStore((state) => state.focusMode);
   const setFocusMode = useCableWorkspaceStore((state) => state.setFocusMode);
   const [showEmptyTypes, setShowEmptyTypes] = useState(false);
+  const abRequested = useCableWorkspaceStore(state => state.abRequested);
   const [showConnectionCableView, setShowConnectionCableView] = useState(false);
   useEffect(() => { if (!connecting) setShowConnectionCableView(false); }, [connecting]);
 
@@ -334,7 +336,8 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
   );
 
   return (
-    <div className={`h-full overflow-auto bg-fill/55 thin-scrollbar dark:bg-surface/55 ${connecting ? 'lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden' : ''} ${embedded || mapView === '3d' ? 'flex min-h-0 flex-col p-2' : 'p-8'}`}>
+    <div className={`h-full overflow-auto bg-fill/55 thin-scrollbar dark:bg-surface/55 ${connecting ? showConnectionCableView && embedded ? 'lg:grid lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-3 lg:overflow-hidden' : 'lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden' : ''} ${embedded || mapView === '3d' ? 'flex min-h-0 flex-col p-2' : 'p-8'}`}>
+      {abRequested && <ABCableConnector />}
       {connecting && <VisualCableConnector showCableView={showConnectionCableView} onToggleCableView={() => {
         if (!showConnectionCableView && mapView === 'table') setMapView('3d');
         setShowConnectionCableView(value => !value);
@@ -483,7 +486,7 @@ export function CableMap({ layout: layoutOverride, embedded = false }: CableMapP
       </div>
 
       </div>}
-      <div className={connecting ? `min-h-[400px] shrink-0 h-[500px] ${showConnectionCableView ? 'lg:flex lg:h-auto lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-auto' : 'lg:hidden'}` : "flex min-h-0 flex-1 flex-col"}>
+      <div className={connecting ? `min-h-[400px] shrink-0 h-[500px] ${showConnectionCableView ? 'lg:flex lg:h-auto lg:min-h-0 lg:min-w-0 lg:flex-1 lg:flex-col lg:overflow-auto' : 'lg:hidden'}` : "flex min-h-0 flex-1 flex-col"}>
       {mapView === 'table' ? (
         <CableTable
           embedded={embedded}

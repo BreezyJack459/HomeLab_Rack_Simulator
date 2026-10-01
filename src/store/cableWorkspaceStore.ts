@@ -12,6 +12,8 @@ type CableWorkspacePrefs = {
 };
 
 type CableWorkspaceState = CableWorkspacePrefs & {
+  abRequested: boolean;
+  setABRequested: (open: boolean) => void;
   connectionRequested: boolean;
   requestConnection: () => void;
   consumeConnectionRequest: () => void;
@@ -65,6 +67,8 @@ const saved = readPrefs();
 
 export const useCableWorkspaceStore = create<CableWorkspaceState>((set) => ({
   ...saved,
+  abRequested: false,
+  setABRequested: (open) => set({ abRequested: open }),
   connectionRequested: false,
   requestConnection: () => set({ connectionRequested: true }),
   consumeConnectionRequest: () => set({ connectionRequested: false }),

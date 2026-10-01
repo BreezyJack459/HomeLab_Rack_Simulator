@@ -50,24 +50,26 @@ export function CanvasHeader({
   const subview = useCableWorkspaceStore((s) => s.subview);
   const setSubview = useCableWorkspaceStore((s) => s.setSubview);
   const buttonClass = (active: boolean) =>
-    `inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ${active ? "bg-accent-solid text-content" : "text-content-secondary hover:bg-fill"}`;
+    `inline-flex h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold ${active ? "bg-accent-solid text-accent-on" : "text-content-secondary hover:bg-fill"}`;
   return (
     <div
-      className="relative z-[60] shrink-0 border-b border-edge bg-surface px-3 py-2 sm:px-4"
+      className="studio-canvas-header relative z-[60] shrink-0 border-b border-edge bg-surface px-3 py-2 sm:px-5"
       data-testid="canvas-header"
     >
       <div className="flex flex-wrap items-center gap-2">
-        {workflow === "build" && (
+        {workflow === "build" && <div className="shrink-0">
           <DeviceLibraryToggle
             open={deviceLibraryOpen}
             onToggle={onToggleDeviceLibrary}
           />
-        )}
-        <input
-          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-content outline-none"
+        </div>}
+        <textarea
+          rows={1}
+          className="studio-project-name min-w-0 flex-1 resize-none rounded-md border border-transparent bg-transparent px-1 py-2 text-sm font-semibold tracking-tight text-content hover:border-edge focus:border-accent"
           value={layout.name}
           onChange={(e) => onRenameLayout(e.target.value)}
           aria-label="Layout name"
+          title={layout.name}
         />
         <span
           className="hidden text-xs text-content-muted sm:inline"
@@ -75,7 +77,7 @@ export function CanvasHeader({
         >
           {layout.devices.length} devices
         </span>
-        <span className="text-xs text-content-muted">
+        <span className="hidden text-xs text-content-muted sm:inline">
           {layout.rackType === "19in" ? "19″" : "10″"} · {layout.heightU}U
         </span>
         <button
@@ -84,7 +86,7 @@ export function CanvasHeader({
           title="Undo"
           disabled={!canUndo}
           onClick={onUndo}
-          className="rounded-lg p-2 hover:bg-fill disabled:opacity-30"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-fill disabled:opacity-30"
         >
           <Undo size={15} />
         </button>
@@ -94,14 +96,14 @@ export function CanvasHeader({
           title="Redo"
           disabled={!canRedo}
           onClick={onRedo}
-          className="rounded-lg p-2 hover:bg-fill disabled:opacity-30"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-fill disabled:opacity-30"
         >
           <Redo size={15} />
         </button>
       </div>
       {(workflow === "build" || workflow === "cable") && (
         <div
-          className="mt-2 flex flex-wrap items-center justify-between gap-2"
+          className="mt-1 flex flex-wrap items-center justify-between gap-1 border-t border-edge pt-1"
           data-testid="workflow-view-controls"
         >
           <div
@@ -172,19 +174,19 @@ export function CanvasHeader({
           </div>
         </div>
       )}
-      <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-edge pt-2">
+      <div className="studio-planning-summary mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-edge pt-2">
         <RackHealthStrip
           totals={totals}
           layout={layout}
           issues={issues}
           onOpenCheck={onOpenCheck}
         />
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="Finding summary">
+        <div className="studio-finding-summary flex flex-wrap items-center gap-1" aria-label="Finding summary">
           {(['confirmed', 'verification', 'information', 'accepted'] as const).map(section => <button
             key={section} type="button" data-testid={`finding-summary-${section}`}
             onClick={() => onOpenCheck?.('overview', section)}
             aria-label={`${summary.counts[section]} ${findingSectionLabels[section].toLowerCase()}`}
-            className={`rounded-full border border-edge px-2.5 py-1 text-xs hover:bg-fill focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${summary.counts[section] > 0 && section === 'confirmed' ? 'text-red-500' : 'text-content-secondary'}`}>
+            className={`min-h-9 rounded-md border border-edge px-2 py-1 text-[11px] hover:bg-fill focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${summary.counts[section] > 0 && section === 'confirmed' ? 'text-red-500' : 'text-content-secondary'}`}>
             {summary.counts[section]} {findingSectionLabels[section]}
           </button>)}
         </div>

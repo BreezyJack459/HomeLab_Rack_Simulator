@@ -405,6 +405,10 @@ export type CableRouteAnchor =
   | { kind: 'manager'; deviceId: string; side: 'left' | 'right' };
 
 export interface CableRoute {
+  /** Explicit physical installation intent; omitted preserves legacy role inference. */
+  installationRole?: 'patch-cord' | 'permanent-link';
+  /** Generated routing anchors; distinguish from user-drawn manual routes. */
+  routingOrigin?: 'panel-tidy';
   manualPath?: CableRouteAnchor[];
   id: string;
   label?: string;

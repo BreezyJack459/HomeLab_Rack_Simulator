@@ -89,7 +89,7 @@ export function RightInspectorShell({ title, description, children, open, onTogg
           onClick={onToggle}
           aria-expanded={open}
           aria-label="Open inspector"
-          className="fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-edge bg-surface/95 px-4 text-sm font-medium text-content-secondary shadow-panel transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised/95 dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg xl:hidden"
+          className="absolute bottom-3 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-lg border border-edge bg-surface/95 px-4 text-sm font-medium text-content-secondary shadow-panel transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised/95 dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg xl:hidden"
         >
           <PanelRightOpen size={16} />
           Inspector
@@ -104,7 +104,7 @@ export function RightInspectorShell({ title, description, children, open, onTogg
             onClick={onToggle}
             aria-expanded={open}
             aria-label="Open inspector"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-edge bg-surface/85 text-content-secondary transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-edge bg-surface/85 text-content-secondary transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
           >
             <PanelRightOpen size={16} />
           </button>
@@ -130,13 +130,13 @@ export function RightInspectorShell({ title, description, children, open, onTogg
         role={isBelowXl ? 'dialog' : undefined}
         aria-modal={isBelowXl ? true : undefined}
         aria-label="Inspector"
-        className="fixed inset-y-0 right-0 z-[80] flex w-[min(380px,calc(100vw-3rem))] min-h-0 flex-col overflow-hidden border-l border-edge/80 bg-fill-subtle/95 shadow-panel dark:border-edge dark:bg-surface/95 xl:static xl:z-auto xl:w-auto xl:bg-fill-subtle/85 xl:shadow-none xl:dark:bg-surface/90"
+        className="fixed inset-y-0 right-0 z-[80] flex w-[min(400px,100vw)] min-h-0 flex-col overflow-hidden border-l border-edge bg-surface shadow-panel dark:border-edge dark:bg-surface xl:static xl:z-auto xl:w-auto xl:bg-surface xl:shadow-none xl:dark:bg-surface/90"
       >
-        <div className="sticky top-0 z-10 border-b border-edge/70 bg-fill-subtle/90 px-4 py-3 backdrop-blur dark:border-edge/70 dark:bg-surface/90">
+        <div className="sticky top-0 z-10 border-b border-edge bg-surface px-4 py-4 dark:border-edge/70 dark:bg-surface/90">
           <div className="flex items-start justify-between gap-3">
             <div>
               {!compact && <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-content-faint">Inspector</div>}
-              <h2 className="mt-1.5 text-base font-semibold text-content">{title}</h2>
+              <h2 className="mt-1 text-base font-semibold text-content">{title}</h2>
               {!compact && <p className="mt-1 text-xs leading-5 text-content-muted">{description}</p>}
             </div>
             <button
@@ -145,13 +145,13 @@ export function RightInspectorShell({ title, description, children, open, onTogg
               onClick={onToggle}
               aria-expanded={open}
               aria-label="Collapse inspector"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-edge bg-surface/85 text-content-secondary transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-edge bg-surface/85 text-content-secondary transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg"
             >
               <PanelRightClose size={16} />
             </button>
           </div>
         </div>
-        <div className="flex-1 min-h-0 space-y-3 overflow-y-auto p-3">{children}</div>
+        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4">{children}</div>
       </aside>
     </>
   );

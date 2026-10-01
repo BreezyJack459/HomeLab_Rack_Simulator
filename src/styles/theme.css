@@ -10,24 +10,24 @@
 
 :root {
   /* Default: dark theme */
-  --c-content: 241 245 249;          /* slate-100 */
-  --c-content-secondary: 203 213 225;/* slate-300 */
-  --c-content-muted: 148 163 184;    /* slate-400 */
-  --c-content-faint: 100 116 139;    /* slate-500 */
-  --c-surface: 2 6 23;               /* slate-950 */
-  --c-surface-raised: 15 23 42;      /* slate-900 */
-  --c-fill: 30 41 59;                /* slate-800 */
-  --c-fill-strong: 51 65 85;         /* slate-700 */
-  --c-fill-subtle: 15 23 42;         /* slate-900 */
-  --c-edge: 30 41 59;                /* slate-800 */
-  --c-edge-strong: 51 65 85;         /* slate-700 */
-  --c-accent: 34 211 238;            /* cyan-400 */
-  --c-accent-fg: 103 232 249;        /* cyan-300 */
-  --c-accent-fg-strong: 207 250 254; /* cyan-100 */
-  --c-accent-on: 2 6 23;             /* slate-950 — text on solid accent */
-  --c-accent-subtle: 8 51 68;        /* cyan-950 */
-  --c-accent-solid: 8 145 178;       /* cyan-600 — solid buttons, same both themes */
-  --c-accent-solid-hover: 14 116 144;/* cyan-700 — solid button hover, both themes */
+  --c-content: 239 242 248;
+  --c-content-secondary: 203 210 223;
+  --c-content-muted: 166 175 193;
+  --c-content-faint: 139 151 174;
+  --c-surface: 18 23 33;
+  --c-surface-raised: 25 32 44;
+  --c-fill: 35 44 59;
+  --c-fill-strong: 49 60 78;
+  --c-fill-subtle: 14 19 28;
+  --c-edge: 43 53 70;
+  --c-edge-strong: 67 80 101;
+  --c-accent: 133 157 255;
+  --c-accent-fg: 167 186 255;
+  --c-accent-fg-strong: 214 224 255;
+  --c-accent-on: 255 255 255;
+  --c-accent-subtle: 34 45 81;
+  --c-accent-solid: 57 84 216;
+  --c-accent-solid-hover: 44 66 177;
 
   /* Legacy variables (kept for raw CSS consumers) */
   --theme-bg-body: #0c0f14;
@@ -47,24 +47,24 @@
 
 /* Light theme overrides */
 [data-theme="light"] {
-  --c-content: 15 23 42;             /* slate-900 */
-  --c-content-secondary: 71 85 105;  /* slate-600 */
-  --c-content-muted: 100 116 139;    /* slate-500 */
-  --c-content-faint: 148 163 184;    /* slate-400 */
-  --c-surface: 255 255 255;          /* white */
-  --c-surface-raised: 241 245 249;   /* slate-100 */
-  --c-fill: 241 245 249;             /* slate-100 */
-  --c-fill-strong: 226 232 240;      /* slate-200 */
-  --c-fill-subtle: 248 250 252;      /* slate-50 */
-  --c-edge: 226 232 240;             /* slate-200 */
-  --c-edge-strong: 203 213 225;      /* slate-300 */
-  --c-accent: 8 145 178;             /* cyan-600 */
-  --c-accent-fg: 14 116 144;         /* cyan-700 */
-  --c-accent-fg-strong: 21 94 117;   /* cyan-800 */
-  --c-accent-on: 255 255 255;        /* white — text on solid accent */
-  --c-accent-subtle: 236 254 255;    /* cyan-50 */
-  --c-accent-solid: 8 145 178;       /* cyan-600 — solid buttons, same both themes */
-  --c-accent-solid-hover: 14 116 144;/* cyan-700 — solid button hover, both themes */
+  --c-content: 25 33 47;
+  --c-content-secondary: 57 69 89;
+  --c-content-muted: 80 92 113;
+  --c-content-faint: 101 112 133;
+  --c-surface: 255 255 255;
+  --c-surface-raised: 247 248 251;
+  --c-fill: 239 242 247;
+  --c-fill-strong: 225 230 239;
+  --c-fill-subtle: 244 246 250;
+  --c-edge: 217 224 235;
+  --c-edge-strong: 179 192 210;
+  --c-accent: 57 84 216;
+  --c-accent-fg: 44 66 177;
+  --c-accent-fg-strong: 32 49 132;
+  --c-accent-on: 255 255 255;
+  --c-accent-subtle: 234 239 255;
+  --c-accent-solid: 57 84 216;
+  --c-accent-solid-hover: 44 66 177;
 
   /* Legacy variables (kept for raw CSS consumers) */
   --theme-bg-body: #f8fafc;
@@ -82,18 +82,8 @@
   --theme-accent-text: #ffffff;
 }
 
-/* Body background */
-body {
-  background:
-    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.16), transparent 28rem),
-    linear-gradient(135deg, #0b0d12 0%, #131821 48%, #0d1016 100%);
-  color: var(--theme-text-primary);
-}
-
-/* Light mode: simpler background */
-[data-theme="light"] body {
-  background: var(--theme-bg-body);
-}
+/* The workspace stays visually quiet around the physical rack. */
+body { background: rgb(var(--c-fill-subtle)); color: rgb(var(--c-content)); }
 
 /* Scrollbar theming */
 .thin-scrollbar {

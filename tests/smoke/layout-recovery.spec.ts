@@ -24,6 +24,7 @@ async function boot(page: Page) {
 }
 async function importFixture(page: Page) {
   await page.locator('input[type=file]').first().setInputFiles({ name: 'recovery.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fixture)) });
+  await page.getByRole('dialog', { name: 'Import rack layout?', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Layout recovery' })).toContainText('Out-of-bounds planning data retained');
 }
 async function openShrink(page: Page) {

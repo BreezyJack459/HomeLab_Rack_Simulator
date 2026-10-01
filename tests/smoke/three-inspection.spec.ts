@@ -44,7 +44,9 @@ test('cable endpoints, focus controls and layers stay usable in the viewport', a
   await viewer.getByRole('checkbox', { name: 'cables', exact: true }).uncheck();
   await expect(viewer.getByTestId('scene-selection-label')).toHaveCount(0);
   await viewer.getByRole('checkbox', { name: 'cables', exact: true }).check();
+  await expect(viewer.getByRole('checkbox', { name: 'cables', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
+  await expect(viewer.locator('summary')).toBeFocused();
   await expect(viewer.locator('details')).not.toHaveAttribute('open');
   await viewer.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(viewer.getByRole('button', { name: 'Fit route' })).toHaveCount(0);

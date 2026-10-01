@@ -112,10 +112,10 @@ export function ModelWorkspaceLayout({
   return (
     <div
       ref={containerRef}
-      className="grid min-h-0 flex-1 grid-cols-1 gap-3"
+      className="studio-canvas relative grid min-h-0 flex-1 grid-cols-1 gap-3"
       style={!isBelowLg && libraryVisible ? { gridTemplateColumns: `${sidebar != null ? 220 : effectiveLibraryWidth}px minmax(0,1fr)` } : undefined}
     >
-      {isBelowLg && sidebar && !libraryVisible && <button type="button" onClick={() => setDeviceLibraryDrawerOpen(true)} className="absolute left-6 bottom-4 z-40 rounded-full border border-edge bg-surface px-4 py-2 text-sm shadow-panel">{sidebarLabel}</button>}
+      {isBelowLg && sidebar && !libraryVisible && <button type="button" onClick={() => setDeviceLibraryDrawerOpen(true)} className="absolute left-4 bottom-3 z-40 min-h-11 rounded-lg border border-edge-strong bg-surface px-4 py-2 text-sm font-semibold shadow-panel">{sidebarLabel}</button>}
       {libraryVisible && (
         <>
           <button
@@ -129,14 +129,14 @@ export function ModelWorkspaceLayout({
             role={isBelowLg ? 'dialog' : undefined}
             aria-modal={isBelowLg ? true : undefined}
             aria-label={sidebarLabel}
-            className="fixed inset-y-3 left-3 z-[90] min-h-0 w-[min(320px,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-edge bg-surface/96 shadow-panel dark:border-edge dark:bg-surface/96 lg:static lg:z-auto lg:w-auto lg:bg-surface/82 lg:shadow-none lg:dark:bg-surface/82"
+            className="fixed inset-y-3 left-3 z-[90] min-h-0 w-[min(360px,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-edge bg-surface shadow-panel lg:static lg:z-auto lg:w-auto lg:shadow-none"
             data-testid="device-library-panel"
           >
             <button
               ref={closeButtonRef}
               type="button"
               aria-label="Close device library"
-              className="absolute right-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-surface/90 text-content-secondary shadow-sm transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised lg:hidden"
+              className="absolute right-2 top-2 z-30 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-edge bg-surface text-content-secondary shadow-sm transition hover:border-accent hover:text-accent-fg lg:hidden"
               onClick={() => setDeviceLibraryDrawerOpen(false)}
             >
               <X size={16} />
@@ -189,7 +189,7 @@ export function ModelWorkspaceLayout({
         </>
       )}
 
-      <section className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-edge bg-surface/82 dark:border-edge dark:bg-surface/82">
+      <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-edge bg-surface" aria-label="Rack planning canvas">
         {canvas}
       </section>
     </div>

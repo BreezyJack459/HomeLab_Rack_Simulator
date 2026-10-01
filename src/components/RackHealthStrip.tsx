@@ -54,19 +54,19 @@ function HealthChip({
     <Component
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className="flex min-w-[7.5rem] items-center gap-2 rounded-full border border-edge bg-surface/70 px-2.5 py-1 dark:border-edge dark:bg-surface-raised/60"
+      className="studio-health-chip flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-2 text-left hover:bg-fill"
       data-testid={testId}
       data-status={status}
       title={`${label}: ${valueText}`}
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${colors.dot}`} aria-hidden />
-      <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-content-faint">
+      <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-content-muted">
         {label}
       </span>
       <span className="whitespace-nowrap text-xs font-medium text-content-secondary dark:text-content-secondary">
         {valueText}
       </span>
-      {percent !== undefined && <span className="h-1 w-10 overflow-hidden rounded-full bg-fill dark:bg-fill" aria-hidden>
+      {percent !== undefined && <span className="hidden h-1 w-8 overflow-hidden rounded-full bg-fill xl:block" aria-hidden>
         <span
           className={`block h-full rounded-full ${colors.bar}`}
           style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
@@ -99,7 +99,7 @@ export function RackHealthStrip({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5"
+      className="studio-health-strip grid w-full grid-cols-2 gap-x-3 gap-y-0 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2"
       data-testid="rack-health-strip"
       aria-label="Rack health summary"
     >

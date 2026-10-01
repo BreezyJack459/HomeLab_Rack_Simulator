@@ -5,6 +5,7 @@ import {
   Copy,
   Download,
   FileJson,
+  FileText,
   FolderOpen,
   Plus,
   Redo,
@@ -17,10 +18,10 @@ import {
 import { useEffect, useRef, type ReactNode } from 'react';
 
 export const MENU_BUTTON_CLASS =
-  'rounded-xl px-3 py-2 text-left text-xs text-content-secondary hover:bg-fill dark:text-content-secondary dark:hover:bg-fill';
+  'min-h-11 shrink-0 rounded-lg px-3 py-2 text-left text-sm text-content-secondary transition-colors hover:bg-fill disabled:cursor-not-allowed disabled:opacity-40';
 
 const MENU_TRIGGER_CLASS =
-  'inline-flex h-8 items-center gap-1.5 rounded-full border border-edge bg-surface px-3 text-xs font-medium text-content-secondary shadow-sm transition hover:border-accent hover:text-accent-fg dark:border-edge-strong dark:bg-surface-raised dark:text-content-secondary dark:hover:border-accent dark:hover:text-accent-fg';
+  'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-edge bg-surface px-3 text-xs font-semibold text-content-secondary transition-colors hover:border-accent hover:bg-fill hover:text-accent-fg';
 
 export interface ActionMenusProps {
   canUndo: boolean;
@@ -57,6 +58,7 @@ export function ActionMenu({
   align = 'left',
   children,
   testId,
+  icon,
 }: {
   label: string;
   summary: string;
@@ -64,6 +66,7 @@ export function ActionMenu({
   align?: 'left' | 'right';
   children: ReactNode;
   testId?: string;
+  icon?: ReactNode;
 }) {
   useEffect(() => {
     const outside = (event: PointerEvent) => { if (!menuRef.current?.contains(event.target as Node)) menuRef.current?.removeAttribute('open'); };
@@ -74,11 +77,12 @@ export function ActionMenu({
   return (
     <details ref={menuRef as React.LegacyRef<HTMLDetailsElement>} className="relative" data-testid={testId}>
       <summary className={`${MENU_TRIGGER_CLASS} list-none`} role="button" aria-label={label}>
+        {icon && <span className="hidden sm:inline-flex">{icon}</span>}
         {summary}
-        <ChevronDown size={13} />
+        <ChevronDown size={13} className="hidden sm:block" aria-hidden="true" />
       </summary>
       <div
-        className={`absolute z-20 mt-2 flex max-h-[70vh] w-56 flex-col overflow-y-auto rounded-2xl border border-edge bg-surface p-2 shadow-xl dark:border-edge-strong dark:bg-surface-raised ${
+        className={`absolute z-30 mt-2 flex max-h-[min(70dvh,calc(100dvh-8rem))] w-[min(18rem,calc(100vw-2rem))] flex-col overflow-y-auto rounded-[10px] border border-edge-strong bg-surface-raised p-2 shadow-panel max-sm:fixed max-sm:left-3 max-sm:right-3 max-sm:w-auto ${
           align === 'right' ? 'right-0' : 'left-0'
         }`}
       >
@@ -195,15 +199,18 @@ export function ActionMenus({
         menuRef={fileMenuRef}
         align="right"
         testId="more-dropdown"
+        icon={<FileText size={15} aria-hidden="true" />}
       >
         {fileOnly && <>
+          <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-content-muted">Rack & examples · 機架與示例</p>
           <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onNewLayout)} type="button">New rack layout</button>
           <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onLoadSample)} type="button">Load sample</button>
           <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onImportLayout)} type="button">Import rack</button>
           <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onDuplicate)} type="button">Duplicate current rack</button>
-          <div className="my-1 border-t border-edge" />
         </>}
-        <p className="px-3 py-2 text-xs text-content-muted">Autosave is stored in this browser only.</p>
+        <div className="mx-3 my-2 border-t border-edge" />
+        <p className="px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-content-muted">Save & restore · 儲存與還原</p>
+        <p className="px-3 py-2 text-xs leading-5 text-content-muted">Autosave is stored in this browser only. Keep a downloaded backup for another browser or computer.</p>
         {onWorkspaceBackup && <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onWorkspaceBackup)} type="button">Workspace backup and restore</button>}
         <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onSaveLocal)} type="button">
           <Save className="mr-2 inline" size={13} />
@@ -213,7 +220,8 @@ export function ActionMenus({
           <Upload className="mr-2 inline" size={13} />
           Load local copy
         </button>
-        <div className="my-1 border-t border-edge" />
+        <div className="mx-3 my-2 border-t border-edge" />
+        <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-content-muted">Export & share · 匯出</p>
         <button className={MENU_BUTTON_CLASS} onClick={() => runMenuAction(onExportJson)} type="button">
           <FileJson className="mr-2 inline" size={13} />
           Export rack JSON

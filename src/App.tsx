@@ -28,6 +28,7 @@ import type { ActionMenusProps } from "./components/ActionBar";
 import { DeviceLibraryToggle } from "./components/DeviceLibraryToggle";
 import { ModelInspectorTabs } from "./components/ModelInspectorTabs";
 import { RightInspectorShell } from "./components/RightInspectorShell";
+import { StudioSaveStatus } from "./components/StudioSaveStatus";
 import { WorkspaceActionPanel } from "./components/WorkspaceActionPanel";
 import { useBuiltInPlugins } from "./plugins/useBuiltInPlugins";
 import { getCoreContributions } from "./plugins/coreContributions";
@@ -331,8 +332,10 @@ function App() {
   );
 
   const [confirmAction, setConfirmAction] = useState<null | {
-    type: "new" | "sample";
+    type: "new" | "sample" | "import";
     payload?: string;
+    importedLayout?: RackLayout;
+    targetRackId?: string;
   }>(null);
   const [inspectorModalMode, setInspectorModalMode] = useState(() =>
     typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -648,9 +651,11 @@ function App() {
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
+    const targetRackId = useRackStore.getState().currentRackId;
     try {
       const { readJsonFile } = await import("./utils/exporters");
       const imported = await readJsonFile(file);
+      const { validateImportedLayout } = await import("./utils/layoutValidation");
       const candidate = imported as Partial<RackLayout> | null;
       if (
         !candidate ||
@@ -661,12 +666,17 @@ function App() {
         (candidate.devices !== undefined && !Array.isArray(candidate.devices))
       ) {
         useRackStore.setState({
-          statusMessage: "Invalid rack layout JSON file.",
+          statusMessage: "Invalid rack layout JSON file. Current data has not changed.",
         });
         input.value = "";
         return;
       }
-      loadLayout(candidate as RackLayout);
+      const validation = validateImportedLayout(candidate);
+      if (!validation.valid) {
+        useRackStore.setState({ statusMessage: "Invalid rack layout JSON file. Current data has not changed." });
+        return;
+      }
+      setConfirmAction({ type: "import", importedLayout: validation.layout, targetRackId });
     } catch {
       useRackStore.setState({
         statusMessage: "Failed to read rack layout file.",
@@ -676,11 +686,7 @@ function App() {
   }
 
   function handleNewLayout() {
-    if (layout.devices.length > 0 || layout.cables.length > 0) {
-      setConfirmAction({ type: "new" });
-      return;
-    }
-    newLayout(layout.rackType, layout.heightU);
+    setConfirmAction({ type: "new" });
   }
 
   function handleLoadSample(sampleId: string) {
@@ -693,6 +699,12 @@ function App() {
     if (!confirmAction) return;
     if (confirmAction.type === "new") {
       newLayout(layout.rackType, layout.heightU);
+    } else if (confirmAction.type === "import" && confirmAction.importedLayout) {
+      if (confirmAction.targetRackId !== useRackStore.getState().currentRackId) {
+        useRackStore.setState({ statusMessage: "Current rack changed. Import cancelled; choose the file again for the intended rack." });
+      } else {
+        loadLayout(confirmAction.importedLayout);
+      }
     } else if (confirmAction.type === "sample" && confirmAction.payload) {
       loadSample(confirmAction.payload);
     }
@@ -1606,7 +1618,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen max-w-full overflow-hidden bg-fill-subtle text-content dark:bg-surface dark:text-content">
+    <div className="studio-workspace flex h-screen w-screen max-w-full overflow-hidden bg-fill-subtle text-content dark:bg-surface dark:text-content">
       {!NEW_SHELL && (
         <Suspense fallback={null}>
           <PrimaryNav
@@ -1697,7 +1709,7 @@ function App() {
         />
 
         <div
-          className={`grid min-h-0 flex-1 grid-cols-1 ${
+          className={`relative grid min-h-0 flex-1 grid-cols-1 ${
             inspectorOpen
               ? NEW_SHELL
                 ? "xl:grid-cols-[minmax(0,1fr)_300px]"
@@ -1707,14 +1719,13 @@ function App() {
         >
           <main className="min-w-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-3">
                 {layout.example && (currentWorkspace === 'model' || currentWorkspace === 'audit') && (() => {
                   const example = sampleDefinitions.find(sample => sample.layout.id === layout.example?.sampleId);
                   return example ? <Suspense fallback={null}><ExampleGuide sample={example} /></Suspense> : null;
                 })()}
                 {renderWorkspaceMain()}
               </div>
-              {NEW_SHELL && statusMessage && <div role="status" className="shrink-0 border-t border-edge px-3 py-1 text-xs text-content-muted">{statusMessage}</div>}
               {currentWorkspace !== "model" && !NEW_SHELL && (
                 <Suspense fallback={null}>
                   <BottomTray
@@ -1763,6 +1774,8 @@ function App() {
           </RightInspectorShell>
         </div>
 
+        {NEW_SHELL && <StudioSaveStatus onExport={shellMenuProps.onExportJson} message={statusMessage} />}
+
         {settingsDialog && (
           <Suspense fallback={null}>
             <WorkspaceDialog
@@ -1789,8 +1802,9 @@ function App() {
         )}
         {workspaceBackupOpen && <Suspense fallback={null}><WorkspaceBackup onClose={() => setWorkspaceBackupOpen(false)} /></Suspense>}
         {confirmAction && <Suspense fallback={null}>
-          <WorkspaceDialog title={confirmAction.type === 'new' ? 'Start a new layout?' : 'Load sample layout?'} onClose={() => setConfirmAction(null)}>
-            <p className="mb-3 text-sm text-content-secondary">{confirmAction.type === 'new' ? 'This will clear all devices and cables.' : 'This will replace the current rack, including its settings, inventory and records. Other racks remain unchanged.'}</p>
+          <WorkspaceDialog title={confirmAction.type === 'new' ? 'Start a new layout?' : confirmAction.type === 'import' ? 'Import rack layout?' : 'Load sample layout?'} onClose={() => setConfirmAction(null)}>
+            <p className="mb-3 text-sm text-content-secondary">This will replace the current rack, including its settings, inventory and records. Other racks remain unchanged. Connections to replaced devices may be removed. Undo history for this rack will reset; download a backup first if you need to keep it.</p>
+            {confirmAction.type === 'import' && confirmAction.importedLayout && <p className="mb-3 text-sm font-semibold">Import “{confirmAction.importedLayout.name}”: {confirmAction.importedLayout.devices.length} installed devices, {confirmAction.importedLayout.unplacedDevices?.length ?? 0} unplaced devices, {confirmAction.importedLayout.cables?.length ?? 0} cables.</p>}
             {confirmAction.type === 'sample' && <>
               <p className="mb-3 text-sm font-semibold">{sampleDefinitions.find(sample => sample.layout.id === confirmAction.payload)?.title}</p>
               {sampleDefinitions.find(sample => sample.layout.id === confirmAction.payload)?.kind === 'exercise' && <p className="mb-3 text-sm font-semibold text-amber-600">INTENTIONAL FAULTS · 故意設置問題：This exercise deliberately includes mistakes to repair.</p>}
