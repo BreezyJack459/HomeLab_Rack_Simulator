@@ -181,11 +181,11 @@ export function CableViewer3D({ fitAvailableHeight = false }: { fitAvailableHeig
         onFit={() => { setCameraPreset('overview'); chooseFocus('rack'); }}>
         <button className={sceneButtonClass} aria-pressed={drawingActive} onClick={() => { setEditingCableId(null); setDrawingActive(v => !v); selectCable(null); }}>Draw route</button>
         {selectedCableId && !drawingActive && <button className={sceneButtonClass} onClick={() => { setEditingCableId(selectedCableId); setDrawingActive(true); }}>Redraw route</button>}
-        <details className="relative" onKeyDown={(event) => {
+        <details className="relative ml-auto" onKeyDown={(event) => {
           if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
         }}>
           <summary className={`${sceneButtonClass} cursor-pointer list-none`}>Display</summary>
-          <div className="absolute right-0 top-10 z-20 w-56 space-y-3 rounded-lg border border-edge bg-surface p-3 shadow-lg">
+          <div className="absolute right-0 top-10 z-20 max-h-36 w-56 space-y-3 overflow-y-auto sm:max-h-none rounded-lg border border-edge bg-surface p-3 shadow-lg">
             <fieldset className="space-y-2">
               <legend className="mb-1 text-xs font-semibold text-content">Routing style</legend>
               {(['clean', 'realistic'] as const).map((mode) => <button key={mode} type="button"

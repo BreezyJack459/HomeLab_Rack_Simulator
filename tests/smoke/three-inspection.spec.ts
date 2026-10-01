@@ -52,3 +52,36 @@ test('cable endpoints, focus controls and layers stay usable in the viewport', a
   await expect(viewer.getByRole('button', { name: 'Fit route' })).toHaveCount(0);
   await expect(page.locator('#runtime-error-overlay')).toHaveCount(0);
 });
+
+
+test('wrapped mobile 3D display menu keeps routing styles and layers inside the canvas', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Cable', exact: true }).click();
+  await page.getByRole('button', { name: '3D routing', exact: true }).click();
+  const viewer = page.getByTestId('cable-viewer-3d');
+  await expect(viewer.locator('canvas')).toBeVisible();
+  await viewer.locator('summary').click();
+  const popup = viewer.locator('details > div');
+  const canvasBounds = (await viewer.boundingBox())!;
+  const popupBounds = (await popup.boundingBox())!;
+  expect(popupBounds.x).toBeGreaterThanOrEqual(canvasBounds.x);
+  expect(popupBounds.x + popupBounds.width).toBeLessThanOrEqual(canvasBounds.x + canvasBounds.width);
+  expect(popupBounds.y + popupBounds.height).toBeLessThanOrEqual(canvasBounds.y + canvasBounds.height);
+  for (const style of ['clean', 'realistic']) {
+    const button = viewer.getByRole('button', { name: style, exact: true });
+    await expect(button).toBeInViewport({ ratio: 1 });
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+  }
+  const cables = viewer.getByRole('checkbox', { name: 'cables', exact: true });
+  await cables.scrollIntoViewIfNeeded();
+  await expect(cables).toBeInViewport({ ratio: 1 });
+  await cables.uncheck();
+  await expect(cables).not.toBeChecked();
+  await cables.check();
+  await page.keyboard.press('Escape');
+  await expect(viewer.locator('details')).not.toHaveAttribute('open');
+  await expect(viewer.locator('summary')).toBeFocused();
+  await expect(page.locator('#runtime-error-overlay')).toHaveCount(0);
+});
