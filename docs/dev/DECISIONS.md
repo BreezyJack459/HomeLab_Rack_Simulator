@@ -1,6 +1,11 @@
 # Architecture Decisions
 
-Reviewed 2026-09-18. Dated decisions preserve their rationale; current corrections below take precedence over historical implementation details. See [architecture](ARCHITECTURE.md).
+Reviewed 2026-09-18, with the corrections in the next section checked on 2026-10-21 against `main` `c0d2038`. Dated decisions preserve their rationale; current corrections take precedence over historical implementation details. See [architecture](ARCHITECTURE.md).
+
+## Current corrections (2026-10-21)
+
+- Purchase recommendations use `getCableLengthRequirements`: the longer Clean/Realistic rendered centreline plus one installation-slack allowance. The 2026-09-09 notes that leave BOM on a separate 2D plan describe that phase, not the current calculation. The centreline drawn for the active display style still excludes the extra slack, and recorded lengths are not overwritten.
+- ADR-016's consequence that startup appends missing workspace packs is no longer accurate. `layoutPrefsStore.ts` keeps a saved enabled-id list as stored and checkpoints unversioned preferences without re-enabling omitted packs. Cable Labels is an additional lazy optional view beside Operations, Planning, Fleet and Port Labels.
 
 ## ADR-001: Zustand over Redux/Context
 **Status**: Accepted  

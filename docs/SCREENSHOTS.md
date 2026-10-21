@@ -1,8 +1,8 @@
 # Screenshot tour / 截圖導覽
 
-Captured **2026-09-18** from the local working tree, not the deployed site. Desktop images use 1600 × 1000; the tablet example uses 900 × 1100. These are real application screenshots, not mockups.
+Captured **2026-10-21** from the local Vite app at `main` `c0d2038`, using the Rack Studio shell. Desktop images use 1600 × 1000; the tablet example uses 900 × 1100. These are real application screenshots, not mockups. The capture is the development server, not a separate production rebuild.
 
-所有畫面都由本機程式擷取，使用獨立 Chromium 同範例資料，冇使用個人瀏覽器嘅已儲存佈局。範例警告保留原樣；截圖唔代表實物安裝驗證。
+所有畫面都由本機 Vite（`main` `c0d2038`）嘅 Rack Studio 擷取，使用獨立 Chromium 同範例資料，冇使用個人瀏覽器嘅已儲存佈局。範例警告保留原樣；截圖唔代表實物安裝驗證。
 
 [English guide](USER_GUIDE.md) · [繁體中文指南](USER_GUIDE.zh-Hant.md) · [README](../README.md)
 
@@ -48,11 +48,11 @@ Logical device connections; this is not a physical cable route.
 
 ## Check · Issue details
 
-A selected PDU outlet assignment issue; sample warnings are retained.
+Sample Home Cloud findings grouped by root cause. The open power group includes an unknown outlet count and unassigned power cables. Sample warnings are retained.
 
-選取 PDU 插座分配問題，保留範例原有警告。
+範例 Home Cloud 嘅檢查按根因分組，打開嘅電力組包括未知插座數量同未分配電源線。範例警告保留原樣。
 
-![A selected PDU outlet assignment issue; sample warnings are retained.](images/check.png)
+![Sample Home Cloud findings grouped by root cause, including unknown outlet count and unassigned power cables.](images/check.png)
 
 ## Build · My devices
 
