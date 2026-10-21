@@ -1,6 +1,6 @@
 # Architecture
 
-Current source reference, reviewed 2026-09-18. [Decisions](DECISIONS.md) preserve rationale; this document describes the current implementation.
+Current source reference. Plugin preferences, lazy packs and purchase length were checked against `main` `c0d2038` on 2026-10-21. Other sections were last reconciled between 2026-09-18 and 2026-09-30 and were not re-audited line by line in this pass. [Decisions](DECISIONS.md) preserve rationale; this document describes the current implementation.
 
 ## Shell and state ownership
 
@@ -61,15 +61,15 @@ Clean determines the clear geometry. Realistic may add slack only while preservi
 
 `CableRoute.manualPath` stores semantic channel/manager anchors. Undefined means automatic; an empty array means a direct custom route. `manualCableRoute.ts` resolves anchors against current geometry for 2D projection, 3D rendering and custom-route length estimates. Missing anchors or obstruction require review rather than silently switching routes.
 
-Automatic 3D route selection does not replace automatic 2D/BOM length calculations. Custom-route lengths are polyline estimates converted to mm plus slack. Neither is a measured installation length.
+Purchase length is `getCableLengthRequirements` in `cableLengthRequirements.ts`: the longer Clean/Realistic rendered centreline plus that cable's installation slack, then the smallest stocked length that covers it. The centreline shown for the active display style does not include the extra slack. Blocked routes have no estimate. Recorded `lengthMm` is not overwritten. Custom-route lengths are polyline estimates in millimetres plus slack. None of these is a measured installation length. The 2D map remains a schematic.
 
 ## Plugins
 
 `pluginHost.ts` aggregates view, panel, command, toolbar and workspace contributions with duplicate-ID protection. The core owns model/audit shell behavior and plugin management; optional packs own their workspace contributions.
 
-`builtInPlugins.ts` synchronously registers Cable Management and Governance Tools. Data-only manifests in `builtInPluginManifests.ts` describe Operations, Planning, Fleet and Port Labels; a closed loader allowlist imports their executable modules only when enabled. `useBuiltInPlugins.ts` keeps catalog order stable, tracks loading/errors and permits retry after a failed import.
+`builtInPlugins.ts` synchronously registers Cable Management and Governance Tools. Data-only manifests in `builtInPluginManifests.ts` describe Operations, Planning, Fleet, Port Labels and Cable Labels; a closed loader allowlist imports their executable modules only when enabled. `useBuiltInPlugins.ts` keeps catalog order stable, tracks loading/errors and permits retry after a failed import.
 
-Fresh preferences enable the default plugins and leave those four optional plugins off. Returning users with a saved enabled-ID list get missing workspace-pack IDs appended by `layoutPrefsStore.ts`; Port Labels is excluded from that migration. Thus a previously disabled workspace pack can reappear after reload under the current migration.
+Fresh preferences enable Cable Management and Governance Tools and leave those five optional plugins off. `layoutPrefsStore.ts` treats a saved `enabledPluginIds` array as authoritative and does not append missing pack ids. Unversioned saved preferences are written back once with `prefsVersion: 1` without re-enabling omitted packs. A fresh install stays on the defaults.
 
 Local package metadata does not grant arbitrary JavaScript loading. `localPackageLoader.ts` requires an approved ID and an adapter registered in `localPackageRegistry.ts` before a package becomes hosted. Plugins execute within the client application, not in an isolated service.
 

@@ -1,14 +1,14 @@
 # User guide
 
-Current working-tree workflows, reviewed 2026-09-30. [繁體中文](USER_GUIDE.zh-Hant.md) · [Overview](../README.md)
+Current workflows, checked against `main` `c0d2038` on 2026-10-21. [繁體中文](USER_GUIDE.zh-Hant.md) · [Overview](../README.md)
 
-Screenshots below were captured from the local app on 2026-09-18 using example data. [Complete visual tour](SCREENSHOTS.md).
+Screenshots below were captured from the local Rack Studio app on 2026-10-21 using example data. [Complete visual tour](SCREENSHOTS.md).
 
 ## Learning examples and a safe first start
 
 A browser with no saved workspace starts with **Start small: one feed / 入門：單路供電小機架**, a 6U 10-inch generic router, switch and distribution plan. Its single-supply, optional recovery and disconnect-before-moving goals are explicit. Spare sockets are intentionally idle. Existing workspaces, legacy saved layouts and recoverable invalid backups are preserved; the starter does not replace them.
 
-Use **Create → Load sample layout** to choose among three learning examples:
+Use **File → Load sample** to choose among three learning examples. The picker is titled Load sample layout. The classic chrome keeps this command under **Create**.
 
 - **Start small: one feed** teaches socket faces, intended connections and sensible single-feed goals.
 - **Trace A/B and patch paths** uses a 14U 19-inch rack to demonstrate separate recorded A/B circuits and PSU inlets, complete front/rear patch pairs, rails and service dependencies.

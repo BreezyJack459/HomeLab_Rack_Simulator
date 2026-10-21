@@ -1,6 +1,6 @@
 # Documentation index
 
-Current guides were reconciled with the working tree on **2026-09-18**. Local changes may be ahead of the deployed demo. Historical records retain their original evidence and have explicit status notices; they are not current release instructions.
+The overview, known limitations and the status notes updated with them were checked against `main` `c0d2038` on **2026-10-21**. GitHub Pages published that commit on 2026-10-01. Historical records retain their original evidence and have explicit status notices; they are not current release instructions. Other guides were not re-audited line by line in this pass.
 
 ## Start and use the app
 
@@ -21,7 +21,8 @@ Current guides were reconciled with the working tree on **2026-09-18**. Local ch
 | [Architecture](dev/ARCHITECTURE.md) | State, geometry, routing, plugins, lazy loading and persistence |
 | [Development](dev/DEVELOPMENT.md) | Commands, checks, CI, screenshots and deployment |
 | [Architecture decisions](dev/DECISIONS.md) | Rationale, current amendments and superseded decisions |
-| [Known limitations](dev/KNOWN_ISSUES.md) | Source-backed limitations and outstanding release verification |
+| [Known limitations](dev/KNOWN_ISSUES.md) | Source-backed limitations; plugin-preference and CI notes match the current workflows |
+| [A–B patch chains](dev/PATCH_CHAIN.md) | Connect A–B planning, explicit patch-cord/permanent-link roles, and panel route tidying |
 | [Implementation status](planning/TASKS.md) | Current areas with source/test entry points |
 | [Next steps](dev/NEXT_STEPS.md) | Proposed follow-ups, not automatic implementation authorization |
 | [Workspace organization](design/workspace-organization.md) | Current navigation, inventory, placement feedback and drawers |

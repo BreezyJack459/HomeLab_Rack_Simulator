@@ -2,6 +2,8 @@
 
 Requested outcome: fix the reviewed problems so users can build and simulate a rack using clear, trustworthy information. The reviewed implementation is complete within the represented-constraint scope documented below. Historical progress entries retain their original status; the final acceptance audit supersedes them.
 
+The acceptance audit is dated 2026-09-29 and says that session did not publish. `main` `c0d2038` was later published to GitHub Pages on 2026-10-01 after the repository CI workflow. Pass counts in this file are historical evidence from those sessions, not a test run on 2026-10-21.
+
 ## Required work and evidence
 
 - Unify power socket selection, legacy outlet records, occupancy, validation and outlet-failure simulation. Verify both endpoint directions, legacy imports, duplicate and invalid sockets, and conflicts.

@@ -1,6 +1,6 @@
 # Development and validation
 
-Reviewed against repository configuration on 2026-09-18. Commands run from the repository root.
+Reviewed against repository configuration on 2026-10-21 (`main` `c0d2038`). Commands run from the repository root.
 
 ## Local development
 
@@ -64,4 +64,4 @@ Use function declarations for React components, strict TypeScript and type impor
 
 ## Shell diagnostics
 
-The redesigned shell is the default. To reproduce classic chrome, set `localStorage["rack-simulator-new-shell"] = "0"` in that browser and reload. Remove the key to restore default behavior. Test saved plugin preferences separately from a clean browser because migration adds workspace packs to existing preference lists.
+Rack Studio is the default shell. To reproduce classic chrome, set `localStorage["rack-simulator-new-shell"] = "0"` in that browser and reload. Remove the key to restore default behavior. A saved enabled-plugin list is kept as stored; startup does not add packs that were omitted from that list.

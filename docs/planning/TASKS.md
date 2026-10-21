@@ -1,6 +1,6 @@
 # Implementation status and backlog
 
-Source-reviewed 2026-09-18; “implemented” means code exists, not that this documentation update reran its tests. The [previous task ledger](../archive/2026-09-18-doc-refresh/planning/TASKS.md) preserves original ideas and completion notes.
+Source-reviewed 2026-10-21 against `main` `c0d2038`; “implemented” means code exists, not that this documentation update reran its tests. The [previous task ledger](../archive/2026-09-18-doc-refresh/planning/TASKS.md) preserves original ideas and completion notes.
 
 ## Implemented in the current working tree
 
@@ -15,10 +15,16 @@ Source-reviewed 2026-09-18; “implemented” means code exists, not that this d
 | Topology and inter-rack integrity | `topologyGraph`, `interRackCables`; topology/inter-rack-wizard smoke specs |
 | Persistence recovery and safe height reduction | `LayoutRecovery`, `rackResize`; `tests/smoke/layout-recovery.spec.ts` |
 | Device specification audit | `docs/DEVICE_SPEC_AUDIT.zh-Hant.md`; dated evidence with unresolved values |
+| Rack Studio shell and in-canvas mobile Cable Display menu | `ShellTopBar`, `CableViewer3D`; `tests/smoke/new-shell.spec.ts`, `tests/smoke/three-inspection.spec.ts` |
+| Guided examples and shared finding summaries | `data/learningSamples.ts`, `utils/findingSummary.ts`; `src/data/learningSamples.test.ts`, `tests/smoke/samples.spec.ts`, `tests/smoke/sampleSummary.spec.ts` |
+| Planning goals and accepted exceptions | `PlanningGoalsControls`, `utils/findingExceptions.ts`; `src/components/baselineGoals.test.tsx`, `src/components/RackHealthStrip.test.tsx` |
+| A–B patch routing and panel route tidying | `utils/patchChain.ts`, `components/ABCableConnector.tsx`; `src/utils/patchChain.test.ts`, `tests/smoke/ab-panel-routing.spec.ts` |
+| Authoritative plugin preference checkpoint | `store/layoutPrefsStore.ts`; `src/store/layoutPrefsStore.test.ts` |
+| CI-gated GitHub Pages publish | `.github/workflows/ci.yml`, `.github/workflows/deploy.yml` |
 
 ## Proposed follow-ups
 
-See [Next steps](../dev/NEXT_STEPS.md) for release verification, preference migration, estimate clarity, catalog evidence and deployment checks. No new feature work is implicitly scheduled by this list.
+See [Next steps](../dev/NEXT_STEPS.md) for release-note evidence, screenshot upkeep and unresolved catalog values. No new feature work is implicitly scheduled by this list.
 
 ## Ideas rather than shipped behavior
 
